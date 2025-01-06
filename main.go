@@ -1,7 +1,7 @@
 package main
 
 import (
-	thps "tlesio/handshake"
+	thps "tlesio/server"
 )
 
 func main() {
