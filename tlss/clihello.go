@@ -18,8 +18,10 @@ import (
 // |--------------------------------------------------------------------------------------------|
 
 var (
-	offsetVersion uint32 = 2
-	offsetRandom  uint32 = 32
+	offsetVersion         uint32 = 2
+	offsetRandom          uint32 = 32
+	offsetSessionIdLen    uint32 = 1
+	offsetCipherSuitesLen uint32 = 2
 )
 
 // Compresion Methods will be ignored
@@ -39,6 +41,8 @@ type clientHello struct {
 
 func newClientHello(buffer []byte, lg *logrus.Logger) *clientHelloMsg {
 
+	var err error
+	var aux uint32
 	var ch clientHello
 	var offset uint32 = 0
 
@@ -52,9 +56,22 @@ func newClientHello(buffer []byte, lg *logrus.Logger) *clientHelloMsg {
 	}
 
 	ch.lg = lg
-	offset = ch.parseVersion(buffer)
-	offset = ch.parseRandom(buffer[offset:])
-	ch.parseSessionID(buffer[offset:])
+	offset += ch.parseVersion(buffer)
+	offset += ch.parseRandom(buffer[offset:])
+	aux, err = ch.parseSessionID(buffer[offset:])
+	if err != nil {
+		lg.Error(err)
+		return nil
+	}
+
+	offset += aux
+	aux, err = ch.parseCipherSuites(buffer[offset:])
+	if err != nil {
+		lg.Error(err)
+		return nil
+	}
+
+	offset += aux
 	return nil
 }
 
@@ -72,15 +89,44 @@ func (ch *clientHello) parseRandom(buffer []byte) uint32 {
 	return offsetRandom
 }
 
-func (ch *clientHello) parseSessionID(buffer []byte) uint32 {
+func (ch *clientHello) parseSessionID(buffer []byte) (uint32, error) {
 
-	sessionIDLen := uint32(buffer[0])
-	offset := uint32(1)
-	ch.helloMsg.sessionId = make([]byte, sessionIDLen)
-	copy(ch.helloMsg.sessionId, buffer[offset:offset+sessionIDLen])
+	if len(buffer) < 1 {
+		return 0, fmt.Errorf("sessionID field is too small")
+	}
+
+	fieldLen := uint32(buffer[0])
+	offset := uint32(offsetSessionIdLen)
+	if len(buffer) < int(offset+fieldLen) {
+		return 0, fmt.Errorf("sessionID field is too small")
+	}
+
+	ch.helloMsg.sessionId = make([]byte, fieldLen)
+	copy(ch.helloMsg.sessionId, buffer[offset:offset+fieldLen])
 	ch.lg.Debug("Field[SessionID]: ", prettyPrint(ch.helloMsg.sessionId))
-	fmt.Println("REVISAR SESSION ID")
-	return offset + sessionIDLen
+	return offset + fieldLen, nil
+}
+
+func (ch *clientHello) parseCipherSuites(buffer []byte) (uint32, error) {
+
+	offset := uint32(offsetCipherSuitesLen)
+	fieldLen := uint32(buffer[0])<<8 | uint32(buffer[1])
+	if len(buffer) < int(fieldLen) {
+		return 0, fmt.Errorf("CipherSuites field is too small")
+	}
+
+	if fieldLen%2 != 0 {
+		return 0, fmt.Errorf("CipherSuites field is not a multiple of 2")
+	}
+
+	fl := fieldLen / 2
+	ch.helloMsg.cipherSuites = make([]uint16, fl)
+	for i := uint32(0); i < fl; i++ {
+		ch.helloMsg.cipherSuites[i] = uint16(buffer[offset])<<8 | uint16(buffer[offset+1])
+		offset += 2
+	}
+
+	return offset, nil
 }
 
 // Print a byte array in a 'pretty' format
