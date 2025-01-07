@@ -31,8 +31,10 @@ func TLSMe(buffer []byte, lg *logrus.Logger) error {
 	offset += _TLSHeaderSize
 	switch packet.header.ContentType {
 	case ContentTypeHandshake:
-		packet.processHandshakeMsg(buffer[offset : offset+_TLSHandshakeMsgSize])
+		packet.processHandshakeMsg(buffer[offset:])
 	}
 
 	return nil
 }
+
+//func (pkt tlsPkt)

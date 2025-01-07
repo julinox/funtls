@@ -1,7 +1,6 @@
 package tlss
 
 import (
-	"encoding/binary"
 	"fmt"
 )
 
@@ -63,14 +62,28 @@ func (pkt *tlsPkt) processHandshakeMsg(buffer []byte) error {
 
 	var newHskMsg tlsHandshakeMsg
 
+	if buffer == nil {
+		pkt.lg.Error("Handshake message is nil")
+		return ErrNilParams
+	}
+
 	pkt.lg.Debug("Handshake Msg Len: ", len(buffer))
+	if len(buffer) < 4 {
+		pkt.lg.Error("Handshake message size did not match 4 bytes")
+		return ErrInvalidBufferSize
+	}
+
 	newHskMsg.RcvBuffSize = len(buffer)
 	newHskMsg.HandshakeType = HandshakeTypeType(buffer[0])
-	buffer[0] = 0
-	newHskMsg.Length = binary.BigEndian.Uint32(buffer)
-	//uint32(buffer[0])<<16 | uint32(buffer[1])<<8 | uint32(buffer[2])
+	newHskMsg.Length = uint32(buffer[1])<<16 | uint32(buffer[2])<<8 | uint32(buffer[3])
 	pkt.HandShakeMsg = &newHskMsg
 	pkt.lg.Debug(pkt.HandShakeMsg)
+
+	switch pkt.HandShakeMsg.HandshakeType {
+	case HandshakeTypeClientHelo:
+		newClientHello(buffer[4:], pkt.lg)
+	}
+
 	return nil
 }
 
