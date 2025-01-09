@@ -1,6 +1,7 @@
 package tlss
 
 import (
+	"encoding/binary"
 	"fmt"
 )
 
@@ -75,7 +76,8 @@ func (pkt *tlsPkt) processHandshakeMsg(buffer []byte) error {
 
 	newHskMsg.RcvBuffSize = len(buffer)
 	newHskMsg.HandshakeType = HandshakeTypeType(buffer[0])
-	newHskMsg.Length = uint32(buffer[1])<<16 | uint32(buffer[2])<<8 | uint32(buffer[3])
+	buffer[0] = 0
+	newHskMsg.Length = binary.BigEndian.Uint32(buffer[:4])
 	pkt.HandShakeMsg = &newHskMsg
 	pkt.lg.Debug(pkt.HandShakeMsg)
 

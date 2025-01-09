@@ -36,5 +36,3 @@ func TLSMe(buffer []byte, lg *logrus.Logger) error {
 
 	return nil
 }
-
-//func (pkt tlsPkt)

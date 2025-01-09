@@ -1,6 +1,7 @@
 package tlss
 
 import (
+	"encoding/binary"
 	"fmt"
 
 	"github.com/sirupsen/logrus"
@@ -118,7 +119,7 @@ func (ch *clientHello) parseSessionID(buffer []byte) (uint32, error) {
 func (ch *clientHello) parseCipherSuites(buffer []byte) (uint32, error) {
 
 	offset := uint32(offsetCipherSuitesLen)
-	fieldLen := uint32(buffer[0])<<8 | uint32(buffer[1])
+	fieldLen := binary.BigEndian.Uint16(buffer[:2])
 	if len(buffer) < int(fieldLen) {
 		return 0, fmt.Errorf("CipherSuites field is too small")
 	}
@@ -129,25 +130,48 @@ func (ch *clientHello) parseCipherSuites(buffer []byte) (uint32, error) {
 
 	fl := fieldLen / 2
 	ch.helloMsg.cipherSuites = make([]uint16, fl)
-	for i := uint32(0); i < fl; i++ {
-		ch.helloMsg.cipherSuites[i] = uint16(buffer[offset])<<8 | uint16(buffer[offset+1])
+	for i := uint16(0); i < fl; i++ {
+		ch.helloMsg.cipherSuites[i] = binary.BigEndian.Uint16(buffer[offset : offset+2])
 		offset += 2
 	}
 
-	ch.lg.Debug("Field[CipherSuites]: ", printCipherSuiteNames(ch.helloMsg.cipherSuites))
+	//ch.lg.Debug("Field[CipherSuites]: ", printCipherSuiteNames(ch.helloMsg.cipherSuites))
 	return offset, nil
 }
 
 func (ch *clientHello) parseExtensions(buffer []byte) {
 
 	// Parsing only supported extensions
-	fmt.Printf("BUFF: %s\n", prettyPrint(buffer[:10]))
+	if len(buffer) < 2 {
+		return
+	}
+
+	offset := 0
+	extLen := binary.BigEndian.Uint16(buffer[:2])
+	if len(buffer) < int(extLen) {
+		return
+	}
+
+	offset += 2
+	for offset < int(extLen) {
+		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
+		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
+		offset += 2 + 2 + int(exttLen)
+		if extnsByID[extt] == "" {
+			ch.lg.Debug("Extension not supported: ", extt)
+			continue
+		}
+
+		fmt.Printf("EXTENSION: %v | LEN: %v\n", extnsByID[extt], exttLen)
+		//break
+	}
+
+	//fmt.Printf("BUFF: %s\n", prettyPrint(buffer[:10]))
 }
 
 // Print a byte array in a 'pretty' format
 func prettyPrint(buffer []byte) string {
 
-	var pp int
 	var pretty string
 
 	for i, b := range buffer {
@@ -155,9 +179,7 @@ func prettyPrint(buffer []byte) string {
 		if (i+1)%16 == 0 && i+1 != len(buffer) {
 			pretty += "\n"
 		}
-		pp = i
 	}
 
-	fmt.Println("COUNT I: ", pp)
 	return pretty
 }
