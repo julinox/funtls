@@ -72,6 +72,14 @@ func newClientHello(buffer []byte, lg *logrus.Logger) *clientHelloMsg {
 	}
 
 	offset += aux
+	// Skip parsing Compression Methods
+	if len(buffer) < int(offset+1) {
+		lg.Error("ClientHello buffer is too small to contain Compression Methods length")
+		return nil
+	}
+	compressionMethodsLen := uint32(buffer[offset])
+	offset += 1 + compressionMethodsLen
+	ch.parseExtensions(buffer[offset:])
 	return nil
 }
 
@@ -126,12 +134,20 @@ func (ch *clientHello) parseCipherSuites(buffer []byte) (uint32, error) {
 		offset += 2
 	}
 
+	ch.lg.Debug("Field[CipherSuites]: ", printCipherSuiteNames(ch.helloMsg.cipherSuites))
 	return offset, nil
+}
+
+func (ch *clientHello) parseExtensions(buffer []byte) {
+
+	// Parsing only supported extensions
+	fmt.Printf("BUFF: %s\n", prettyPrint(buffer[:10]))
 }
 
 // Print a byte array in a 'pretty' format
 func prettyPrint(buffer []byte) string {
 
+	var pp int
 	var pretty string
 
 	for i, b := range buffer {
@@ -139,7 +155,9 @@ func prettyPrint(buffer []byte) string {
 		if (i+1)%16 == 0 && i+1 != len(buffer) {
 			pretty += "\n"
 		}
+		pp = i
 	}
 
+	fmt.Println("COUNT I: ", pp)
 	return pretty
 }
