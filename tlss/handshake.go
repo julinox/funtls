@@ -68,7 +68,6 @@ func (pkt *tlsPkt) processHandshakeMsg(buffer []byte) error {
 		return ErrNilParams
 	}
 
-	pkt.lg.Debug("Handshake Msg Len: ", len(buffer))
 	if len(buffer) < 4 {
 		pkt.lg.Error("Handshake message size did not match 4 bytes")
 		return ErrInvalidBufferSize

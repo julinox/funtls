@@ -22,7 +22,6 @@ func TLSMe(buffer []byte, lg *logrus.Logger) error {
 	}
 
 	packet.lg = lg
-	packet.lg.Debug("Packet received: ", len(buffer))
 	if err := packet.processHeader(buffer[offset:_TLSHeaderSize]); err != nil {
 		packet.lg.Error("Error processing TLS header: ", err)
 		return err

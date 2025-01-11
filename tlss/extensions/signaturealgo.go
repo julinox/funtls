@@ -1,8 +1,7 @@
-package tlss
+package extensions
 
 import (
 	"encoding/binary"
-	"fmt"
 )
 
 var extnsByID = map[uint16]string{
@@ -36,28 +35,13 @@ var extnsByID = map[uint16]string{
 }
 
 type SignatureAlgorithms struct {
-	Size       int
-	Algorithms []uint16
+	size       int
+	id         uint16
+	algorithms []uint16
 }
 
-func NewExtension(buffer []byte) interface{} {
-
-	// buffer should point to the beginning of the extension
-
-	if buffer == nil {
-		return nil
-	}
-
-	id := binary.BigEndian.Uint16(buffer[:2])
-	switch id {
-	case 0x0030: // signature_algorithms
-		return NewExtensionSignatureAlgorithms(buffer[2:])
-	default:
-		return nil
-	}
-}
-
-func NewExtensionSignatureAlgorithms(buffer []byte) *SignatureAlgorithms {
+// Read the signature algorithms extension and choose the one
+func newExtensionSignatureAlgorithms(buffer []byte) *SignatureAlgorithms {
 
 	var sa SignatureAlgorithms
 
@@ -65,15 +49,22 @@ func NewExtensionSignatureAlgorithms(buffer []byte) *SignatureAlgorithms {
 		return nil
 	}
 
-	fmt.Println("MIRA LA SIGNATURA DE ALGORITMOS")
+	offset := 2
+	sa.id = 0x000D
+	sa.size = int(binary.BigEndian.Uint16(buffer)) / 2
+	sa.algorithms = make([]uint16, sa.size)
+	for i := 0; i < sa.size; i++ {
+		sa.algorithms[i] = binary.BigEndian.Uint16(buffer[offset:])
+		offset += 2
+	}
+
 	return &sa
 }
 
-func getExtensionIDByName(name string) (uint16, bool) {
-	for id, extName := range extnsByID {
-		if extName == name {
-			return id, true
-		}
-	}
-	return 0, false
+func (sa *SignatureAlgorithms) ID() uint16 {
+	return 0x000D
+}
+
+func (sa *SignatureAlgorithms) Name() string {
+	return extnsByID[sa.id]
 }

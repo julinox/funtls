@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"tlesio/tlss/extensions"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -87,14 +89,14 @@ func newClientHello(buffer []byte, lg *logrus.Logger) *clientHelloMsg {
 func (ch *clientHello) parseVersion(buffer []byte) uint32 {
 
 	ch.helloMsg.version = [2]byte{buffer[0], buffer[1]}
-	ch.lg.Debug("Field[Version]: ", prettyPrint(ch.helloMsg.version[:]))
+	ch.lg.Trace("Field[Version]: ", prettyPrint(ch.helloMsg.version[:]))
 	return offsetVersion
 }
 
 func (ch *clientHello) parseRandom(buffer []byte) uint32 {
 
 	copy(ch.helloMsg.random[:], buffer[:offsetRandom])
-	ch.lg.Debug("Field[Random]: ", prettyPrint(ch.helloMsg.random[:]))
+	ch.lg.Trace("Field[Random]: ", prettyPrint(ch.helloMsg.random[:]))
 	return offsetRandom
 }
 
@@ -112,7 +114,7 @@ func (ch *clientHello) parseSessionID(buffer []byte) (uint32, error) {
 
 	ch.helloMsg.sessionId = make([]byte, fieldLen)
 	copy(ch.helloMsg.sessionId, buffer[offset:offset+fieldLen])
-	ch.lg.Debug("Field[SessionID]: ", prettyPrint(ch.helloMsg.sessionId))
+	ch.lg.Trace("Field[SessionID]: ", prettyPrint(ch.helloMsg.sessionId))
 	return offset + fieldLen, nil
 }
 
@@ -135,7 +137,7 @@ func (ch *clientHello) parseCipherSuites(buffer []byte) (uint32, error) {
 		offset += 2
 	}
 
-	//ch.lg.Debug("Field[CipherSuites]: ", printCipherSuiteNames(ch.helloMsg.cipherSuites))
+	ch.lg.Trace("Field[CipherSuites]: ", printCipherSuiteNames(ch.helloMsg.cipherSuites))
 	return offset, nil
 }
 
@@ -156,17 +158,14 @@ func (ch *clientHello) parseExtensions(buffer []byte) {
 	for offset < int(extLen) {
 		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
-		offset += 2 + 2 + int(exttLen)
-		if extnsByID[extt] == "" {
-			ch.lg.Debug("Extension not supported: ", extt)
-			continue
+		offset += 2 + 2
+		pp := extensions.NewExtension(extt, exttLen, buffer[offset:offset+int(exttLen)])
+		if pp != nil {
+			ch.lg.Info("Extension added: ", pp.Name())
 		}
 
-		fmt.Printf("EXTENSION: %v | LEN: %v\n", extnsByID[extt], exttLen)
-		//break
+		offset += int(exttLen)
 	}
-
-	//fmt.Printf("BUFF: %s\n", prettyPrint(buffer[:10]))
 }
 
 // Print a byte array in a 'pretty' format
