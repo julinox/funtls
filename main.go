@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	thps.RealServidor()
+	thps.RealServidor2()
 }

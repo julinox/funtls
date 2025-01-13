@@ -1,6 +1,8 @@
 package tlss
 
 import (
+	"tlesio/systema"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,7 +20,7 @@ func TLSMe(buffer []byte, lg *logrus.Logger) error {
 	var offset uint32 = 0
 
 	if lg == nil {
-		return ErrNilLogger
+		return systema.ErrNilLogger
 	}
 
 	packet.lg = lg

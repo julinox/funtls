@@ -3,6 +3,7 @@ package handshake
 import (
 	"net"
 	"tlesio/tlss"
+	"tlesio/tlss/extensions"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -13,9 +14,38 @@ const (
 	responseBody = "Hello, TLS!"
 )
 
+type zzl2 struct {
+	cfg zzlCfg
+	lg  zzlLoggers
+}
+
 type zzl struct {
 	lg    *logrus.Logger
 	tlsLg *logrus.Logger
+}
+
+type zzlCfg struct {
+}
+
+type zzlLoggers struct {
+	tls    *logrus.Logger
+	server *logrus.Logger
+}
+
+func RealServidor2() {
+
+	var ssl zzl2
+
+	ssl.lg.server = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
+	ssl.lg.tls = clog.InitNewLogger(&clog.CustomFormatter{
+		Tag: "TLS", TagColor: "blue"})
+	ssl.lg.tls.SetLevel(logrus.DebugLevel)
+	ssl.lg.server.Info("Hello little teapot")
+	_, err := extensions.InitExtensions(ssl.lg.tls, nil)
+	if err != nil {
+		ssl.lg.server.Error("Error initializing extensions: ", err)
+		return
+	}
 }
 
 func RealServidor() {

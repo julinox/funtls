@@ -3,6 +3,7 @@ package tlss
 import (
 	"encoding/binary"
 	"fmt"
+	"tlesio/systema"
 )
 
 // Format of Handshake messages in TLS 1.2:
@@ -65,12 +66,12 @@ func (pkt *tlsPkt) processHandshakeMsg(buffer []byte) error {
 
 	if buffer == nil {
 		pkt.lg.Error("Handshake message is nil")
-		return ErrNilParams
+		return systema.ErrNilParams
 	}
 
 	if len(buffer) < 4 {
 		pkt.lg.Error("Handshake message size did not match 4 bytes")
-		return ErrInvalidBufferSize
+		return systema.ErrInvalidBufferSize
 	}
 
 	newHskMsg.RcvBuffSize = len(buffer)
