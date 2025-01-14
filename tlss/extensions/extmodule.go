@@ -7,7 +7,7 @@ import (
 )
 
 // The idea of this module is to handle extensions in a more dynamic way,
-// like a module (i.e enabling/disabling extensions, reload, change config, etc)
+// like a module (enabling/disabling extensions, reload, change config, etc)
 
 /*
 	vas a cargar la extension de signalgo, necesita un config
@@ -44,58 +44,71 @@ var extensionName = map[uint16]string{
 	0x0023: "session_ticket",
 }
 
-var defaultExtensions = []uint16{
-	0x000D, //signature_algorithms
+var defaultExtensions = []NewExt{
+	{0x000D, nil}, // signature_algorithms
 }
 
 type Extension interface {
-	Name() string
 	ID() uint16
+	Name() string
+	Print() string // Print whatever you want to show from the extension
 	SetConfig(interface{})
+	GetConfig() interface{}
+	Execute(interface{}) interface{}
 }
 
 type TlsExtension interface {
-	List()
+	//Get()
+	List() []Extension
 	Enable()
 	Disable()
 }
 
-type HelloKitty struct {
-	extensions []Extension
+type NewExt struct {
+	ID     uint16
+	Config interface{}
 }
 
-func InitExtensions(lg *logrus.Logger, extensions []uint16) (TlsExtension, error) {
+type HelloKitty struct {
+	extensions []Extension
+	lg         *logrus.Logger
+}
 
-	var tExt HelloKitty
+func InitExtensions(lg *logrus.Logger, exts []NewExt) (TlsExtension, error) {
+
+	var hky HelloKitty
 
 	if lg == nil {
 		return nil, systema.ErrNilLogger
 	}
 
-	if len(extensions) <= 0 {
-		extensions = defaultExtensions
+	if len(exts) <= 0 {
+		exts = defaultExtensions
 	}
 
-	tExt.extensions = make([]Extension, 0)
-	for _, k := range extensions {
-		switch k {
+	hky.lg = lg
+	hky.extensions = make([]Extension, 0)
+	for _, k := range exts {
+		switch k.ID {
 		case 0x000D:
-			ext, err := InitExtension0x000D(nil)
+			ext, err := InitExtension0x000D(k.Config)
 			if err != nil {
 				lg.Error("Error initializing extension 0x000D: ", err)
 				continue
 			}
 
-			lg.Infof("Extension '%v' (0x000D) initialized", ext.Name())
-			tExt.extensions = append(tExt.extensions, ext)
+			lg.Infof("Extension '%v'(0x000D) initialized", ext.Name())
+			lg.Debugf("Extension '%v'(0x000D) Print() -> %v", ext.Name(), ext.Print())
+			hky.extensions = append(hky.extensions, ext)
 		}
 	}
 
-	return &tExt, nil
+	return &hky, nil
 }
 
-func (hk *HelloKitty) List() {
+func (hk *HelloKitty) List() []Extension {
 
+	return hk.extensions
 }
 
 func (hk *HelloKitty) Enable() {

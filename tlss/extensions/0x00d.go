@@ -1,6 +1,9 @@
 package extensions
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // The algorithm for selecting signature algorithms will use this formula:
 // Score = ClientWeight ⋅ ClientPosition + ServerWeight ⋅ ServerPriority
@@ -10,18 +13,18 @@ import "fmt"
 // on specific client and server requirements.
 
 var signAlgoSupported = map[uint16]int{
-	0x0401: 1, // rsa_pss_rsae_sha256
-	0x0501: 2, // rsa_pkcs1_sha256
-	0x0601: 3, // rsa_pss_rsae_sha384
-	0x0701: 4, // rsa_pkcs1_sha384
+	0x0804: 1, // rsa_pss_rsae_sha256
+	0x0401: 2, // rsa_pkcs1_sha256
+	0x0805: 3, // rsa_pss_rsae_sha384
+	0x0501: 4, // rsa_pkcs1_sha384
 	0x0801: 5, // dsa_sha256
 }
 
 var algoNames = map[uint16]string{
-	0x0401: "rsa_pss_rsae_sha256",
-	0x0501: "rsa_pkcs1_sha256",
-	0x0601: "rsa_pss_rsae_sha384",
-	0x0701: "rsa_pkcs1_sha384",
+	0x0804: "rsa_pss_rsae_sha256",
+	0x0401: "rsa_pkcs1_sha256",
+	0x0805: "rsa_pss_rsae_sha384",
+	0x0501: "rsa_pkcs1_sha384",
 	0x0801: "dsa_sha256",
 }
 
@@ -54,16 +57,42 @@ func InitExtension0x000D(config interface{}) (Extension, error) {
 	// Force the use of a specific signature algorithm
 	if val.Tax != 0 {
 		extendido.ServerList[val.Tax] = 1
+
 	} else {
 		for k, v := range signAlgoSupported {
 			extendido.ServerList[k] = v
 		}
 	}
 
-	fmt.Println("DEBUGO1")
-	fmt.Println(algosToName(extendido.ServerList))
-	fmt.Println("DEBUGO2")
 	return &extendido, nil
+}
+
+// Calculate the score for each signature algorithm and return the highest
+func (e *Extension0x00D) Execute(data interface{}) interface{} {
+
+	var current uint16
+
+	current = 1 << 15
+	dt, ok := data.(map[uint16]int)
+	if !ok {
+		return nil
+	}
+
+	for k, v := range dt {
+		if ok := e.ServerList[k]; ok != 0 {
+			aux := e.Config.ClientWeight*v + e.Config.ServerWeight*e.ServerList[k]
+			fmt.Printf("aux(%v) = %v | Current = %v\n", algoToName(k), aux, current)
+			if uint16(aux) < current {
+				fmt.Println("ganando -> ", algoToName(k))
+				current = uint16(aux)
+			}
+
+		}
+
+	}
+
+	//fmt.Println(e.ServerList)
+	return 0
 }
 
 func (e *Extension0x00D) ID() uint16 {
@@ -76,10 +105,17 @@ func (e *Extension0x00D) Name() string {
 
 func (e *Extension0x00D) SetConfig(cfg interface{}) {
 	//e.cfg = cfg
+	fmt.Println("Loteria??")
 }
 
-func (cfg *Config0x00D) Weight() {
+func (e *Extension0x00D) GetConfig() interface{} {
+	return e.Config
+}
 
+// Show the selected signature algorithms
+func (e *Extension0x00D) Print() string {
+
+	return algosToName(e.ServerList)
 }
 
 func defaultConfig() Config0x00D {
@@ -92,17 +128,15 @@ func defaultConfig() Config0x00D {
 
 func algosToName(algos map[uint16]int) string {
 
-	var name string
+	var names []string
 
-	count := 0
-	total := len(algos)
 	for k := range algos {
-		name += fmt.Sprintf("%v(%x)", algoNames[k], k)
-		count++
-		if count < total {
-			name += "\n"
-		}
+		names = append(names, fmt.Sprintf("%s(0x%04X)", algoNames[k], k))
 	}
 
-	return name
+	return fmt.Sprintf("[%s]", strings.Join(names, ", "))
+}
+
+func algoToName(algo uint16) string {
+	return fmt.Sprintf("%s(0x%04X)", algoNames[algo], algo)
 }
