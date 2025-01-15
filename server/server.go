@@ -34,7 +34,7 @@ func RealServidor() {
 	ssl.lg.server.Info("Hello little teapot")
 	pp, err := extensions.InitExtensions(ssl.lg.tls,
 		[]extensions.NewExt{
-			{ID: 0x000D, Config: extensions.Config0x00D{ClientWeight: 1, ServerWeight: 30}},
+			{ID: 0x000D, Config: extensions.Config0x00D{ClientWeight: 1, ServerWeight: 2}},
 		})
 
 	if err != nil {
@@ -56,12 +56,12 @@ func helper(ext extensions.Extension) {
 		0x0808: 5,
 		0x0809: 6,
 		0x080a: 7,
-		0x080b: 8,
-		0x0804: 9,
-		0x0805: 10,
-		0x0806: 11,
-		0x0401: 12,
-		0x0501: 12 + 1,
+		0x0501: 8, // rsa_pkcs1_sha384
+		0x0805: 9, // rsa_pss_rsae_sha384
+		0x0806: 10,
+		0x0804: 11, // rsa_pss_rsae_sha256
+		0x0401: 12, // rsa_pkcs1_sha256
+		0x080b: 13,
 		0x0601: 14,
 		0x0303: 15,
 		0x0301: 16,
@@ -71,11 +71,21 @@ func helper(ext extensions.Extension) {
 		0x0602: 20,
 	}
 
+	var numbers2 = map[uint16]int{
+		0x0501: 1, // rsa_pkcs1_sha384
+		0x0805: 2, // rsa_pss_rsae_sha384
+		0x0804: 3, // rsa_pss_rsae_sha256
+	}
+
 	if ext == nil {
 		return
 	}
 
-	ext.Execute(numbers)
+	if true {
+		ext.Execute(numbers2)
+	} else {
+		ext.Execute(numbers)
+	}
 }
 
 func RealServidor2() {
