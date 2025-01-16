@@ -14,6 +14,8 @@ import (
 // algorithm over another. This allows for flexible prioritization based
 // on specific client and server requirements.
 
+// Also you can force a specific algorithm using 'tax' option
+var _ExtensionID uint16 = 0x000D
 var supportedAlgorithms = map[uint16]int{
 	0x0804: 1, // rsa_pss_rsae_sha256
 	0x0401: 2, // rsa_pkcs1_sha256
@@ -41,11 +43,6 @@ type Config0x00D struct {
 	Tax          uint16 //Force the use of a specific signature algorithm
 }
 
-type priority struct {
-	hexCode uint16
-	peer    int
-}
-
 func InitExtension0x000D(config interface{}) (Extension, error) {
 
 	var extendido Extension0x00D
@@ -61,7 +58,7 @@ func InitExtension0x000D(config interface{}) (Extension, error) {
 
 	extendido.Config = val
 	extendido.ServerList = make(map[uint16]int, 0)
-	// Force the use of a specific signature algorithm
+	// Force this algorithm
 	if val.Tax != 0 {
 		extendido.ServerList[val.Tax] = 1
 
@@ -75,97 +72,74 @@ func InitExtension0x000D(config interface{}) (Extension, error) {
 }
 
 // Calculate the score for each signature algorithm and return the chosen one
-// Since A ⊆ B, A ∩ B = List of matching algorithms (where A is the smallest
-// list between client and server)
+// score = serverWeight*preference + clientWeight*preference
 func (e *Extension0x00D) Execute(data interface{}) interface{} {
 
-	clientList, ok := data.(map[uint16]int)
+	var lighter int
+	var chosen uint16
+
+	clientList, ok := data.([]uint16)
 	if !ok {
 		return nil
 	}
 
-	if len(clientList) == 0 || len(e.ServerList) == 0 {
+	if len(e.ServerList) == 0 || len(clientList) == 0 {
 		return nil
 	}
 
-	if len(clientList) < len(e.ServerList) {
-		helper1(e.ServerList, clientList,
-			e.Config.ServerWeight, e.Config.ClientWeight)
-	} else {
-		helper1(clientList, e.ServerList,
-			e.Config.ClientWeight, e.Config.ServerWeight)
-	}
-
-	//table = make([]priority, 0)
-	/*for _, cHexCode := range dt {
-		if e.ServerList[cHexCode] == 0 {
+	count := 1
+	lighter = 1 << 16
+	chosen = 0
+	for _, a := range clientList {
+		if e.ServerList[a] == 0 {
 			continue
 		}
 
-		//fmt.Printf("%v\n", algoToName(cHexCode))
-		//table = append(table, priority{cHexCode, })
-		//table = append(table, priority{cHexCode, cPreference, e.ServerList[cHexCode]})
+		aux := (e.Config.ServerWeight * e.ServerList[a]) +
+			(e.Config.ClientWeight * count)
+		if aux < lighter {
+			lighter = aux
+			chosen = a
+		}
 
-		//fmt.Printf("%x(%v) | %v | %v\n", cHexCode, algoToName(cHexCode),
-		//table[counter].client, table[counter].server)
-	}*/
-
-	return 0
-}
-
-func helper1(it, fixed map[uint16]int, itW, fixedW int) {
-
-	// var table []priority
-	for algo, _ := range it {
-		fmt.Printf("%v ?? %v\n", algoToName(algo), fixed[algo])
+		count++
 	}
-}
 
-/*
-//f1 := formula1(e.Config.ClientWeight, v,e.Config.ServerWeight, e.ServerList[k])
-			//f1 := formula1(e.Config.ClientWeight, v, e.Config.ServerWeight, e.ServerList[k])
-			//fmt.Printf("aux(%v) = %v | ", algoToName(k), f1)
-			//fmt.Printf("%v * %v + %v * %v\n", e.Config.ClientWeight, v, e.Config.ServerWeight, e.ServerList[k])
-			if uint16(aux) < current {
-				fmt.Println("ganando -> ", algoToName(k))
-				current = uint16(aux)
-			}
-*/
+	return chosen
+}
 
 func (e *Extension0x00D) ID() uint16 {
-	return 0x000D
+	return _ExtensionID
 }
 
 func (e *Extension0x00D) Name() string {
 	return extensionName[e.ID()]
 }
 
-func (e *Extension0x00D) SetConfig(cfg interface{}) {
-	//e.cfg = cfg
-	fmt.Println("Loteria??")
+func (e *Extension0x00D) SetConfig(cfg interface{}) bool {
+
+	config, ok := cfg.(Config0x00D)
+	if !ok {
+		return false
+	}
+
+	e.Config = config
+	return true
 }
 
 func (e *Extension0x00D) GetConfig() interface{} {
 	return e.Config
 }
 
-// Show the selected signature algorithms
+// Show the supported signature algorithms
 func (e *Extension0x00D) Print() string {
 	return algosToName(maps.Keys(e.ServerList))
 }
 
-func formula1(cw, cp, sw, sp int) int {
-	return cw*cp + sw*sp
-}
-
-func formula2(cw, cp, sw, sp int) float32 {
-	return float32(cw)*(float32(1/cp)) + float32(sw)*(float32(1/sp))
-}
-
 func defaultConfig() Config0x00D {
 	return Config0x00D{
-		ClientWeight: 1,
-		ServerWeight: 2,
+		ClientWeight: 2,
+		ServerWeight: 1,
 		Tax:          0,
 	}
 }

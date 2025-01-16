@@ -48,40 +48,40 @@ func RealServidor() {
 
 func helper(ext extensions.Extension) {
 
-	var numbers = map[uint16]int{
-		0x0403: 1,
-		0x0503: 2,
-		0x0603: 3,
-		0x0807: 4,
-		0x0808: 5,
-		0x0809: 6,
-		0x080a: 7,
-		0x0501: 8, // rsa_pkcs1_sha384
-		0x0805: 9, // rsa_pss_rsae_sha384
-		0x0806: 10,
-		0x0804: 11, // rsa_pss_rsae_sha256
-		0x0401: 12, // rsa_pkcs1_sha256
-		0x080b: 13,
-		0x0601: 14,
-		0x0303: 15,
-		0x0301: 16,
-		0x0302: 17,
-		0x0402: 18,
-		0x0502: 19,
-		0x0602: 20,
+	var numbers = []uint16{
+		0x0403,
+		0x0503,
+		0x0603,
+		0x0807,
+		0x0808,
+		0x0809,
+		0x080a,
+		0x0501, // rsa_pkcs1_sha384
+		0x0805, // rsa_pss_rsae_sha384
+		0x0806,
+		0x0804, // rsa_pss_rsae_sha256
+		0x0401, // rsa_pkcs1_sha256
+		0x080b,
+		0x0601,
+		0x0303,
+		0x0301,
+		0x0302,
+		0x0402,
+		0x0502,
+		0x0602,
 	}
 
-	var numbers2 = map[uint16]int{
-		0x0501: 1, // rsa_pkcs1_sha384
-		0x0805: 2, // rsa_pss_rsae_sha384
-		0x0804: 3, // rsa_pss_rsae_sha256
+	var numbers2 = []uint16{
+		0x0501, // rsa_pkcs1_sha384
+		0x0805, // rsa_pss_rsae_sha384
+		0x0804, // rsa_pss_rsae_sha256
 	}
 
 	if ext == nil {
 		return
 	}
 
-	if true {
+	if !true {
 		ext.Execute(numbers2)
 	} else {
 		ext.Execute(numbers)

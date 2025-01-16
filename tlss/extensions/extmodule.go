@@ -52,7 +52,7 @@ type Extension interface {
 	ID() uint16
 	Name() string
 	Print() string // Print whatever you want to show from the extension
-	SetConfig(interface{})
+	SetConfig(interface{}) bool
 	GetConfig() interface{}
 	Execute(interface{}) interface{}
 }
