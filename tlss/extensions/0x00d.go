@@ -32,7 +32,7 @@ var algoNames = map[uint16]string{
 	0x0801: "dsa_sha256",
 }
 
-type Extension0x00D struct {
+type extension0x00D struct {
 	Config     Config0x00D
 	ServerList map[uint16]int
 }
@@ -45,7 +45,7 @@ type Config0x00D struct {
 
 func InitExtension0x000D(config interface{}) (Extension, error) {
 
-	var extendido Extension0x00D
+	var extendido extension0x00D
 
 	if config == nil {
 		config = defaultConfig()
@@ -73,7 +73,7 @@ func InitExtension0x000D(config interface{}) (Extension, error) {
 
 // Calculate the score for each signature algorithm and return the chosen one
 // score = serverWeight*preference + clientWeight*preference
-func (e *Extension0x00D) Execute(data interface{}) interface{} {
+func (e *extension0x00D) Execute(data interface{}) interface{} {
 
 	var lighter int
 	var chosen uint16
@@ -108,15 +108,19 @@ func (e *Extension0x00D) Execute(data interface{}) interface{} {
 	return chosen
 }
 
-func (e *Extension0x00D) ID() uint16 {
+func (extension0x00D) LoadData(data []byte) interface{} {
+	return data
+}
+
+func (e *extension0x00D) ID() uint16 {
 	return _ExtensionID
 }
 
-func (e *Extension0x00D) Name() string {
-	return extensionName[e.ID()]
+func (e *extension0x00D) Name() string {
+	return ExtensionName[e.ID()]
 }
 
-func (e *Extension0x00D) SetConfig(cfg interface{}) bool {
+func (e *extension0x00D) SetConfig(cfg interface{}) bool {
 
 	config, ok := cfg.(Config0x00D)
 	if !ok {
@@ -127,12 +131,12 @@ func (e *Extension0x00D) SetConfig(cfg interface{}) bool {
 	return true
 }
 
-func (e *Extension0x00D) GetConfig() interface{} {
+func (e *extension0x00D) GetConfig() interface{} {
 	return e.Config
 }
 
 // Show the supported signature algorithms
-func (e *Extension0x00D) Print() string {
+func (e *extension0x00D) Print() string {
 	return algosToName(maps.Keys(e.ServerList))
 }
 

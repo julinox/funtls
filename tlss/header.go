@@ -41,7 +41,7 @@ const (
 	ContentTypeApplicationData  ContentTypeType = 23
 )
 
-type tlsHeader struct {
+type TlsHeader struct {
 	Version     uint16
 	Length      uint16
 	ContentType ContentTypeType
@@ -49,7 +49,7 @@ type tlsHeader struct {
 
 func (pkt *tlsPkt) processHeader(buffer []byte) error {
 
-	var newHeader tlsHeader
+	var newHeader TlsHeader
 
 	if buffer == nil || len(buffer) != 5 {
 		pkt.lg.Error("Header size did not match 5 bytes")
@@ -59,12 +59,12 @@ func (pkt *tlsPkt) processHeader(buffer []byte) error {
 	newHeader.ContentType = ContentTypeType(buffer[0])
 	newHeader.Version = uint16(buffer[1])<<8 | uint16(buffer[2])
 	newHeader.Length = uint16(buffer[3])<<8 | uint16(buffer[4])
-	pkt.header = &newHeader
-	pkt.lg.Debug(pkt.header)
+	pkt.Header = &newHeader
+	pkt.lg.Debug(pkt.Header)
 	return nil
 }
 
-func (th *tlsHeader) PrintVersion() string {
+func (th *TlsHeader) PrintVersion() string {
 
 	switch th.Version {
 	case 0x0301:
@@ -80,7 +80,7 @@ func (th *tlsHeader) PrintVersion() string {
 	}
 }
 
-func (th *tlsHeader) String() string {
+func (th *TlsHeader) String() string {
 	return fmt.Sprintf("Version: %v | ContentType: %v | PayloadLen: %v",
 		th.PrintVersion(), th.ContentType, th.Length)
 }

@@ -4,6 +4,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"tlesio/tlss/extensions"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +34,7 @@ type clientHelloMsg struct {
 	random       [32]byte
 	sessionId    []byte
 	cipherSuites []uint16
-	extensions   []byte
+	//extensions   []
 }
 
 type clientHello struct {
@@ -154,14 +156,12 @@ func (ch *clientHello) parseExtensions(buffer []byte) {
 
 	offset += 2
 	for offset < int(extLen) {
-		//extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
+		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
+		// Points
 		offset += 2 + 2
-		/*pp := extensions.NewExtension(extt, exttLen, buffer[offset:offset+int(exttLen)])
-		if pp != nil {
-			ch.lg.Info("Extension added: ", pp.Name())
-		}*/
 
+		fmt.Printf("Extension Type/Len: %v/%v\n", extensions.ExtensionName[extt], exttLen)
 		offset += int(exttLen)
 	}
 }

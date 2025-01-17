@@ -40,8 +40,6 @@ import (
 
 type HandshakeTypeType uint8
 
-const _TLSHandshakeMsgSize = 4
-
 const (
 	HandshakeTypeClientHelo        HandshakeTypeType = 1
 	HandshakeTypeServerHelo        HandshakeTypeType = 2
@@ -51,18 +49,15 @@ const (
 	HandshakeTypeFinished          HandshakeTypeType = 20
 )
 
-type tlsHandshakeMsg struct {
+type TlsHandshakeMsg struct {
 	RcvBuffSize   int
 	Length        uint32
 	HandshakeType HandshakeTypeType
 }
 
-type tlsAlertMsg struct {
-}
-
 func (pkt *tlsPkt) processHandshakeMsg(buffer []byte) error {
 
-	var newHskMsg tlsHandshakeMsg
+	var newHskMsg TlsHandshakeMsg
 
 	if buffer == nil {
 		pkt.lg.Error("Handshake message is nil")
@@ -109,7 +104,7 @@ func (h HandshakeTypeType) String() string {
 	}
 }
 
-func (hm *tlsHandshakeMsg) String() string {
+func (hm *TlsHandshakeMsg) String() string {
 	return fmt.Sprintf("HandshakeType: %v | Len: %v",
 		hm.HandshakeType, hm.Length)
 }

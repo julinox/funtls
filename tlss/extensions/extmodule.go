@@ -9,12 +9,7 @@ import (
 // The idea of this module is to handle extensions in a more dynamic way,
 // like a module (enabling/disabling extensions, reload, change config, etc)
 
-/*
-	vas a cargar la extension de signalgo, necesita un config
-	luego vas a desactivarla y luego cambiar config
-*/
-
-var extensionName = map[uint16]string{
+var ExtensionName = map[uint16]string{
 	0x0000: "server_name",
 	0x0001: "max_fragment_length",
 	0x0002: "client_certificate_url",
@@ -48,20 +43,23 @@ var defaultExtensions = []NewExt{
 	{0x000D, nil}, // signature_algorithms
 }
 
+// Print(): Print whatever you want to show from the extension
+// LoadData(): Process raw data and leave it ready to be used by Execute()
 type Extension interface {
 	ID() uint16
 	Name() string
-	Print() string // Print whatever you want to show from the extension
+	Print() string
 	SetConfig(interface{}) bool
 	GetConfig() interface{}
+	LoadData([]byte) interface{}
 	Execute(interface{}) interface{}
 }
 
-type TlsExtension interface {
-	//Get()
-	List() []Extension
+type TLSExtension interface {
 	Enable()
 	Disable()
+	List() []Extension
+	Get(uint16) Extension
 }
 
 type NewExt struct {
@@ -69,14 +67,15 @@ type NewExt struct {
 	Config interface{}
 }
 
-type HelloKitty struct {
+type helloKitty struct {
 	extensions []Extension
 	lg         *logrus.Logger
 }
 
-func InitExtensions(lg *logrus.Logger, exts []NewExt) (TlsExtension, error) {
+// Init/Load server extensions
+func InitExtensions(lg *logrus.Logger, exts []NewExt) (TLSExtension, error) {
 
-	var hky HelloKitty
+	var hky helloKitty
 
 	if lg == nil {
 		return nil, systema.ErrNilLogger
@@ -106,15 +105,26 @@ func InitExtensions(lg *logrus.Logger, exts []NewExt) (TlsExtension, error) {
 	return &hky, nil
 }
 
-func (hk *HelloKitty) List() []Extension {
+func (hk *helloKitty) Enable() {
+
+}
+
+func (hk *helloKitty) Disable() {
+
+}
+
+func (hk *helloKitty) List() []Extension {
 
 	return hk.extensions
 }
 
-func (hk *HelloKitty) Enable() {
+func (hk *helloKitty) Get(id uint16) Extension {
 
-}
+	for _, e := range hk.extensions {
+		if e.ID() == id {
+			return e
+		}
+	}
 
-func (hk *HelloKitty) Disable() {
-
+	return nil
 }

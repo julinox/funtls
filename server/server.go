@@ -2,6 +2,7 @@ package handshake
 
 import (
 	"net"
+	"tlesio/systema"
 	"tlesio/tlss"
 	"tlesio/tlss/extensions"
 
@@ -15,103 +16,88 @@ const (
 )
 
 type zzl struct {
-	lg zzlLoggers
-}
-
-type zzlLoggers struct {
-	tls    *logrus.Logger
-	server *logrus.Logger
+	lg   *logrus.Logger
+	ctrl tlss.TLSControl
 }
 
 func RealServidor() {
 
 	var ssl zzl
+	var err error
 
-	ssl.lg.server = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
-	ssl.lg.tls = clog.InitNewLogger(&clog.CustomFormatter{
-		Tag: "TLS", TagColor: "blue"})
-	ssl.lg.tls.SetLevel(logrus.InfoLevel)
-	ssl.lg.server.Info("Hello little teapot")
-	pp, err := extensions.InitExtensions(ssl.lg.tls,
-		[]extensions.NewExt{
-			{ID: 0x000D, Config: extensions.Config0x00D{ClientWeight: 1, ServerWeight: 2}},
-		})
-
+	ssl.lg = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
+	ssl.ctrl, err = newTLSControl()
 	if err != nil {
-		ssl.lg.server.Error("Error initializing extensions: ", err)
+		ssl.lg.Error("Error creating TLS Control:", err)
 		return
 	}
 
-	//pp.List()[0].Execute(nil)
-	helper(pp.List()[0])
-}
-
-func helper(ext extensions.Extension) {
-
-	var numbers = []uint16{
-		0x0403,
-		0x0503,
-		0x0603,
-		0x0807,
-		0x0808,
-		0x0809,
-		0x080a,
-		0x0501, // rsa_pkcs1_sha384
-		0x0805, // rsa_pss_rsae_sha384
-		0x0806,
-		0x0804, // rsa_pss_rsae_sha256
-		0x0401, // rsa_pkcs1_sha256
-		0x080b,
-		0x0601,
-		0x0303,
-		0x0301,
-		0x0302,
-		0x0402,
-		0x0502,
-		0x0602,
-	}
-
-	var numbers2 = []uint16{
-		0x0501, // rsa_pkcs1_sha384
-		0x0805, // rsa_pss_rsae_sha384
-		0x0804, // rsa_pss_rsae_sha256
-	}
-
-	if ext == nil {
-		return
-	}
-
-	if !true {
-		ext.Execute(numbers2)
-	} else {
-		ext.Execute(numbers)
-	}
-}
-
-func RealServidor2() {
-
-	var ssl zzl
-
-	ssl.lg.server = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
-	ssl.lg.tls = clog.InitNewLogger(&clog.CustomFormatter{
-		Tag: "TLS", TagColor: "blue"})
-	ssl.lg.tls.SetLevel(logrus.DebugLevel)
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
-		panic(err)
+		ssl.lg.Error(err)
+		return
 	}
 
 	defer listener.Close()
-	ssl.lg.server.Info("Listening on PORT ", port)
+	ssl.lg.Info("Listening on PORT ", port)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			ssl.lg.server.Error("Error accepting connection:", err)
+			ssl.lg.Error("Error accepting connection:", err)
 			continue
 		}
 
 		go ssl.handleConnection(conn)
 	}
+}
+
+func newTLSControl() (tlss.TLSControl, error) {
+
+	var err error
+	var newControl tlss.TLSControl
+
+	newControl = tlss.NewTlsController()
+	err = initControlLogger(newControl)
+	if err != nil {
+		return nil, err
+	}
+
+	err = initControlExtensions(newControl)
+	if err != nil {
+		return nil, err
+	}
+
+	return newControl, nil
+}
+
+func initControlLogger(ctrl tlss.TLSControl) error {
+
+	if ctrl == nil {
+		return systema.ErrNilLogger
+	}
+
+	lg := clog.InitNewLogger(&clog.CustomFormatter{
+		Tag: "TLS", TagColor: "blue"})
+	lg.SetLevel(logrus.DebugLevel)
+	ctrl.SetLogger(lg)
+	return nil
+}
+
+func initControlExtensions(ctrl tlss.TLSControl) error {
+
+	var newExts []extensions.NewExt
+
+	// signature_algorithms extension
+	ext1 := extensions.NewExt{ID: 0x000D, Config: extensions.Config0x00D{
+		ClientWeight: 1, ServerWeight: 2}}
+	newExts = append(newExts, ext1)
+	exts, err := extensions.InitExtensions(nil, newExts)
+	if err != nil {
+		return err
+	}
+
+	ctrl.SetExtensions(exts)
+	return nil
 }
 
 func (ssl *zzl) handleConnection(conn net.Conn) {
@@ -120,14 +106,14 @@ func (ssl *zzl) handleConnection(conn net.Conn) {
 	buffer := make([]byte, 4096)
 	n, err := conn.Read(buffer)
 	if err != nil {
-		ssl.lg.server.Error("Error reading data:", err)
+		ssl.lg.Error("Error reading data:", err)
 		return
 	}
 
 	if n <= 5 {
-		ssl.lg.server.Warning("Very little Data")
+		ssl.lg.Warning("Very little Data")
 		return
 	}
 
-	tlss.TLSMe(buffer[:n], ssl.lg.tls)
+	tlss.TLSMe(buffer[:n], nil)
 }
