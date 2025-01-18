@@ -1,20 +1,21 @@
-package tlss
+package tlssl
 
 import (
 	"tlesio/systema"
-	"tlesio/tlss/extensions"
-	tx "tlesio/tlss/extensions"
+	"tlesio/tlssl/extensions"
+	tx "tlesio/tlssl/extensions"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
 )
+
+var _ENV_LOG_LEVEL_VAR_ = "TLS_LOG_LEVEL"
 
 type TLS12 interface {
 	HandleTLS(buffer []byte) error
 }
 
 type tlsio struct {
-	//extns []uint16 ?
 	logg  *logrus.Logger
 	extns tx.TLSExtension
 }
@@ -66,16 +67,16 @@ func defaultLogger() *logrus.Logger {
 		return nil
 	}
 
-	lg.SetLevel(logrus.InfoLevel)
+	lg.SetLevel(systema.GetLogLevel(_ENV_LOG_LEVEL_VAR_))
 	return lg
 }
 
 func defaultExtensions() []tx.NewExt {
 
 	return []tx.NewExt{
-		tx.NewExt{
+		{
 			ID:     0x000D,
-			Config: tx.Config0x00D{ClientWeight: 1, ServerWeight: 2},
+			Config: tx.Config0x00D{ClientWeight: 2, ServerWeight: 1},
 		},
 	}
 }

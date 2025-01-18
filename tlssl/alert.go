@@ -1,4 +1,4 @@
-package tlss
+package tlssl
 
 type TlsAlertMsg struct {
 }

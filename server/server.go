@@ -2,7 +2,7 @@ package handshake
 
 import (
 	"net"
-	"tlesio/tlss"
+	"tlesio/tlssl"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -14,7 +14,8 @@ const (
 )
 
 type zzl struct {
-	lg *logrus.Logger
+	lg     *logrus.Logger
+	tessio tlssl.TLS12
 }
 
 func RealServidor() {
@@ -36,7 +37,13 @@ func RealServidor() {
 
 	defer listener.Close()
 	ssl.lg.Info("Listening on PORT ", port)
-	for {
+	_, err = tlssl.NewTLSDefault()
+	if err != nil {
+		ssl.lg.Error("Error creating TLS Control: ", err)
+		return
+	}
+
+	/*for {
 		conn, err := listener.Accept()
 		if err != nil {
 			ssl.lg.Error("Error accepting connection:", err)
@@ -44,7 +51,7 @@ func RealServidor() {
 		}
 
 		go ssl.handleConnection(conn)
-	}
+	}*/
 }
 
 func (ssl *zzl) handleConnection(conn net.Conn) {
@@ -62,5 +69,5 @@ func (ssl *zzl) handleConnection(conn net.Conn) {
 		return
 	}
 
-	tlss.TLSMe(buffer[:n], nil)
+	tlssl.TLSMe(buffer[:n], nil)
 }

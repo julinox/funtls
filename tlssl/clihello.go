@@ -1,10 +1,10 @@
-package tlss
+package tlssl
 
 import (
 	"encoding/binary"
 	"fmt"
 
-	"tlesio/tlss/extensions"
+	"tlesio/tlssl/extensions"
 
 	"github.com/sirupsen/logrus"
 )

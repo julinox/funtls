@@ -1,4 +1,4 @@
-package tlss
+package tlssl
 
 import (
 	"encoding/binary"
