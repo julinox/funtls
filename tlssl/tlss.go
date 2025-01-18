@@ -56,6 +56,22 @@ func NewTLSDefault() (TLS12, error) {
 }
 
 func (tls *tlsio) HandleTLS(buffer []byte) error {
+
+	var packet tlsPkt
+	var offset uint32 = 0
+
+	packet.lg = tls.logg
+	if err := packet.processHeader(buffer[offset:_TLSHeaderSize]); err != nil {
+		packet.lg.Error("Error processing TLS header: ", err)
+		return err
+	}
+
+	offset += _TLSHeaderSize
+	switch packet.Header.ContentType {
+	case ContentTypeHandshake:
+		packet.processHandshakeMsg(buffer[offset:])
+	}
+
 	return nil
 }
 
@@ -79,28 +95,4 @@ func defaultExtensions() []tx.NewExt {
 			Config: tx.Config0x00D{ClientWeight: 2, ServerWeight: 1},
 		},
 	}
-}
-
-func TLSMe(buffer []byte, lg *logrus.Logger) error {
-
-	var packet tlsPkt
-	var offset uint32 = 0
-
-	if lg == nil {
-		return systema.ErrNilLogger
-	}
-
-	packet.lg = lg
-	if err := packet.processHeader(buffer[offset:_TLSHeaderSize]); err != nil {
-		packet.lg.Error("Error processing TLS header: ", err)
-		return err
-	}
-
-	offset += _TLSHeaderSize
-	switch packet.Header.ContentType {
-	case ContentTypeHandshake:
-		packet.processHandshakeMsg(buffer[offset:])
-	}
-
-	return nil
 }

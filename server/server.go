@@ -37,13 +37,13 @@ func RealServidor() {
 
 	defer listener.Close()
 	ssl.lg.Info("Listening on PORT ", port)
-	_, err = tlssl.NewTLSDefault()
+	ssl.tessio, err = tlssl.NewTLSDefault()
 	if err != nil {
 		ssl.lg.Error("Error creating TLS Control: ", err)
 		return
 	}
 
-	/*for {
+	for {
 		conn, err := listener.Accept()
 		if err != nil {
 			ssl.lg.Error("Error accepting connection:", err)
@@ -51,7 +51,7 @@ func RealServidor() {
 		}
 
 		go ssl.handleConnection(conn)
-	}*/
+	}
 }
 
 func (ssl *zzl) handleConnection(conn net.Conn) {
@@ -69,5 +69,5 @@ func (ssl *zzl) handleConnection(conn net.Conn) {
 		return
 	}
 
-	tlssl.TLSMe(buffer[:n], nil)
+	ssl.tessio.HandleTLS(buffer[:n])
 }
