@@ -3,18 +3,20 @@ package tlss
 import (
 	"tlesio/systema"
 	"tlesio/tlss/extensions"
+	tx "tlesio/tlss/extensions"
 
+	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
 )
 
-type TLSControl interface {
-	SetLogger(*logrus.Logger)
-	SetExtensions(extensions.TLSExtension)
+type TLS12 interface {
+	HandleTLS(buffer []byte) error
 }
 
-type controller struct {
-	lg   *logrus.Logger
-	exts extensions.TLSExtension
+type tlsio struct {
+	//extns []uint16 ?
+	logg  *logrus.Logger
+	extns tx.TLSExtension
 }
 
 type tlsPkt struct {
@@ -24,17 +26,58 @@ type tlsPkt struct {
 	lg           *logrus.Logger
 }
 
-func NewTlsController() TLSControl {
+func NewTLS(lg *logrus.Logger, extns []extensions.NewExt) (TLS12, error) {
 
-	return &controller{}
+	var err error
+	var ssl tlsio
+
+	if lg == nil {
+		return nil, systema.ErrNilLogger
+	}
+
+	if len(extns) <= 0 {
+		ssl.logg.Error(systema.ErrNoExtensions)
+		return nil, systema.ErrNoExtensions
+	}
+
+	ssl.logg = lg
+	ssl.extns, err = tx.InitExtensions(lg, extns)
+	if err != nil {
+		ssl.logg.Error("Error initializing extensions: ", err)
+		return nil, err
+	}
+
+	return &ssl, nil
 }
 
-func (ctrl *controller) SetLogger(lg *logrus.Logger) {
-	ctrl.lg = lg
+func NewTLSDefault() (TLS12, error) {
+	return NewTLS(defaultLogger(), defaultExtensions())
 }
 
-func (ctrl *controller) SetExtensions(exts extensions.TLSExtension) {
-	ctrl.exts = exts
+func (tls *tlsio) HandleTLS(buffer []byte) error {
+	return nil
+}
+
+func defaultLogger() *logrus.Logger {
+
+	lg := clog.InitNewLogger(&clog.CustomFormatter{
+		Tag: "TLS", TagColor: "blue"})
+	if lg == nil {
+		return nil
+	}
+
+	lg.SetLevel(logrus.InfoLevel)
+	return lg
+}
+
+func defaultExtensions() []tx.NewExt {
+
+	return []tx.NewExt{
+		tx.NewExt{
+			ID:     0x000D,
+			Config: tx.Config0x00D{ClientWeight: 1, ServerWeight: 2},
+		},
+	}
 }
 
 func TLSMe(buffer []byte, lg *logrus.Logger) error {
