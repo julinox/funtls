@@ -57,6 +57,7 @@ type handshakeMsg struct {
 
 func processHandshakeMsg(ctrl *tlsio, buffer []byte) error {
 
+	var err error
 	var newMsg handshakeMsg
 
 	if ctrl == nil {
@@ -79,13 +80,13 @@ func processHandshakeMsg(ctrl *tlsio, buffer []byte) error {
 	newMsg.handshakeType = HandshakeTypeType(buffer[0])
 	buffer[0] = 0
 	newMsg.length = binary.BigEndian.Uint32(buffer[:4])
-	ctrl.logg.Trace(newMsg)
+	ctrl.logg.Trace(&newMsg)
 	switch newMsg.handshakeType {
 	case HandshakeTypeClientHelo:
-		ctrl.handShakeIf.cliHello.Handle(buffer[4:])
+		_, err = ctrl.handShakeIf.cliHello.Handle(buffer[4:])
 	}
 
-	return nil
+	return err
 }
 
 func (h HandshakeTypeType) String() string {

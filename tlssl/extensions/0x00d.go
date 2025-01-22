@@ -16,20 +16,35 @@ import (
 
 // Also you can force a specific algorithm using 'tax' option
 var _ExtensionID uint16 = 0x000D
-var supportedAlgorithms = map[uint16]int{
+var _SignatureHashAlgorithms = map[uint16]string{
+	0x0403: "ecdsa_secp256r1_sha256",
+	0x0503: "ecdsa_secp384r1_sha384",
+	0x0603: "ecdsa_secp521r1_sha512",
+	0x0807: "ed25519",
+	0x0808: "ed448",
+	0x0809: "rsa_pss_pss_sha256",
+	0x080a: "rsa_pss_pss_sha384",
+	0x080b: "rsa_pss_pss_sha512",
+	0x0804: "rsa_pss_rsae_sha256",
+	0x0805: "rsa_pss_rsae_sha384",
+	0x0806: "rsa_pss_rsae_sha512",
+	0x0401: "rsa_pkcs1_sha256",
+	0x0501: "rsa_pkcs1_sha384",
+	0x0601: "rsa_pkcs1_sha512",
+	0x0303: "ecdsa_sha224",
+	0x0301: "rsa_sha224",
+	0x0302: "dsa_sha224",
+	0x0402: "dsa_sha256",
+	0x0502: "dsa_sha384",
+	0x0602: "dsa_sha512",
+}
+
+var _SupportedAlgorithms = map[uint16]int{
 	0x0804: 1, // rsa_pss_rsae_sha256
 	0x0401: 2, // rsa_pkcs1_sha256
 	0x0805: 3, // rsa_pss_rsae_sha384
 	0x0501: 4, // rsa_pkcs1_sha384
-	0x0801: 5, // dsa_sha256
-}
-
-var algoNames = map[uint16]string{
-	0x0804: "rsa_pss_rsae_sha256",
-	0x0401: "rsa_pkcs1_sha256",
-	0x0805: "rsa_pss_rsae_sha384",
-	0x0501: "rsa_pkcs1_sha384",
-	0x0801: "dsa_sha256",
+	0x0402: 5, // dsa_sha256
 }
 
 type extension0x00D struct {
@@ -41,6 +56,11 @@ type Config0x00D struct {
 	ClientWeight int
 	ServerWeight int
 	Tax          uint16 //Force the use of a specific signature algorithm
+}
+
+type Data0x00D struct {
+	len   uint16
+	algos []uint16
 }
 
 func InitExtension0x000D(config interface{}) (Extension, error) {
@@ -63,7 +83,7 @@ func InitExtension0x000D(config interface{}) (Extension, error) {
 		extendido.ServerList[val.Tax] = 1
 
 	} else {
-		for algo, preference := range supportedAlgorithms {
+		for algo, preference := range _SupportedAlgorithms {
 			extendido.ServerList[algo] = preference
 		}
 	}
@@ -108,8 +128,20 @@ func (e *extension0x00D) Execute(data interface{}) interface{} {
 	return chosen
 }
 
+// Assuming data is in correct format
 func (extension0x00D) LoadData(data []byte) interface{} {
-	return data
+
+	var offset uint16 = 2
+	var newData Data0x00D
+
+	newData.len = uint16(data[0])<<8 | uint16(data[1])/2
+	newData.algos = make([]uint16, 0)
+	for i := 0; i < int(newData.len); i++ {
+		newData.algos = append(newData.algos, uint16(data[offset])<<8|uint16(data[offset+1]))
+		offset += 2
+	}
+
+	return &newData
 }
 
 func (e *extension0x00D) ID() uint16 {
@@ -140,6 +172,20 @@ func (e *extension0x00D) Print() string {
 	return algosToName(maps.Keys(e.ServerList))
 }
 
+func (e *extension0x00D) PrintRaw(data []byte) string {
+
+	var str string
+	var offset uint16 = 2
+
+	len := uint16(data[0])<<8 | uint16(data[1])/2
+	for i := 0; i < int(len); i++ {
+		str += "\n" + algoToName(uint16(data[offset])<<8|uint16(data[offset+1]))
+		offset += 2
+	}
+
+	return str
+}
+
 func defaultConfig() Config0x00D {
 	return Config0x00D{
 		ClientWeight: 2,
@@ -149,7 +195,7 @@ func defaultConfig() Config0x00D {
 }
 
 func algoToName(algo uint16) string {
-	return fmt.Sprintf("%s(0x%04X)", algoNames[algo], algo)
+	return fmt.Sprintf("%s(0x%04X)", _SignatureHashAlgorithms[algo], algo)
 }
 
 func algosToName(algos []uint16) string {

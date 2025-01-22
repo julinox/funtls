@@ -84,10 +84,16 @@ func (tls *tlsio) HandleTLS(buffer []byte) error {
 	offset += _TLSHeaderSize
 	switch packet.Header.ContentType {
 	case ContentTypeHandshake:
-		processHandshakeMsg(tls, buffer[offset:])
+		err = processHandshakeMsg(tls, buffer[offset:])
+	default:
+		tls.logg.Info("Unknown Header type: ", packet.Header.ContentType)
 	}
 
-	return nil
+	if err != nil {
+		tls.logg.Error("Error processing TLS message: ", err)
+	}
+
+	return err
 }
 
 func initHandshakeInterface(tlsioo *tlsio) error {

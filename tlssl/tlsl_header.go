@@ -67,7 +67,7 @@ func processHeader(ctrl *tlsio, buffer []byte) (*TLSHeader, error) {
 	newHeader.ContentType = ContentTypeType(buffer[0])
 	newHeader.Version = uint16(buffer[1])<<8 | uint16(buffer[2])
 	newHeader.Length = uint16(buffer[3])<<8 | uint16(buffer[4])
-	ctrl.logg.Trace(newHeader)
+	ctrl.logg.Trace(&newHeader)
 	return &newHeader, nil
 }
 
@@ -83,7 +83,7 @@ func (th *TLSHeader) PrintVersion() string {
 	case 0x0304:
 		return "TLS 1.3"
 	default:
-		return "Unknow"
+		return "Is this TLS?"
 	}
 }
 
@@ -104,6 +104,6 @@ func (c ContentTypeType) String() string {
 	case ContentTypeApplicationData:
 		return "ApplicationData"
 	default:
-		return "Unknown"
+		return "Unknow TLS Content Type"
 	}
 }

@@ -37,13 +37,13 @@ type MsgCliHello struct {
 	random       [32]byte
 	sessionId    []byte
 	cipherSuites []uint16
-	//extensions   []
+	extensions   map[uint16]interface{} //ExtensionType -> ExtensionData
 }
 
 type xOr struct {
-	helloMsg MsgCliHello
+	helloMsg *MsgCliHello
 	lg       *logrus.Logger
-	exts     tx.TLSExtension
+	extsIF   tx.TLSExtension
 }
 
 func NewCliHello(lg *logrus.Logger, exts tx.TLSExtension) CliHello {
@@ -53,8 +53,8 @@ func NewCliHello(lg *logrus.Logger, exts tx.TLSExtension) CliHello {
 	}
 
 	return &xOr{
-		lg:   lg,
-		exts: exts,
+		lg:     lg,
+		extsIF: exts,
 	}
 }
 
@@ -68,6 +68,7 @@ func (rox *xOr) Handle(buffer []byte) (*MsgCliHello, error) {
 		return nil, fmt.Errorf("ClientHello buffer is nil or too small")
 	}
 
+	rox.helloMsg = &MsgCliHello{}
 	offset += rox.parseVersion(buffer)
 	offset += rox.parseRandom(buffer[offset:])
 	aux, err = rox.parseSessionID(buffer[offset:])
@@ -89,8 +90,9 @@ func (rox *xOr) Handle(buffer []byte) (*MsgCliHello, error) {
 
 	compressionMethodsLen := uint32(buffer[offset])
 	offset += 1 + compressionMethodsLen
+	rox.helloMsg.extensions = make(map[uint16]interface{})
 	rox.parseExtensions(buffer[offset:])
-	return &MsgCliHello{}, nil
+	return rox.helloMsg, nil
 }
 
 func (rox *xOr) parseVersion(buffer []byte) uint32 {
@@ -169,10 +171,14 @@ func (rox *xOr) parseExtensions(buffer []byte) {
 	for offset < int(extLen) {
 		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
-		// Points
 		offset += 2 + 2
+		if aux := rox.extsIF.Get(extt); aux != nil {
+			rox.helloMsg.extensions[extt] = aux.LoadData(
+				buffer[offset : offset+int(exttLen)])
+			rox.lg.Trace(fmt.Sprintf("Field[Extension %v(0x%.2x)]: %v", aux.Name(), extt,
+				aux.PrintRaw(buffer[offset:offset+int(exttLen)])))
+		}
 
-		fmt.Printf("Extension Type/Len: %v/%v\n", tx.ExtensionName[extt], exttLen)
 		offset += int(exttLen)
 	}
 }

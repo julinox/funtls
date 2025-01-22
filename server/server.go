@@ -50,6 +50,7 @@ func RealServidor() {
 			continue
 		}
 
+		ssl.lg.Info("Connection accepted from ", conn.RemoteAddr())
 		go ssl.handleConnection(conn)
 	}
 }

@@ -44,11 +44,13 @@ var defaultExtensions = []NewExt{
 }
 
 // Print(): Print whatever you want to show from the extension
+// PrintRaw(): Print extension buffer raw data
 // LoadData(): Process raw data and leave it ready to be used by Execute()
 type Extension interface {
 	ID() uint16
 	Name() string
 	Print() string
+	PrintRaw(data []byte) string
 	SetConfig(interface{}) bool
 	GetConfig() interface{}
 	LoadData([]byte) interface{}
