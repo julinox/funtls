@@ -1,4 +1,4 @@
-package tlssl
+package handshake
 
 import (
 	"encoding/binary"

@@ -2,6 +2,7 @@ package tlssl
 
 import (
 	"fmt"
+	"tlesio/systema"
 )
 
 // -------------------------------------------
@@ -41,30 +42,36 @@ const (
 	ContentTypeApplicationData  ContentTypeType = 23
 )
 
-type TlsHeader struct {
+type TLSHeader struct {
 	Version     uint16
 	Length      uint16
 	ContentType ContentTypeType
 }
 
-func (pkt *tlsPkt) processHeader(buffer []byte) error {
+func processHeader(ctrl *tlsio, buffer []byte) (*TLSHeader, error) {
 
-	var newHeader TlsHeader
+	var newHeader TLSHeader
+
+	if ctrl == nil {
+		return nil, systema.ErrNilController
+	}
+
+	if ctrl.logg == nil {
+		return nil, systema.ErrNilLogger
+	}
 
 	if buffer == nil || len(buffer) != 5 {
-		pkt.lg.Error("Header size did not match 5 bytes")
-		return nil
+		return nil, fmt.Errorf("header size did not match 5 bytes")
 	}
 
 	newHeader.ContentType = ContentTypeType(buffer[0])
 	newHeader.Version = uint16(buffer[1])<<8 | uint16(buffer[2])
 	newHeader.Length = uint16(buffer[3])<<8 | uint16(buffer[4])
-	pkt.Header = &newHeader
-	pkt.lg.Debug(pkt.Header)
-	return nil
+	ctrl.logg.Trace(newHeader)
+	return &newHeader, nil
 }
 
-func (th *TlsHeader) PrintVersion() string {
+func (th *TLSHeader) PrintVersion() string {
 
 	switch th.Version {
 	case 0x0301:
@@ -80,7 +87,7 @@ func (th *TlsHeader) PrintVersion() string {
 	}
 }
 
-func (th *TlsHeader) String() string {
+func (th *TLSHeader) String() string {
 	return fmt.Sprintf("Version: %v | ContentType: %v | PayloadLen: %v",
 		th.PrintVersion(), th.ContentType, th.Length)
 }

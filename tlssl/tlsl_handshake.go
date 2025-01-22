@@ -49,36 +49,40 @@ const (
 	HandshakeTypeFinished          HandshakeTypeType = 20
 )
 
-type TlsHandshakeMsg struct {
-	RcvBuffSize   int
-	Length        uint32
-	HandshakeType HandshakeTypeType
+type handshakeMsg struct {
+	rcvBuffSize   int
+	length        uint32
+	handshakeType HandshakeTypeType
 }
 
-func (pkt *tlsPkt) processHandshakeMsg(buffer []byte) error {
+func processHandshakeMsg(ctrl *tlsio, buffer []byte) error {
 
-	var newHskMsg TlsHandshakeMsg
+	var newMsg handshakeMsg
+
+	if ctrl == nil {
+		return systema.ErrNilController
+	}
+
+	if ctrl.logg == nil {
+		return systema.ErrNilLogger
+	}
 
 	if buffer == nil {
-		pkt.lg.Error("Handshake message is nil")
 		return systema.ErrNilParams
 	}
 
 	if len(buffer) < 4 {
-		pkt.lg.Error("Handshake message size did not match 4 bytes")
-		return systema.ErrInvalidBufferSize
+		return fmt.Errorf("handshake message size did not match 4 bytes")
 	}
 
-	newHskMsg.RcvBuffSize = len(buffer)
-	newHskMsg.HandshakeType = HandshakeTypeType(buffer[0])
+	newMsg.rcvBuffSize = len(buffer)
+	newMsg.handshakeType = HandshakeTypeType(buffer[0])
 	buffer[0] = 0
-	newHskMsg.Length = binary.BigEndian.Uint32(buffer[:4])
-	pkt.HandShakeMsg = &newHskMsg
-	pkt.lg.Debug(pkt.HandShakeMsg)
-
-	switch pkt.HandShakeMsg.HandshakeType {
+	newMsg.length = binary.BigEndian.Uint32(buffer[:4])
+	ctrl.logg.Trace(newMsg)
+	switch newMsg.handshakeType {
 	case HandshakeTypeClientHelo:
-		newClientHello(buffer[4:], pkt.lg)
+		ctrl.handShakeIf.cliHello.Handle(buffer[4:])
 	}
 
 	return nil
@@ -104,7 +108,7 @@ func (h HandshakeTypeType) String() string {
 	}
 }
 
-func (hm *TlsHandshakeMsg) String() string {
+func (hm *handshakeMsg) String() string {
 	return fmt.Sprintf("HandshakeType: %v | Len: %v",
-		hm.HandshakeType, hm.Length)
+		hm.handshakeType, hm.length)
 }

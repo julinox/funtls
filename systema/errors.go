@@ -9,4 +9,5 @@ var (
 	ErrNilParams         = errors.New("nil or invalidad parameters")
 	ErrInvalidBufferSize = errors.New("invalid buffer size")
 	ErrNoExtensions      = errors.New("no extensions provided")
+	ErrNilController     = errors.New("nil controller/systema")
 )
