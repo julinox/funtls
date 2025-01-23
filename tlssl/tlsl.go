@@ -64,7 +64,7 @@ func NewTLS(lg *logrus.Logger, extns []extensions.NewExt) (TLS12, error) {
 }
 
 func NewTLSDefault() (TLS12, error) {
-	return NewTLS(defaultLogger(), defaultExtensions())
+	return NewTLS(initDefaultLogger(), initDefaultExtensions())
 }
 
 // Main TLS process function
@@ -84,7 +84,7 @@ func (tls *tlsio) HandleTLS(buffer []byte) error {
 	offset += _TLSHeaderSize
 	switch packet.Header.ContentType {
 	case ContentTypeHandshake:
-		err = processHandshakeMsg(tls, buffer[offset:])
+		err = handleTLSHandshakeRequest(tls, buffer[offset:])
 	default:
 		tls.logg.Info("Unknown Header type: ", packet.Header.ContentType)
 	}
@@ -111,11 +111,11 @@ func initHandshakeInterface(tlsioo *tlsio) error {
 	// Default handshake interfaces never return nil
 	newIface.cliHello = handshake.NewCliHello(tlsioo.logg, tlsioo.extns)
 	tlsioo.handShakeIf = &newIface
-	tlsioo.logg.Debug("Handshake: clihello interface initialized")
+	tlsioo.logg.Debug("Interface 'CliHello' initialized")
 	return nil
 }
 
-func defaultLogger() *logrus.Logger {
+func initDefaultLogger() *logrus.Logger {
 
 	lg := clog.InitNewLogger(&clog.CustomFormatter{
 		Tag: "TLS", TagColor: "blue"})
@@ -127,12 +127,12 @@ func defaultLogger() *logrus.Logger {
 	return lg
 }
 
-func defaultExtensions() []tx.NewExt {
+func initDefaultExtensions() []tx.NewExt {
 
 	return []tx.NewExt{
 		{
-			ID:     0x000D,
-			Config: tx.Config0x00D{ClientWeight: 2, ServerWeight: 1},
+			ID:     0xFFFF,
+			Config: tx.Config0xFFFF{ClientWeight: 1, ServerWeight: 2},
 		},
 	}
 }

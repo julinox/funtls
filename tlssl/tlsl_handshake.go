@@ -55,7 +55,7 @@ type handshakeMsg struct {
 	handshakeType HandshakeTypeType
 }
 
-func processHandshakeMsg(ctrl *tlsio, buffer []byte) error {
+func handleTLSHandshakeRequest(ctrl *tlsio, buffer []byte) error {
 
 	var err error
 	var newMsg handshakeMsg
@@ -81,11 +81,12 @@ func processHandshakeMsg(ctrl *tlsio, buffer []byte) error {
 	buffer[0] = 0
 	newMsg.length = binary.BigEndian.Uint32(buffer[:4])
 	ctrl.logg.Trace(&newMsg)
-	switch newMsg.handshakeType {
-	case HandshakeTypeClientHelo:
-		_, err = ctrl.handShakeIf.cliHello.Handle(buffer[4:])
+	if newMsg.handshakeType != HandshakeTypeClientHelo {
+		return fmt.Errorf("pretty rude from you to not say hello first")
 	}
 
+	cliH, err := ctrl.handShakeIf.cliHello.Handle(buffer[4:])
+	fmt.Println("ClientHello: ", cliH)
 	return err
 }
 

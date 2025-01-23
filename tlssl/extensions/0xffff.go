@@ -1,11 +1,23 @@
-package handshake
+package extensions
 
 import (
 	"fmt"
+	"strings"
+
+	"golang.org/x/exp/maps"
 )
 
-// Map of cipher suite numbers to their names
-var cipherSuiteNames = map[uint16]string{
+// The algorithm for selecting cipher-suite algorithms will use this formula:
+// Score = ClientWeight ⋅ ClientPosition + ServerWeight ⋅ ServerPriority
+
+// The weights can be adjusted through the configuration to favor one
+// algorithm over another. This allows for flexible prioritization based
+// on specific client and server requirements.
+
+// Also you can force a specific algorithm using 'tax' option
+var _ExtensionID uint16 = 0xFFFF
+
+var CipherSuiteNames = map[uint16]string{
 	0x0000: "TLS_NULL_WITH_NULL_NULL",
 	0x0001: "TLS_RSA_WITH_NULL_MD5",
 	0x0002: "TLS_RSA_WITH_NULL_SHA",
@@ -51,6 +63,7 @@ var cipherSuiteNames = map[uint16]string{
 	0x003D: "TLS_RSA_WITH_AES_256_CBC_SHA256",
 	0x003E: "TLS_DH_DSS_WITH_AES_128_CBC_SHA256",
 	0x003F: "TLS_DH_RSA_WITH_AES_128_CBC_SHA256",
+	0x0040: "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
 	0x0041: "TLS_RSA_WITH_CAMELLIA_128_CBC_SHA",
 	0x0042: "TLS_DH_DSS_WITH_CAMELLIA_128_CBC_SHA",
 	0x0043: "TLS_DH_RSA_WITH_CAMELLIA_128_CBC_SHA",
@@ -206,37 +219,177 @@ var cipherSuiteNames = map[uint16]string{
 	0x00ff: "TLS_EMPTY_RENEGOTIATION_INFO_SCSV",
 }
 
-func cipherSuiteName(suite uint16) string {
-
-	if name, exists := cipherSuiteNames[suite]; exists {
-		return name
-	}
-
-	return fmt.Sprintf("Unknown Cipher Suite (0x%04X)", suite)
+var SupportedCiphersSuite = map[uint16]int{
+	0x003C: 1, // "TLS_RSA_WITH_AES_128_CBC_SHA256",
+	0x009E: 2, // "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
+	0x0040: 3, // "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
+	0xCCAA: 4, // "TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+	0x0035: 5, // "TLS_RSA_WITH_AES_256_CBC_SHA",
 }
 
-func printCipherSuiteNames(suites []uint16) string {
+type extension0xFFFF struct {
+	Config     Config0xFFFF
+	ServerList map[uint16]int
+}
 
-	var result string
+type Config0xFFFF struct {
+	ClientWeight int
+	ServerWeight int
+	Tax          uint16 //Force the use of a specific algorithm
+}
 
-	for i, suite := range suites {
-		if i > 0 {
-			result += "\n"
+type Data0xFFFF struct {
+	Len   uint16
+	Algos []uint16
+}
+
+func InitExtension0xFFFF(config interface{}) (Extension, error) {
+
+	var extendido extension0xFFFF
+
+	if config == nil {
+		config = defaultConfig()
+	}
+
+	val, ok := config.(Config0xFFFF)
+	if !ok {
+		return nil, nil
+	}
+
+	extendido.Config = val
+	extendido.ServerList = make(map[uint16]int, 0)
+	// Force this algorithm
+	if val.Tax != 0 {
+		extendido.ServerList[val.Tax] = 1
+
+	} else {
+		for algo, preference := range SupportedCiphersSuite {
+			extendido.ServerList[algo] = preference
+		}
+	}
+
+	return &extendido, nil
+}
+
+// Calculate the score for each algorithm and return the chosen one
+// score = serverWeight*preference + clientWeight*preference
+func (e *extension0xFFFF) Execute(data interface{}) interface{} {
+
+	var lighter int
+	var chosen uint16
+
+	clientList, ok := data.([]uint16)
+	if !ok {
+		return nil
+	}
+
+	if len(e.ServerList) == 0 || len(clientList) == 0 {
+		return nil
+	}
+
+	count := 1
+	lighter = 1 << 16
+	chosen = 0
+	for _, a := range clientList {
+		if e.ServerList[a] == 0 {
+			continue
 		}
 
-		result += fmt.Sprintf("0x%04X: %s", suite, cipherSuiteName(suite))
+		aux := (e.Config.ServerWeight * e.ServerList[a]) +
+			(e.Config.ClientWeight * count)
+		fmt.Printf("Algorithm: %s, Score: %d\n", algoToName(a), aux)
+		if aux < lighter {
+			lighter = aux
+			chosen = a
+		}
+
+		count++
 	}
 
-	return result
+	return chosen
 }
 
-/*
-var supportedCiphersSuite = map[uint16]string{
-	0x0035: "TLS_RSA_WITH_AES_256_CBC_SHA",
-	0x003C: "TLS_RSA_WITH_AES_128_CBC_SHA256",
-	0x009E: "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256",
-	0x0040: "TLS_DHE_DSS_WITH_AES_128_CBC_SHA256",
-	0xCCAA: "TLS_DHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+// Assuming data is in correct format
+func (extension0xFFFF) LoadData(data []byte) interface{} {
+
+	var offset uint16 = 2
+	var newData Data0xFFFF
+
+	newData.Len = uint16(data[0])<<8 | uint16(data[1])/2
+	if len(data) < int(newData.Len) {
+		return nil
+	}
+
+	newData.Algos = make([]uint16, 0)
+	for i := 0; i < int(newData.Len); i++ {
+		newData.Algos = append(newData.Algos, uint16(data[offset])<<8|uint16(data[offset+1]))
+		offset += 2
+	}
+
+	return &newData
 }
 
-*/
+func (e *extension0xFFFF) ID() uint16 {
+	return _ExtensionID
+}
+
+func (e *extension0xFFFF) Name() string {
+	return ExtensionName[e.ID()]
+}
+
+func (e *extension0xFFFF) SetConfig(cfg interface{}) bool {
+
+	config, ok := cfg.(Config0xFFFF)
+	if !ok {
+		return false
+	}
+
+	e.Config = config
+	return true
+}
+
+func (e *extension0xFFFF) GetConfig() interface{} {
+	return e.Config
+}
+
+// Show the supported algorithms
+func (e *extension0xFFFF) Print() string {
+	return algosToName(maps.Keys(e.ServerList))
+}
+
+func (e *extension0xFFFF) PrintRaw(data []byte) string {
+
+	var str string
+	var offset uint16 = 2
+
+	len := uint16(data[0])<<8 | uint16(data[1])/2
+	for i := 0; i < int(len); i++ {
+		str += "\n" + algoToName(uint16(data[offset])<<8|uint16(data[offset+1]))
+		offset += 2
+	}
+
+	return str
+}
+
+func defaultConfig() Config0xFFFF {
+	return Config0xFFFF{
+		ClientWeight: 2,
+		ServerWeight: 1,
+		Tax:          0,
+	}
+}
+
+func algoToName(algo uint16) string {
+	return fmt.Sprintf("%s(0x%04X)", CipherSuiteNames[algo], algo)
+}
+
+func algosToName(algos []uint16) string {
+
+	var names []string
+
+	for _, v := range algos {
+		names = append(names, algoToName(v))
+	}
+
+	return fmt.Sprintf("[%s]", strings.Join(names, ", "))
+}

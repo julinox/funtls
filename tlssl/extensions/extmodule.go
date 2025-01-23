@@ -37,10 +37,11 @@ var ExtensionName = map[uint16]string{
 	0x0018: "token_binding",
 	0x0019: "cached_info",
 	0x0023: "session_ticket",
+	0xffff: "cipher_suite", // custom extension
 }
 
 var defaultExtensions = []NewExt{
-	{0x000D, nil}, // signature_algorithms
+	{0xFFFF, nil}, // cipher_suite (custom extension)
 }
 
 // Print(): Print whatever you want to show from the extension
@@ -91,15 +92,15 @@ func InitExtensions(lg *logrus.Logger, exts []NewExt) (TLSExtension, error) {
 	hky.extensions = make([]Extension, 0)
 	for _, k := range exts {
 		switch k.ID {
-		case 0x000D:
-			ext, err := InitExtension0x000D(k.Config)
+		case 0xFFFF:
+			ext, err := InitExtension0xFFFF(k.Config)
 			if err != nil {
-				lg.Error("Error initializing extension 0x000D: ", err)
+				lg.Error("Error initializing extension 0xFFFF: ", err)
 				continue
 			}
 
-			lg.Infof("Extension '%v'(0x000D) initialized", ext.Name())
-			lg.Debugf("Extension '%v'(0x000D) Print() -> %v", ext.Name(), ext.Print())
+			lg.Infof("Extension '%v'(0xFFFF) initialized", ext.Name())
+			lg.Debugf("Extension '%v'(0xFFFF) Print() -> %v", ext.Name(), ext.Print())
 			hky.extensions = append(hky.extensions, ext)
 		}
 	}

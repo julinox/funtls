@@ -150,7 +150,7 @@ func (rox *xOr) parseCipherSuites(buffer []byte) (uint32, error) {
 	}
 
 	rox.lg.Trace("Field[CipherSuites]: ",
-		printCipherSuiteNames(rox.helloMsg.cipherSuites))
+		tx.PrintCipherSuiteNames(rox.helloMsg.cipherSuites))
 	return offset, nil
 }
 

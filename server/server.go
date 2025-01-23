@@ -24,8 +24,8 @@ func RealServidor() {
 	var err error
 
 	ssl.lg = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
-	if err != nil {
-		ssl.lg.Error("Error creating TLS Control: ", err)
+	if ssl.lg == nil {
+		ssl.lg.Error("Error creating server logger")
 		return
 	}
 
