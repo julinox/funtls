@@ -1,9 +1,9 @@
 package tlssl
 
 import (
+	"fmt"
 	"tlesio/systema"
-	"tlesio/tlssl/extensions"
-	tx "tlesio/tlssl/extensions"
+	tx "tlesio/tlssl/modulos"
 
 	"tlesio/tlssl/handshake"
 
@@ -24,7 +24,7 @@ type handShakeIface struct {
 type tlsio struct {
 	logg        *logrus.Logger
 	handShakeIf *handShakeIface
-	extns       tx.TLSExtension
+	extns       tx.TLSModulo
 }
 
 type tlsPkt struct {
@@ -33,7 +33,17 @@ type tlsPkt struct {
 	Alert        *TlsAlertMsg
 }
 
-func NewTLS(lg *logrus.Logger, extns []extensions.NewExt) (TLS12, error) {
+func NewTLS2(lg *logrus.Logger) {
+
+	if lg == nil {
+		fmt.Println("Bust or Bail")
+		return
+	}
+
+	tx.InitSystem(lg)
+}
+
+func NewTLS(lg *logrus.Logger, extns []tx.NewExt) (TLS12, error) {
 
 	var err error
 	var ssl tlsio

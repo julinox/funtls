@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"tlesio/systema"
-	tx "tlesio/tlssl/extensions"
+	tx "tlesio/tlssl/modulos"
 
 	"github.com/sirupsen/logrus"
 )
@@ -29,10 +29,10 @@ var (
 )
 
 type CliHello interface {
-	Handle([]byte) (*MsgCliHello, error)
+	Handle([]byte) (*MsgHello, error)
 }
 
-type MsgCliHello struct {
+type MsgHello struct {
 	version      [2]byte
 	random       [32]byte
 	sessionId    []byte
@@ -41,12 +41,12 @@ type MsgCliHello struct {
 }
 
 type xOr struct {
-	helloMsg *MsgCliHello
+	helloMsg *MsgHello
 	lg       *logrus.Logger
-	extsIF   tx.TLSExtension
+	extsIF   tx.TLSModulo
 }
 
-func NewCliHello(lg *logrus.Logger, exts tx.TLSExtension) CliHello {
+func NewCliHello(lg *logrus.Logger, exts tx.TLSModulo) CliHello {
 
 	if lg == nil || exts == nil {
 		return nil
@@ -58,7 +58,7 @@ func NewCliHello(lg *logrus.Logger, exts tx.TLSExtension) CliHello {
 	}
 }
 
-func (rox *xOr) Handle(buffer []byte) (*MsgCliHello, error) {
+func (rox *xOr) Handle(buffer []byte) (*MsgHello, error) {
 
 	var err error
 	var aux uint32
@@ -68,7 +68,7 @@ func (rox *xOr) Handle(buffer []byte) (*MsgCliHello, error) {
 		return nil, fmt.Errorf("ClientHello buffer is nil or too small")
 	}
 
-	rox.helloMsg = &MsgCliHello{}
+	rox.helloMsg = &MsgHello{}
 	offset += rox.parseVersion(buffer)
 	offset += rox.parseRandom(buffer[offset:])
 	aux, err = rox.parseSessionID(buffer[offset:])
@@ -150,7 +150,7 @@ func (rox *xOr) parseCipherSuites(buffer []byte) (uint32, error) {
 	}
 
 	rox.lg.Trace("Field[CipherSuites]: ",
-		tx.PrintCipherSuiteNames(rox.helloMsg.cipherSuites))
+		tx.AlgosToName(0xFFFF, rox.helloMsg.cipherSuites))
 	return offset, nil
 }
 

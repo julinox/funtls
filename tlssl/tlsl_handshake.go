@@ -85,8 +85,8 @@ func handleTLSHandshakeRequest(ctrl *tlsio, buffer []byte) error {
 		return fmt.Errorf("pretty rude from you to not say hello first")
 	}
 
-	cliH, err := ctrl.handShakeIf.cliHello.Handle(buffer[4:])
-	fmt.Println("ClientHello: ", cliH)
+	_, err = ctrl.handShakeIf.cliHello.Handle(buffer[4:])
+	//fmt.Println("ClientHello: ", cliH)
 	return err
 }
 

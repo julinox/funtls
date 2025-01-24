@@ -1,9 +1,6 @@
-package extensions
+package modulos
 
 import (
-	"fmt"
-	"strings"
-
 	"golang.org/x/exp/maps"
 )
 
@@ -15,8 +12,6 @@ import (
 // on specific client and server requirements.
 
 // Also you can force a specific algorithm using 'tax' option
-var _ExtensionID uint16 = 0xFFFF
-
 var CipherSuiteNames = map[uint16]string{
 	0x0000: "TLS_NULL_WITH_NULL_NULL",
 	0x0001: "TLS_RSA_WITH_NULL_MD5",
@@ -227,7 +222,7 @@ var SupportedCiphersSuite = map[uint16]int{
 	0x0035: 5, // "TLS_RSA_WITH_AES_256_CBC_SHA",
 }
 
-type extension0xFFFF struct {
+type modulo0xFFFF struct {
 	Config     Config0xFFFF
 	ServerList map[uint16]int
 }
@@ -243,12 +238,12 @@ type Data0xFFFF struct {
 	Algos []uint16
 }
 
-func InitExtension0xFFFF(config interface{}) (Extension, error) {
+func InitModule0xFFFF(config interface{}) (Modulo, error) {
 
-	var extendido extension0xFFFF
+	var extendido modulo0xFFFF
 
 	if config == nil {
-		config = defaultConfig()
+		config = xffffDefaultConfig()
 	}
 
 	val, ok := config.(Config0xFFFF)
@@ -273,7 +268,7 @@ func InitExtension0xFFFF(config interface{}) (Extension, error) {
 
 // Calculate the score for each algorithm and return the chosen one
 // score = serverWeight*preference + clientWeight*preference
-func (e *extension0xFFFF) Execute(data interface{}) interface{} {
+func (e *modulo0xFFFF) Execute(data interface{}) interface{} {
 
 	var lighter int
 	var chosen uint16
@@ -297,7 +292,6 @@ func (e *extension0xFFFF) Execute(data interface{}) interface{} {
 
 		aux := (e.Config.ServerWeight * e.ServerList[a]) +
 			(e.Config.ClientWeight * count)
-		fmt.Printf("Algorithm: %s, Score: %d\n", algoToName(a), aux)
 		if aux < lighter {
 			lighter = aux
 			chosen = a
@@ -310,7 +304,7 @@ func (e *extension0xFFFF) Execute(data interface{}) interface{} {
 }
 
 // Assuming data is in correct format
-func (extension0xFFFF) LoadData(data []byte) interface{} {
+func (modulo0xFFFF) LoadData(data []byte) interface{} {
 
 	var offset uint16 = 2
 	var newData Data0xFFFF
@@ -329,15 +323,15 @@ func (extension0xFFFF) LoadData(data []byte) interface{} {
 	return &newData
 }
 
-func (e *extension0xFFFF) ID() uint16 {
-	return _ExtensionID
+func (e *modulo0xFFFF) ID() uint16 {
+	return 0xFFFF
 }
 
-func (e *extension0xFFFF) Name() string {
-	return ExtensionName[e.ID()]
+func (e *modulo0xFFFF) Name() string {
+	return ModuloName[e.ID()]
 }
 
-func (e *extension0xFFFF) SetConfig(cfg interface{}) bool {
+func (e *modulo0xFFFF) SetConfig(cfg interface{}) bool {
 
 	config, ok := cfg.(Config0xFFFF)
 	if !ok {
@@ -348,48 +342,34 @@ func (e *extension0xFFFF) SetConfig(cfg interface{}) bool {
 	return true
 }
 
-func (e *extension0xFFFF) GetConfig() interface{} {
+func (e *modulo0xFFFF) GetConfig() interface{} {
 	return e.Config
 }
 
 // Show the supported algorithms
-func (e *extension0xFFFF) Print() string {
-	return algosToName(maps.Keys(e.ServerList))
+func (e *modulo0xFFFF) Print() string {
+	return AlgosToName(e.ID(), maps.Keys(e.ServerList))
 }
 
-func (e *extension0xFFFF) PrintRaw(data []byte) string {
+func (e *modulo0xFFFF) PrintRaw(data []byte) string {
 
 	var str string
 	var offset uint16 = 2
 
 	len := uint16(data[0])<<8 | uint16(data[1])/2
 	for i := 0; i < int(len); i++ {
-		str += "\n" + algoToName(uint16(data[offset])<<8|uint16(data[offset+1]))
+		str += "\n" + AlgoToName(e.ID(),
+			uint16(data[offset])<<8|uint16(data[offset+1]))
 		offset += 2
 	}
 
 	return str
 }
 
-func defaultConfig() Config0xFFFF {
+func xffffDefaultConfig() Config0xFFFF {
 	return Config0xFFFF{
 		ClientWeight: 2,
 		ServerWeight: 1,
 		Tax:          0,
 	}
-}
-
-func algoToName(algo uint16) string {
-	return fmt.Sprintf("%s(0x%04X)", CipherSuiteNames[algo], algo)
-}
-
-func algosToName(algos []uint16) string {
-
-	var names []string
-
-	for _, v := range algos {
-		names = append(names, algoToName(v))
-	}
-
-	return fmt.Sprintf("[%s]", strings.Join(names, ", "))
 }

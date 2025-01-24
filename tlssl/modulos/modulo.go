@@ -1,4 +1,4 @@
-package extensions
+package modulos
 
 import (
 	"tlesio/systema"
@@ -6,10 +6,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// The idea of this module is to handle extensions in a more dynamic way,
-// like a module (enabling/disabling extensions, reload, change config, etc)
+// The idea of this module is to handle extensions or 'features' in a more
+// dynamic way, like a module (enabling/disabling, reload, change config, etc)
 
-var ExtensionName = map[uint16]string{
+var ModuloName = map[uint16]string{
+	// extensions
 	0x0000: "server_name",
 	0x0001: "max_fragment_length",
 	0x0002: "client_certificate_url",
@@ -37,17 +38,18 @@ var ExtensionName = map[uint16]string{
 	0x0018: "token_binding",
 	0x0019: "cached_info",
 	0x0023: "session_ticket",
-	0xffff: "cipher_suite", // custom extension
+
+	// not extensions
+	0xfffe: "certificate_load",
+	0xffff: "cipher_suite",
 }
 
 var defaultExtensions = []NewExt{
 	{0xFFFF, nil}, // cipher_suite (custom extension)
 }
 
-// Print(): Print whatever you want to show from the extension
-// PrintRaw(): Print extension buffer raw data
-// LoadData(): Process raw data and leave it ready to be used by Execute()
-type Extension interface {
+type ModuloFn func(interface{}) (Modulo, error)
+type Modulo interface {
 	ID() uint16
 	Name() string
 	Print() string
@@ -58,11 +60,12 @@ type Extension interface {
 	Execute(interface{}) interface{}
 }
 
-type TLSExtension interface {
-	Enable()
-	Disable()
-	List() []Extension
-	Get(uint16) Extension
+type TLSModulo interface {
+	List() []Modulo
+	Get(uint16) Modulo
+	Enable(uint16) error
+	Disable(uint16) error
+	//Registry(uint16, ModuloFn) error
 }
 
 type NewExt struct {
@@ -70,13 +73,20 @@ type NewExt struct {
 	Config interface{}
 }
 
+type mmodulo struct {
+	active bool
+	exec   Modulo
+	fn     ModuloFn
+}
+
 type helloKitty struct {
-	extensions []Extension
+	extensions []Modulo
 	lg         *logrus.Logger
+	modulos    map[uint16]mmodulo
 }
 
 // Init/Load server extensions
-func InitExtensions(lg *logrus.Logger, exts []NewExt) (TLSExtension, error) {
+func InitExtensions(lg *logrus.Logger, exts []NewExt) (TLSModulo, error) {
 
 	var hky helloKitty
 
@@ -89,11 +99,11 @@ func InitExtensions(lg *logrus.Logger, exts []NewExt) (TLSExtension, error) {
 	}
 
 	hky.lg = lg
-	hky.extensions = make([]Extension, 0)
+	hky.extensions = make([]Modulo, 0)
 	for _, k := range exts {
 		switch k.ID {
 		case 0xFFFF:
-			ext, err := InitExtension0xFFFF(k.Config)
+			ext, err := InitModule0xFFFF(k.Config)
 			if err != nil {
 				lg.Error("Error initializing extension 0xFFFF: ", err)
 				continue
@@ -108,20 +118,21 @@ func InitExtensions(lg *logrus.Logger, exts []NewExt) (TLSExtension, error) {
 	return &hky, nil
 }
 
-func (hk *helloKitty) Enable() {
+func (hk *helloKitty) Enable(id uint16) error {
 
+	return nil
 }
 
-func (hk *helloKitty) Disable() {
-
+func (hk *helloKitty) Disable(id uint16) error {
+	return nil
 }
 
-func (hk *helloKitty) List() []Extension {
+func (hk *helloKitty) List() []Modulo {
 
 	return hk.extensions
 }
 
-func (hk *helloKitty) Get(id uint16) Extension {
+func (hk *helloKitty) Get(id uint16) Modulo {
 
 	for _, e := range hk.extensions {
 		if e.ID() == id {

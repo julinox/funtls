@@ -10,4 +10,5 @@ var (
 	ErrInvalidBufferSize = errors.New("invalid buffer size")
 	ErrNoExtensions      = errors.New("no extensions provided")
 	ErrNilController     = errors.New("nil controller/systema")
+	ErrAlreadyExists     = errors.New("Object already exists")
 )
