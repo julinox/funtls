@@ -1,13 +1,14 @@
 package modulos
 
 import (
-	"fmt"
 	"tlesio/systema"
 
 	"github.com/sirupsen/logrus"
 )
 
 type TLSModulo2 interface {
+	List() []Modulo
+	Get(uint16) Modulo
 	Load(*ModuloInfo) error
 }
 
@@ -15,7 +16,6 @@ type ModuloInfo struct {
 	Id     uint16
 	Fn     ModuloFn
 	Config interface{}
-	Lg     *logrus.Logger
 }
 
 type entry struct {
@@ -29,7 +29,7 @@ type modulador struct {
 }
 
 var _BasicModules = []ModuloInfo{
-	{Id: 0xFFFF, Fn: InitModule0xFFFF, Lg: nil},
+	{Id: 0xFFFF, Fn: InitModule0xFFFF},
 }
 
 func InitModulos(lg *logrus.Logger) TLSModulo2 {
@@ -43,34 +43,21 @@ func InitModulos(lg *logrus.Logger) TLSModulo2 {
 	mod.lg = lg
 	mod.table = make(map[uint16]*entry)
 	for _, k := range _BasicModules {
-		aux, err := loadModule(&k)
-		if err != nil {
+		if err := mod.Load(&k); err != nil && err != systema.ErrAlreadyExists {
 			mod.lg.Error("basic module load err: ", err.Error())
-			continue
+			return nil
 		}
 
-		mod.table[k.Id] = aux
 		mod.lg.Info("basic module loaded: ", mod.table[k.Id].exec.Name())
 	}
 
 	return &mod
 }
 
-func loadModule(info *ModuloInfo) (*entry, error) {
+func (mod *modulador) Load(info *ModuloInfo) error {
 
 	var err error
 	var newEntry entry
-
-	if info == nil {
-		return nil, systema.ErrNilParams
-	}
-
-	newEntry.info = info
-	newEntry.exec, err = info.Fn(info.Config)
-	return &newEntry, err
-}
-
-func (mod *modulador) Load(info *ModuloInfo) error {
 
 	if info == nil {
 		return systema.ErrNilParams
@@ -80,6 +67,16 @@ func (mod *modulador) Load(info *ModuloInfo) error {
 		return systema.ErrAlreadyExists
 	}
 
-	fmt.Println("REGISTRA -> ", info.Id)
+	newEntry.info = info
+	newEntry.exec, err = info.Fn(info.Config)
+	if err != nil {
+		return err
+	}
+
+	mod.table[info.Id] = &newEntry
 	return nil
+}
+
+func (mod *modulador) List() []Modulo {
+
 }
