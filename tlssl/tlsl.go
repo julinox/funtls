@@ -40,7 +40,7 @@ func NewTLS2(lg *logrus.Logger) {
 		return
 	}
 
-	tx.InitSystem(lg)
+	tx.InitModulos(lg)
 }
 
 func NewTLS(lg *logrus.Logger, extns []tx.NewExt) (TLS12, error) {

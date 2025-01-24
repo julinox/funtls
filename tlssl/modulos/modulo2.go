@@ -20,19 +20,19 @@ type ModuloInfo struct {
 
 type entry struct {
 	exec Modulo
-	mod  *ModuloInfo
+	info *ModuloInfo
 }
 
 type modulador struct {
 	lg    *logrus.Logger
-	table map[uint16]entry
+	table map[uint16]*entry
 }
 
 var _BasicModules = []ModuloInfo{
-	{Id: 0xFFFF, Fn: InitModule0xFFFF},
+	{Id: 0xFFFF, Fn: InitModule0xFFFF, Lg: nil},
 }
 
-func InitSystem(lg *logrus.Logger) TLSModulo2 {
+func InitModulos(lg *logrus.Logger) TLSModulo2 {
 
 	var mod modulador
 
@@ -41,16 +41,33 @@ func InitSystem(lg *logrus.Logger) TLSModulo2 {
 	}
 
 	mod.lg = lg
-	mod.table = make(map[uint16]entry)
-	mod.loadBasicModules()
+	mod.table = make(map[uint16]*entry)
+	for _, k := range _BasicModules {
+		aux, err := loadModule(&k)
+		if err != nil {
+			mod.lg.Error("basic module load err: ", err.Error())
+			continue
+		}
+
+		mod.table[k.Id] = aux
+		mod.lg.Info("basic module loaded: ", mod.table[k.Id].exec.Name())
+	}
+
 	return &mod
 }
 
-func (mod *modulador) loadBasicModules() {
+func loadModule(info *ModuloInfo) (*entry, error) {
 
-	for _, k := range _BasicModules {
-		mod.lg.Info("Basic modules loaded -> ", ModuloName[k.Id])
+	var err error
+	var newEntry entry
+
+	if info == nil {
+		return nil, systema.ErrNilParams
 	}
+
+	newEntry.info = info
+	newEntry.exec, err = info.Fn(info.Config)
+	return &newEntry, err
 }
 
 func (mod *modulador) Load(info *ModuloInfo) error {
