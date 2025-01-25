@@ -1,11 +1,10 @@
 package tlssl
 
 import (
-	"fmt"
 	"tlesio/systema"
-	tx "tlesio/tlssl/modulos"
+	mx "tlesio/tlssl/modulos"
 
-	"tlesio/tlssl/handshake"
+	hx "tlesio/tlssl/handshake"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -17,14 +16,10 @@ type TLS12 interface {
 	HandleTLS(buffer []byte) error
 }
 
-type handShakeIface struct {
-	cliHello handshake.CliHello
-}
-
 type tlsio struct {
-	logg        *logrus.Logger
-	handShakeIf *handShakeIface
-	extns       tx.TLSModulo
+	logg  *logrus.Logger
+	mods  mx.TLSModulo
+	hmods *hx.HandShake
 }
 
 type tlsPkt struct {
@@ -33,17 +28,7 @@ type tlsPkt struct {
 	Alert        *TlsAlertMsg
 }
 
-func NewTLS2(lg *logrus.Logger) {
-
-	if lg == nil {
-		fmt.Println("Bust or Bail")
-		return
-	}
-
-	tx.InitModulos(lg)
-}
-
-func NewTLS(lg *logrus.Logger, extns []tx.NewExt) (TLS12, error) {
+func NewTLS(lg *logrus.Logger) (TLS12, error) {
 
 	var err error
 	var ssl tlsio
@@ -52,29 +37,28 @@ func NewTLS(lg *logrus.Logger, extns []tx.NewExt) (TLS12, error) {
 		return nil, systema.ErrNilLogger
 	}
 
-	if len(extns) <= 0 {
-		ssl.logg.Error(systema.ErrNoExtensions)
-		return nil, systema.ErrNoExtensions
-	}
-
 	ssl.logg = lg
-	ssl.extns, err = tx.InitExtensions(lg, extns)
-	if err != nil || ssl.extns == nil {
-		ssl.logg.Error("Error initializing extensions2: ", err)
+	ssl.mods, err = mx.InitModulos(lg)
+	if err != nil {
+		ssl.logg.Error("error initializing extensions: ", err)
 		return nil, err
 	}
 
-	err = initHandshakeInterface(&ssl)
-	if err != nil || ssl.handShakeIf == nil {
-		ssl.logg.Error("error initializing handshake interface: ", err)
+	ssl.hmods, err = hx.InitHandhsake(lg, nil)
+	if err != nil {
+		ssl.logg.Error("error initializing handshake interfaces: ", err)
 		return nil, err
+	}
+
+	if ssl.mods == nil || ssl.hmods == nil {
+		return nil, systema.ErrNilModulo
 	}
 
 	return &ssl, nil
 }
 
 func NewTLSDefault() (TLS12, error) {
-	return NewTLS(initDefaultLogger(), initDefaultExtensions())
+	return NewTLS(initDefaultLogger())
 }
 
 // Main TLS process function
@@ -106,25 +90,6 @@ func (tls *tlsio) HandleTLS(buffer []byte) error {
 	return err
 }
 
-func initHandshakeInterface(tlsioo *tlsio) error {
-
-	var newIface handShakeIface
-
-	if tlsioo == nil {
-		return systema.ErrNilController
-	}
-
-	if tlsioo.logg == nil {
-		return systema.ErrNilLogger
-	}
-
-	// Default handshake interfaces never return nil
-	newIface.cliHello = handshake.NewCliHello(tlsioo.logg, tlsioo.extns)
-	tlsioo.handShakeIf = &newIface
-	tlsioo.logg.Debug("Interface 'CliHello' initialized")
-	return nil
-}
-
 func initDefaultLogger() *logrus.Logger {
 
 	lg := clog.InitNewLogger(&clog.CustomFormatter{
@@ -135,14 +100,4 @@ func initDefaultLogger() *logrus.Logger {
 
 	lg.SetLevel(systema.GetLogLevel(_ENV_LOG_LEVEL_VAR_))
 	return lg
-}
-
-func initDefaultExtensions() []tx.NewExt {
-
-	return []tx.NewExt{
-		{
-			ID:     0xFFFF,
-			Config: tx.Config0xFFFF{ClientWeight: 1, ServerWeight: 2},
-		},
-	}
 }

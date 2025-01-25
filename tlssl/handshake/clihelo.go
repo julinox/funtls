@@ -3,8 +3,8 @@ package handshake
 import (
 	"encoding/binary"
 	"fmt"
-	"tlesio/systema"
-	tx "tlesio/tlssl/modulos"
+	syst "tlesio/systema"
+	mx "tlesio/tlssl/modulos"
 
 	"github.com/sirupsen/logrus"
 )
@@ -33,32 +33,33 @@ type CliHello interface {
 }
 
 type MsgHello struct {
-	version      [2]byte
-	random       [32]byte
-	sessionId    []byte
-	cipherSuites []uint16
-	extensions   map[uint16]interface{} //ExtensionType -> ExtensionData
+	Version      [2]byte
+	Random       [32]byte
+	SessionId    []byte
+	CipherSuites []uint16
+	Extensions   map[uint16]interface{} //ExtensionType -> ExtensionData
 }
 
-type xOr struct {
+type xCliHello struct {
 	helloMsg *MsgHello
 	lg       *logrus.Logger
-	extsIF   tx.TLSModulo
+	modsIF   mx.TLSModulo
 }
 
-func NewCliHello(lg *logrus.Logger, exts tx.TLSModulo) CliHello {
+func NewCliHello(lg *logrus.Logger, mods mx.TLSModulo) CliHello {
+	//func NewCliHello(lg *logrus.Logger, mods mx.TLSModulo) CliHello {
 
-	if lg == nil || exts == nil {
+	if lg == nil || mods == nil {
 		return nil
 	}
 
-	return &xOr{
+	return &xCliHello{
 		lg:     lg,
-		extsIF: exts,
+		modsIF: mods,
 	}
 }
 
-func (rox *xOr) Handle(buffer []byte) (*MsgHello, error) {
+func (rox *xCliHello) Handle(buffer []byte) (*MsgHello, error) {
 
 	var err error
 	var aux uint32
@@ -90,28 +91,28 @@ func (rox *xOr) Handle(buffer []byte) (*MsgHello, error) {
 
 	compressionMethodsLen := uint32(buffer[offset])
 	offset += 1 + compressionMethodsLen
-	rox.helloMsg.extensions = make(map[uint16]interface{})
+	rox.helloMsg.Extensions = make(map[uint16]interface{})
 	rox.parseExtensions(buffer[offset:])
 	return rox.helloMsg, nil
 }
 
-func (rox *xOr) parseVersion(buffer []byte) uint32 {
+func (rox *xCliHello) parseVersion(buffer []byte) uint32 {
 
-	rox.helloMsg.version = [2]byte{buffer[0], buffer[1]}
+	rox.helloMsg.Version = [2]byte{buffer[0], buffer[1]}
 	rox.lg.Trace("Field[Version]: ",
-		systema.PrettyPrintBytes(rox.helloMsg.version[:]))
+		syst.PrettyPrintBytes(rox.helloMsg.Version[:]))
 	return offsetVersion
 }
 
-func (rox *xOr) parseRandom(buffer []byte) uint32 {
+func (rox *xCliHello) parseRandom(buffer []byte) uint32 {
 
-	copy(rox.helloMsg.random[:], buffer[:offsetRandom])
+	copy(rox.helloMsg.Random[:], buffer[:offsetRandom])
 	rox.lg.Trace("Field[Random]: ",
-		systema.PrettyPrintBytes(rox.helloMsg.random[:]))
+		syst.PrettyPrintBytes(rox.helloMsg.Random[:]))
 	return offsetRandom
 }
 
-func (rox *xOr) parseSessionID(buffer []byte) (uint32, error) {
+func (rox *xCliHello) parseSessionID(buffer []byte) (uint32, error) {
 
 	if len(buffer) < 1 {
 		return 0, fmt.Errorf("sessionID field is too small")
@@ -123,14 +124,14 @@ func (rox *xOr) parseSessionID(buffer []byte) (uint32, error) {
 		return 0, fmt.Errorf("sessionID field is too small")
 	}
 
-	rox.helloMsg.sessionId = make([]byte, fieldLen)
-	copy(rox.helloMsg.sessionId, buffer[offset:offset+fieldLen])
+	rox.helloMsg.SessionId = make([]byte, fieldLen)
+	copy(rox.helloMsg.SessionId, buffer[offset:offset+fieldLen])
 	rox.lg.Trace("Field[SessionID]: ",
-		systema.PrettyPrintBytes(rox.helloMsg.sessionId))
+		syst.PrettyPrintBytes(rox.helloMsg.SessionId))
 	return offset + fieldLen, nil
 }
 
-func (rox *xOr) parseCipherSuites(buffer []byte) (uint32, error) {
+func (rox *xCliHello) parseCipherSuites(buffer []byte) (uint32, error) {
 
 	offset := uint32(offsetCipherSuitesLen)
 	fieldLen := binary.BigEndian.Uint16(buffer[:2])
@@ -143,18 +144,19 @@ func (rox *xOr) parseCipherSuites(buffer []byte) (uint32, error) {
 	}
 
 	fl := fieldLen / 2
-	rox.helloMsg.cipherSuites = make([]uint16, fl)
+	rox.helloMsg.CipherSuites = make([]uint16, fl)
 	for i := uint16(0); i < fl; i++ {
-		rox.helloMsg.cipherSuites[i] = binary.BigEndian.Uint16(buffer[offset : offset+2])
+		rox.helloMsg.CipherSuites[i] = binary.BigEndian.Uint16(
+			buffer[offset : offset+2])
 		offset += 2
 	}
 
 	rox.lg.Trace("Field[CipherSuites]: ",
-		tx.AlgosToName(0xFFFF, rox.helloMsg.cipherSuites))
+		mx.AlgosToName(0xFFFF, rox.helloMsg.CipherSuites))
 	return offset, nil
 }
 
-func (rox *xOr) parseExtensions(buffer []byte) {
+func (rox *xCliHello) parseExtensions(buffer []byte) {
 
 	// Parsing only supported extensions
 	if len(buffer) < 2 {
@@ -172,8 +174,8 @@ func (rox *xOr) parseExtensions(buffer []byte) {
 		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
-		if aux := rox.extsIF.Get(extt); aux != nil {
-			rox.helloMsg.extensions[extt] = aux.LoadData(
+		if aux := rox.modsIF.Get(extt); aux != nil {
+			rox.helloMsg.Extensions[extt] = aux.LoadData(
 				buffer[offset : offset+int(exttLen)])
 			rox.lg.Trace(fmt.Sprintf("Field[Extension %v(0x%.2x)]: %v", aux.Name(), extt,
 				aux.PrintRaw(buffer[offset:offset+int(exttLen)])))

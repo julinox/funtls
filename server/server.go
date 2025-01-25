@@ -29,8 +29,6 @@ func RealServidor() {
 		return
 	}
 
-	tlssl.NewTLS2(ssl.lg)
-	return
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
 		ssl.lg.Error(err)
@@ -45,7 +43,6 @@ func RealServidor() {
 		return
 	}
 
-	return
 	for {
 		conn, err := listener.Accept()
 		if err != nil {

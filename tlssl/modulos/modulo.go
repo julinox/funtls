@@ -1,7 +1,7 @@
 package modulos
 
 import (
-	"tlesio/systema"
+	syst "tlesio/systema"
 
 	"github.com/sirupsen/logrus"
 )
@@ -44,10 +44,6 @@ var ModuloName = map[uint16]string{
 	0xffff: "cipher_suite",
 }
 
-var defaultExtensions = []NewExt{
-	{0xFFFF, nil}, // cipher_suite (custom extension)
-}
-
 type ModuloFn func(interface{}) (Modulo, error)
 type Modulo interface {
 	ID() uint16
@@ -63,81 +59,100 @@ type Modulo interface {
 type TLSModulo interface {
 	List() []Modulo
 	Get(uint16) Modulo
-	Enable(uint16) error
-	Disable(uint16) error
-	//Registry(uint16, ModuloFn) error
+	Unload(uint16) error
+	Load(*ModuloInfo) error
 }
 
-type NewExt struct {
-	ID     uint16
+type ModuloInfo struct {
+	Id     uint16
+	Fn     ModuloFn
 	Config interface{}
 }
 
-type mmodulo struct {
-	active bool
-	exec   Modulo
-	fn     ModuloFn
+type entry struct {
+	exec Modulo
+	info *ModuloInfo
 }
 
-type helloKitty struct {
-	extensions []Modulo
-	lg         *logrus.Logger
-	modulos    map[uint16]mmodulo
+type modulador struct {
+	lg    *logrus.Logger
+	table map[uint16]*entry
 }
 
-// Init/Load server extensions
-func InitExtensions(lg *logrus.Logger, exts []NewExt) (TLSModulo, error) {
+var _BasicModules = []ModuloInfo{
+	{Id: 0xFFFF, Fn: InitModule0xFFFF},
+}
 
-	var hky helloKitty
+func InitModulos(lg *logrus.Logger) (TLSModulo, error) {
+
+	var mod modulador
 
 	if lg == nil {
-		return nil, systema.ErrNilLogger
+		return nil, syst.ErrNilLogger
 	}
 
-	if len(exts) <= 0 {
-		exts = defaultExtensions
-	}
-
-	hky.lg = lg
-	hky.extensions = make([]Modulo, 0)
-	for _, k := range exts {
-		switch k.ID {
-		case 0xFFFF:
-			ext, err := InitModule0xFFFF(k.Config)
-			if err != nil {
-				lg.Error("Error initializing extension 0xFFFF: ", err)
-				continue
-			}
-
-			lg.Infof("Extension '%v'(0xFFFF) initialized", ext.Name())
-			lg.Debugf("Extension '%v'(0xFFFF) Print() -> %v", ext.Name(), ext.Print())
-			hky.extensions = append(hky.extensions, ext)
+	mod.lg = lg
+	mod.table = make(map[uint16]*entry)
+	for _, k := range _BasicModules {
+		if err := mod.Load(&k); err != nil && err != syst.ErrAlreadyExists {
+			return nil, err
 		}
+
+		mod.lg.Info("Module loaded: ", mod.table[k.Id].exec.Name())
 	}
 
-	return &hky, nil
+	return &mod, nil
 }
 
-func (hk *helloKitty) Enable(id uint16) error {
+func (mod *modulador) Load(info *ModuloInfo) error {
 
+	var err error
+	var newEntry entry
+
+	if info == nil {
+		return syst.ErrNilParams
+	}
+
+	if _, ok := mod.table[info.Id]; ok {
+		return syst.ErrAlreadyExists
+	}
+
+	newEntry.info = info
+	newEntry.exec, err = info.Fn(info.Config)
+	if err != nil {
+		return err
+	}
+
+	mod.table[info.Id] = &newEntry
 	return nil
 }
 
-func (hk *helloKitty) Disable(id uint16) error {
-	return nil
+func (mod *modulador) Unload(id uint16) error {
+
+	if _, ok := mod.table[id]; ok {
+		delete(mod.table, id)
+		mod.lg.Info("module unloaded: ", ModuloName[id])
+		return nil
+	}
+
+	return syst.ErrNotFound
 }
 
-func (hk *helloKitty) List() []Modulo {
+func (mod *modulador) List() []Modulo {
 
-	return hk.extensions
+	var mm []Modulo
+
+	for _, k := range mod.table {
+		mm = append(mm, k.exec)
+	}
+
+	return mm
 }
 
-func (hk *helloKitty) Get(id uint16) Modulo {
+func (mod *modulador) Get(id uint16) Modulo {
 
-	for _, e := range hk.extensions {
-		if e.ID() == id {
-			return e
-		}
+	if _, ok := mod.table[id]; ok {
+		return mod.table[id].exec
 	}
 
 	return nil

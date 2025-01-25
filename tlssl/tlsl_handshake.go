@@ -57,7 +57,6 @@ type handshakeMsg struct {
 
 func handleTLSHandshakeRequest(ctrl *tlsio, buffer []byte) error {
 
-	var err error
 	var newMsg handshakeMsg
 
 	if ctrl == nil {
@@ -85,14 +84,28 @@ func handleTLSHandshakeRequest(ctrl *tlsio, buffer []byte) error {
 		return fmt.Errorf("pretty rude from you to not say hello first")
 	}
 
-	_, err = ctrl.handShakeIf.cliHello.Handle(buffer[4:])
-	//fmt.Println("ClientHello: ", cliH)
-	return err
+	return handleTLSHandshakeRequest1(ctrl, buffer[4:])
 }
 
-func (h HandshakeTypeType) String() string {
+func handleTLSHandshakeRequest1(ctrl *tlsio, buffer []byte) error {
 
-	switch h {
+	// ClientHello
+	/*_, err := ctrl.handShakeIf.cliHello.Handle(buffer)
+	if err != nil {
+		return err
+	}*/
+
+	return nil
+}
+
+func (hsm *handshakeMsg) String() string {
+	return fmt.Sprintf("HandshakeType: %v | Len: %v",
+		hsm.handshakeType, hsm.length)
+}
+
+func (ht HandshakeTypeType) String() string {
+
+	switch ht {
 	case HandshakeTypeClientHelo:
 		return "Client Hello"
 	case HandshakeTypeServerHelo:
@@ -108,9 +121,4 @@ func (h HandshakeTypeType) String() string {
 	default:
 		return "Unknow"
 	}
-}
-
-func (hm *handshakeMsg) String() string {
-	return fmt.Sprintf("HandshakeType: %v | Len: %v",
-		hm.handshakeType, hm.length)
 }

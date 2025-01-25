@@ -1,6 +1,8 @@
 package modulos
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // Load certificates
 
