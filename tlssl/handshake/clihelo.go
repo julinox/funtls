@@ -29,6 +29,7 @@ var (
 )
 
 type CliHello interface {
+	Name() string
 	Handle([]byte) (*MsgHello, error)
 }
 
@@ -41,6 +42,7 @@ type MsgHello struct {
 }
 
 type xCliHello struct {
+	name     string
 	helloMsg *MsgHello
 	lg       *logrus.Logger
 	modsIF   mx.TLSModulo
@@ -54,6 +56,7 @@ func NewCliHello(lg *logrus.Logger, mods mx.TLSModulo) CliHello {
 	}
 
 	return &xCliHello{
+		name:   "CliHello",
 		lg:     lg,
 		modsIF: mods,
 	}
@@ -183,4 +186,8 @@ func (rox *xCliHello) parseExtensions(buffer []byte) {
 
 		offset += int(exttLen)
 	}
+}
+
+func (rox *xCliHello) Name() string {
+	return rox.name
 }

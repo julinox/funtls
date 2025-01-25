@@ -44,7 +44,7 @@ func NewTLS(lg *logrus.Logger) (TLS12, error) {
 		return nil, err
 	}
 
-	ssl.hmods, err = hx.InitHandhsake(lg, nil)
+	ssl.hmods, err = hx.InitHandhsakeIf(lg, ssl.mods)
 	if err != nil {
 		ssl.logg.Error("error initializing handshake interfaces: ", err)
 		return nil, err

@@ -7,6 +7,7 @@ import (
 )
 
 type ServerHello interface {
+	Name() string
 	Handle(*MsgHello) error
 }
 
@@ -35,4 +36,8 @@ func (sh *xServerHello) Handle(msg *MsgHello) error {
 
 	sh.lg.Info("ServerHello message received")
 	return nil
+}
+
+func (sh *xServerHello) Name() string {
+	return "ServerHello"
 }
