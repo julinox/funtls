@@ -78,7 +78,7 @@ func (tls *tlsio) HandleTLS(buffer []byte) error {
 	offset += _TLSHeaderSize
 	switch packet.Header.ContentType {
 	case ContentTypeHandshake:
-		err = handleTLSHandshakeRequest(tls, buffer[offset:])
+		err = newHandshakeReq(tls, buffer[offset:])
 	default:
 		tls.logg.Info("Unknown Header type: ", packet.Header.ContentType)
 	}

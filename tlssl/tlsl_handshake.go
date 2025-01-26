@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"tlesio/systema"
+	"tlesio/tlssl/modulos"
 )
 
 // Format of Handshake messages in TLS 1.2:
@@ -55,9 +56,13 @@ type handshakeMsg struct {
 	handshakeType HandshakeTypeType
 }
 
-func handleTLSHandshakeRequest(ctrl *tlsio, buffer []byte) error {
+type handshakeReq struct {
+	ctrl   *tlsio
+	buffer []byte
+	offset uint32
+}
 
-	var newMsg handshakeMsg
+func newHandshakeReq(ctrl *tlsio, buffer []byte) error {
 
 	if ctrl == nil {
 		return systema.ErrNilController
@@ -75,26 +80,43 @@ func handleTLSHandshakeRequest(ctrl *tlsio, buffer []byte) error {
 		return fmt.Errorf("handshake message size did not match 4 bytes")
 	}
 
-	newMsg.rcvBuffSize = len(buffer)
-	newMsg.handshakeType = HandshakeTypeType(buffer[0])
-	buffer[0] = 0
-	newMsg.length = binary.BigEndian.Uint32(buffer[:4])
-	ctrl.logg.Trace(&newMsg)
+	req := &handshakeReq{ctrl: ctrl, buffer: buffer}
+	return req.hsReqStep1()
+}
+
+func (req *handshakeReq) hsReqStep1() error {
+
+	var newMsg handshakeMsg
+
+	newMsg.rcvBuffSize = len(req.buffer)
+	newMsg.handshakeType = HandshakeTypeType(req.buffer[0])
+	req.buffer[0] = 0
+	newMsg.length = binary.BigEndian.Uint32(req.buffer[:4])
+	req.ctrl.logg.Trace(&newMsg)
 	if newMsg.handshakeType != HandshakeTypeClientHelo {
 		return fmt.Errorf("pretty rude from you to not say hello first")
 	}
 
-	return handleTLSHandshakeRequest1(ctrl, buffer[4:])
+	req.offset = 4
+	return req.hsReqStep2()
 }
 
-func handleTLSHandshakeRequest1(ctrl *tlsio, buffer []byte) error {
+func (req *handshakeReq) hsReqStep2() error {
 
-	// ClientHello
-	/*_, err := ctrl.handShakeIf.cliHello.Handle(buffer)
+	cli, err := req.ctrl.hmods.CliHelo.Handle(req.buffer[req.offset:])
 	if err != nil {
 		return err
-	}*/
+	}
 
+	dtt, ok := cli.Extensions[0x000d].(*modulos.Data0x00D)
+	if !ok {
+		fmt.Println("error parseando data de 0x000D")
+		return nil
+	}
+
+	fmt.Printf("Len: %v", dtt.Len)
+	strr := modulos.AlgosToName(0x000D, dtt.Algos)
+	fmt.Println(strr)
 	return nil
 }
 

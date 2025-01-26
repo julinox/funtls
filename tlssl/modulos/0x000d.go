@@ -55,11 +55,11 @@ type Config0x00D struct {
 }
 
 type Data0x00D struct {
-	len   uint16
-	algos []uint16
+	Len   uint16
+	Algos []uint16
 }
 
-func InitExtension0x000D(config interface{}) (Modulo, error) {
+func InitModule0x000D(config interface{}) (Modulo, error) {
 
 	var extendido modulo0x00D
 
@@ -130,10 +130,10 @@ func (modulo0x00D) LoadData(data []byte) interface{} {
 	var offset uint16 = 2
 	var newData Data0x00D
 
-	newData.len = uint16(data[0])<<8 | uint16(data[1])/2
-	newData.algos = make([]uint16, 0)
-	for i := 0; i < int(newData.len); i++ {
-		newData.algos = append(newData.algos, uint16(data[offset])<<8|uint16(data[offset+1]))
+	newData.Len = uint16(data[0])<<8 | uint16(data[1])/2
+	newData.Algos = make([]uint16, 0)
+	for i := 0; i < int(newData.Len); i++ {
+		newData.Algos = append(newData.Algos, uint16(data[offset])<<8|uint16(data[offset+1]))
 		offset += 2
 	}
 

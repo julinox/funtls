@@ -15,7 +15,7 @@ type Config0xFFFE struct {
 type Data0xFFFE struct {
 }
 
-func InitExtension0xFFFE(cfg interface{}) (Modulo, error) {
+func InitModule0xFFFE(cfg interface{}) (Modulo, error) {
 
 	fmt.Println("Esto deberias verlo")
 	return &modulo0xFFFE{}, nil

@@ -81,6 +81,7 @@ type modulador struct {
 
 var _BasicModules = []ModuloInfo{
 	{Id: 0xFFFF, Fn: InitModule0xFFFF},
+	{Id: 0x000D, Fn: InitModule0x000D},
 }
 
 func InitModulos(lg *logrus.Logger) (TLSModulo, error) {

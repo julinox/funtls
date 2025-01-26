@@ -1,6 +1,8 @@
 package modulos
 
 import (
+	"fmt"
+
 	"golang.org/x/exp/maps"
 )
 
@@ -320,6 +322,7 @@ func (modulo0xFFFF) LoadData(data []byte) interface{} {
 		offset += 2
 	}
 
+	fmt.Println("ABOGADOooo")
 	return &newData
 }
 
