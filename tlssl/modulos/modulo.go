@@ -79,12 +79,8 @@ type modulador struct {
 	table map[uint16]*entry
 }
 
-var _BasicModules = []ModuloInfo{
-	{Id: 0xFFFF, Fn: InitModule0xFFFF},
-	{Id: 0x000D, Fn: InitModule0x000D},
-}
-
-func InitModulos(lg *logrus.Logger) (TLSModulo, error) {
+func InitModulos(lg *logrus.Logger, mods []ModuloInfo) (TLSModulo, error) {
+	//func InitModulos(lg *logrus.Logger) (TLSModulo, error) {
 
 	var mod modulador
 
@@ -92,9 +88,13 @@ func InitModulos(lg *logrus.Logger) (TLSModulo, error) {
 		return nil, syst.ErrNilLogger
 	}
 
+	if len(mods) <= 0 {
+		return nil, syst.ErrNilModulo
+	}
+
 	mod.lg = lg
 	mod.table = make(map[uint16]*entry)
-	for _, k := range _BasicModules {
+	for _, k := range mods {
 		if err := mod.Load(&k); err != nil && err != syst.ErrAlreadyExists {
 			return nil, err
 		}

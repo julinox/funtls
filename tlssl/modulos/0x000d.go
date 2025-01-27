@@ -1,6 +1,9 @@
 package modulos
 
 import (
+	"fmt"
+	"tlesio/systema"
+
 	"golang.org/x/exp/maps"
 )
 
@@ -69,7 +72,7 @@ func InitModule0x000D(config interface{}) (Modulo, error) {
 
 	val, ok := config.(Config0x00D)
 	if !ok {
-		return nil, nil
+		return nil, fmt.Errorf("%v (%v)", systema.ErrInvalidConfig, "Modulo 0x000D")
 	}
 
 	extendido.Config = val

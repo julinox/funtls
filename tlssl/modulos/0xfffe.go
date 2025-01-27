@@ -1,15 +1,35 @@
 package modulos
 
 import (
+	"crypto/rsa"
+	"crypto/x509"
 	"fmt"
+	"path/filepath"
+	"tlesio/systema"
+
+	"github.com/sirupsen/logrus"
 )
 
 // Load certificates
+type Cert struct {
+	Name       string
+	Cert       *x509.Certificate
+	PrivateKey *rsa.PrivateKey
+}
+
+type CertInfo struct {
+	PathCert string
+	PathKey  string
+}
 
 type modulo0xFFFE struct {
+	certs []Cert
+	lg    *logrus.Logger
 }
 
 type Config0xFFFE struct {
+	Lg    *logrus.Logger
+	Certs []CertInfo // Paths to certificates
 }
 
 type Data0xFFFE struct {
@@ -17,7 +37,24 @@ type Data0xFFFE struct {
 
 func InitModule0xFFFE(cfg interface{}) (Modulo, error) {
 
-	fmt.Println("Esto deberias verlo")
+	data, ok := cfg.(Config0xFFFE)
+	if !ok {
+		return nil, fmt.Errorf("error casting Config0xFFFE")
+	}
+
+	if data.Lg == nil {
+		return nil, fmt.Errorf("%v (%v)", systema.ErrNilLogger.Error(), "Modulo 0xFFFE")
+	}
+
+	for _, v := range data.Certs {
+		absPath, err := filepath.Abs(v.PathCert)
+		if err != nil {
+			return nil, fmt.Errorf("error getting absolute path: %v", err)
+		}
+
+		fmt.Println(absPath)
+	}
+
 	return &modulo0xFFFE{}, nil
 }
 

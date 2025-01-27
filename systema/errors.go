@@ -12,4 +12,5 @@ var (
 	ErrAlreadyExists     = errors.New("Object already exists")
 	ErrNotFound          = errors.New("Object not found")
 	ErrNilModulo         = errors.New("nil modulos/interfaces")
+	ErrInvalidConfig     = errors.New("invalid configuration")
 )

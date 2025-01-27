@@ -2,7 +2,9 @@ package handshake
 
 import (
 	"net"
+	"tlesio/systema"
 	"tlesio/tlssl"
+	mx "tlesio/tlssl/modulos"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -12,6 +14,8 @@ const (
 	port         = ":8443"
 	responseBody = "Hello, TLS!"
 )
+
+var _ENV_LOG_LEVEL_VAR_ = "TLS_LOG_LEVEL"
 
 type zzl struct {
 	lg     *logrus.Logger
@@ -29,6 +33,12 @@ func RealServidor() {
 		return
 	}
 
+	tlsLog := getTLSLogger()
+	if tlsLog == nil {
+		ssl.lg.Error("Error creating TLS Logger")
+		return
+	}
+
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
 		ssl.lg.Error(err)
@@ -37,9 +47,13 @@ func RealServidor() {
 
 	defer listener.Close()
 	ssl.lg.Info("Listening on PORT ", port)
-	ssl.tessio, err = tlssl.NewTLSDefault()
+	ssl.tessio, err = tlssl.NewTLS(tlsLog, getTLSModules(tlsLog))
 	if err != nil {
 		ssl.lg.Error("Error creating TLS Control: ", err)
+		return
+	}
+
+	if true {
 		return
 	}
 
@@ -71,4 +85,38 @@ func (ssl *zzl) handleConnection(conn net.Conn) {
 	}
 
 	ssl.tessio.HandleTLS(buffer[:n])
+}
+
+func getTLSLogger() *logrus.Logger {
+
+	lg := clog.InitNewLogger(&clog.CustomFormatter{
+		Tag: "TLS", TagColor: "blue"})
+	if lg == nil {
+		return nil
+	}
+
+	lg.SetLevel(systema.GetLogLevel(_ENV_LOG_LEVEL_VAR_))
+	return lg
+}
+
+func getTLSModules(lg *logrus.Logger) []mx.ModuloInfo {
+
+	var basicModules = []mx.ModuloInfo{
+
+		// certificate_load
+
+		{Id: 0xFFFF, Fn: mx.InitModule0xFFFF},
+		{Id: 0x000D, Fn: mx.InitModule0x000D},
+		{Id: 0xFFFE, Fn: mx.InitModule0xFFFE,
+			Config: mx.Config0xFFFE{
+				Lg: lg,
+				Certs: []mx.CertInfo{{
+					PathCert: "./certs/server.crt",
+					PathKey:  "./certs/server.key",
+				}},
+			},
+		},
+	}
+
+	return basicModules
 }

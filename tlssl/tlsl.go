@@ -6,11 +6,8 @@ import (
 
 	hx "tlesio/tlssl/handshake"
 
-	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
 )
-
-var _ENV_LOG_LEVEL_VAR_ = "TLS_LOG_LEVEL"
 
 type TLS12 interface {
 	HandleTLS(buffer []byte) error
@@ -28,7 +25,7 @@ type tlsPkt struct {
 	Alert        *TlsAlertMsg
 }
 
-func NewTLS(lg *logrus.Logger) (TLS12, error) {
+func NewTLS(lg *logrus.Logger, mods []mx.ModuloInfo) (TLS12, error) {
 
 	var err error
 	var ssl tlsio
@@ -38,7 +35,7 @@ func NewTLS(lg *logrus.Logger) (TLS12, error) {
 	}
 
 	ssl.logg = lg
-	ssl.mods, err = mx.InitModulos(lg)
+	ssl.mods, err = mx.InitModulos(lg, mods)
 	if err != nil {
 		ssl.logg.Error("error initializing extensions: ", err)
 		return nil, err
@@ -55,10 +52,6 @@ func NewTLS(lg *logrus.Logger) (TLS12, error) {
 	}
 
 	return &ssl, nil
-}
-
-func NewTLSDefault() (TLS12, error) {
-	return NewTLS(initDefaultLogger())
 }
 
 // Main TLS process function
@@ -88,16 +81,4 @@ func (tls *tlsio) HandleTLS(buffer []byte) error {
 	}
 
 	return err
-}
-
-func initDefaultLogger() *logrus.Logger {
-
-	lg := clog.InitNewLogger(&clog.CustomFormatter{
-		Tag: "TLS", TagColor: "blue"})
-	if lg == nil {
-		return nil
-	}
-
-	lg.SetLevel(systema.GetLogLevel(_ENV_LOG_LEVEL_VAR_))
-	return lg
 }
