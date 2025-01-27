@@ -226,8 +226,8 @@ var SupportedCiphersSuite = map[uint16]int{
 }
 
 type modulo0xFFFF struct {
-	Config     Config0xFFFF
-	ServerList map[uint16]int
+	config     Config0xFFFF
+	serverList map[uint16]int
 }
 
 type Config0xFFFF struct {
@@ -254,15 +254,15 @@ func InitModule0xFFFF(config interface{}) (Modulo, error) {
 		return nil, fmt.Errorf("%v (%v)", systema.ErrInvalidConfig, "Modulo 0xFFFF")
 	}
 
-	extendido.Config = val
-	extendido.ServerList = make(map[uint16]int, 0)
+	extendido.config = val
+	extendido.serverList = make(map[uint16]int, 0)
 	// Force this algorithm
 	if val.Tax != 0 {
-		extendido.ServerList[val.Tax] = 1
+		extendido.serverList[val.Tax] = 1
 
 	} else {
 		for algo, preference := range SupportedCiphersSuite {
-			extendido.ServerList[algo] = preference
+			extendido.serverList[algo] = preference
 		}
 	}
 
@@ -281,7 +281,7 @@ func (e *modulo0xFFFF) Execute(data interface{}) interface{} {
 		return nil
 	}
 
-	if len(e.ServerList) == 0 || len(clientList) == 0 {
+	if len(e.serverList) == 0 || len(clientList) == 0 {
 		return nil
 	}
 
@@ -289,12 +289,12 @@ func (e *modulo0xFFFF) Execute(data interface{}) interface{} {
 	lighter = 1 << 16
 	chosen = 0
 	for _, a := range clientList {
-		if e.ServerList[a] == 0 {
+		if e.serverList[a] == 0 {
 			continue
 		}
 
-		aux := (e.Config.ServerWeight * e.ServerList[a]) +
-			(e.Config.ClientWeight * count)
+		aux := (e.config.ServerWeight * e.serverList[a]) +
+			(e.config.ClientWeight * count)
 		if aux < lighter {
 			lighter = aux
 			chosen = a
@@ -323,7 +323,6 @@ func (modulo0xFFFF) LoadData(data []byte) interface{} {
 		offset += 2
 	}
 
-	fmt.Println("ABOGADOooo")
 	return &newData
 }
 
@@ -342,17 +341,17 @@ func (e *modulo0xFFFF) SetConfig(cfg interface{}) bool {
 		return false
 	}
 
-	e.Config = config
+	e.config = config
 	return true
 }
 
 func (e *modulo0xFFFF) GetConfig() interface{} {
-	return e.Config
+	return e.config
 }
 
 // Show the supported algorithms
 func (e *modulo0xFFFF) Print() string {
-	return AlgosToName(e.ID(), maps.Keys(e.ServerList))
+	return AlgosToName(e.ID(), maps.Keys(e.serverList))
 }
 
 func (e *modulo0xFFFF) PrintRaw(data []byte) string {
