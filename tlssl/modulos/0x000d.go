@@ -7,14 +7,6 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-// The algorithm for selecting signature algorithms will use this formula:
-// Score = ClientWeight ⋅ ClientPosition + ServerWeight ⋅ ServerPriority
-
-// The weights can be adjusted through the configuration to favor one
-// algorithm over another. This allows for flexible prioritization based
-// on specific client and server requirements.
-
-// Also you can force a specific algorithm using 'tax' option
 var _SignatureHashAlgorithms = map[uint16]string{
 	0x0403: "ecdsa_secp256r1_sha256",
 	0x0503: "ecdsa_secp384r1_sha384",
