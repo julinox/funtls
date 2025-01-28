@@ -1,6 +1,7 @@
 package tlssl
 
 import (
+	"fmt"
 	"tlesio/systema"
 	mx "tlesio/tlssl/modulos"
 
@@ -51,7 +52,17 @@ func NewTLS(lg *logrus.Logger, mods []mx.ModuloInfo) (TLS12, error) {
 		return nil, systema.ErrNilModulo
 	}
 
+	ssl.Close()
 	return &ssl, nil
+}
+
+func (tls *tlsio) Close() {
+	pp := tls.mods.Get(0xFFFE)
+	if pp == nil {
+		return
+	}
+
+	fmt.Printf("%v", pp.Print())
 }
 
 // Main TLS process function

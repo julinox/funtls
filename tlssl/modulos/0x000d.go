@@ -120,19 +120,8 @@ func (e *modulo0x00D) Execute(data interface{}) interface{} {
 }
 
 // Assuming data is in correct format
-func (modulo0x00D) LoadData(data []byte) interface{} {
-
-	var offset uint16 = 2
-	var newData Data0x00D
-
-	newData.Len = uint16(data[0])<<8 | uint16(data[1])/2
-	newData.Algos = make([]uint16, 0)
-	for i := 0; i < int(newData.Len); i++ {
-		newData.Algos = append(newData.Algos, uint16(data[offset])<<8|uint16(data[offset+1]))
-		offset += 2
-	}
-
-	return &newData
+func (modulo0x00D) LoadData(data interface{}) (interface{}, error) {
+	return nil, nil
 }
 
 func (e *modulo0x00D) ID() uint16 {
@@ -141,17 +130,6 @@ func (e *modulo0x00D) ID() uint16 {
 
 func (e *modulo0x00D) Name() string {
 	return ModuloName[e.ID()]
-}
-
-func (e *modulo0x00D) SetConfig(cfg interface{}) bool {
-
-	config, ok := cfg.(Config0x00D)
-	if !ok {
-		return false
-	}
-
-	e.Config = config
-	return true
 }
 
 func (e *modulo0x00D) GetConfig() interface{} {

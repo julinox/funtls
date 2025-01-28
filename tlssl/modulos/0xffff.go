@@ -307,14 +307,19 @@ func (e *modulo0xFFFF) Execute(data interface{}) interface{} {
 }
 
 // Assuming data is in correct format
-func (modulo0xFFFF) LoadData(data []byte) interface{} {
+func (e *modulo0xFFFF) LoadData(mdata interface{}) (interface{}, error) {
 
 	var offset uint16 = 2
 	var newData Data0xFFFF
 
+	data, ok := mdata.([]byte)
+	if !ok {
+		return nil, systema.ErrInvalidData
+	}
+
 	newData.Len = uint16(data[0])<<8 | uint16(data[1])/2
 	if len(data) < int(newData.Len) {
-		return nil
+		return nil, systema.ErrInvalidData
 	}
 
 	newData.Algos = make([]uint16, 0)
@@ -323,7 +328,7 @@ func (modulo0xFFFF) LoadData(data []byte) interface{} {
 		offset += 2
 	}
 
-	return &newData
+	return &newData, nil
 }
 
 func (e *modulo0xFFFF) ID() uint16 {
@@ -332,17 +337,6 @@ func (e *modulo0xFFFF) ID() uint16 {
 
 func (e *modulo0xFFFF) Name() string {
 	return ModuloName[e.ID()]
-}
-
-func (e *modulo0xFFFF) SetConfig(cfg interface{}) bool {
-
-	config, ok := cfg.(Config0xFFFF)
-	if !ok {
-		return false
-	}
-
-	e.config = config
-	return true
 }
 
 func (e *modulo0xFFFF) GetConfig() interface{} {

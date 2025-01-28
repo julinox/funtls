@@ -178,8 +178,13 @@ func (rox *xCliHello) parseExtensions(buffer []byte) {
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
 		if aux := rox.modsIF.Get(extt); aux != nil {
-			rox.helloMsg.Extensions[extt] = aux.LoadData(
-				buffer[offset : offset+int(exttLen)])
+			data, err := aux.LoadData(buffer[offset : offset+int(exttLen)])
+			if err != nil {
+				rox.lg.Errorf("extension data load %v: %v", aux.Name(), err)
+				continue
+			}
+
+			rox.helloMsg.Extensions[extt] = data
 			rox.lg.Trace(fmt.Sprintf("Field[Extension %v(0x%.2x)]: %v", aux.Name(), extt,
 				aux.PrintRaw(buffer[offset:offset+int(exttLen)])))
 		}

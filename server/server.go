@@ -110,10 +110,13 @@ func getTLSModules(lg *logrus.Logger) []mx.ModuloInfo {
 		{Id: 0xFFFE, Fn: mx.InitModule0xFFFE,
 			Config: mx.Config0xFFFE{
 				Lg: lg,
-				Certs: []mx.CertInfo{{
+				Certs: []mx.Data0xFFFE_1{{
 					PathCert: "./certs/server.crt",
 					PathKey:  "./certs/server.key",
-				}},
+				}, {
+					PathCert: "./certs/server2.crt",
+					PathKey:  "./certs/server.key"},
+				},
 			},
 		},
 	}

@@ -50,10 +50,9 @@ type Modulo interface {
 	Name() string
 	Print() string
 	PrintRaw(data []byte) string
-	SetConfig(interface{}) bool
 	GetConfig() interface{}
-	LoadData([]byte) interface{}
 	Execute(interface{}) interface{}
+	LoadData(interface{}) (interface{}, error)
 }
 
 type TLSModulo interface {

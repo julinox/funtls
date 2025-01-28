@@ -13,4 +13,5 @@ var (
 	ErrNotFound          = errors.New("Object not found")
 	ErrNilModulo         = errors.New("nil modulos/interfaces")
 	ErrInvalidConfig     = errors.New("invalid configuration")
+	ErrInvalidData       = errors.New("invalid data")
 )
