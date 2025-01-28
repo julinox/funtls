@@ -62,7 +62,7 @@ func (tls *tlsio) Close() {
 		return
 	}
 
-	fmt.Printf("%v", pp.Print())
+	fmt.Println(pp.Print())
 }
 
 // Main TLS process function
