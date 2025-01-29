@@ -1,45 +1,15 @@
 package modulos
 
 import (
+	"fmt"
 	syst "tlesio/systema"
 
 	"github.com/sirupsen/logrus"
 )
 
-// The idea of this module is to handle extensions or 'features' in a more
-// dynamic way, like a module (enabling/disabling, reload, change config, etc)
-
 var ModuloName = map[uint16]string{
-	// extensions
-	0x0000: "server_name",
-	0x0001: "max_fragment_length",
-	0x0002: "client_certificate_url",
-	0x0003: "trusted_ca_keys",
-	0x0004: "truncated_hmac",
-	0x0005: "status_request",
-	0x0006: "user_mapping",
-	0x0007: "client_authz",
-	0x0008: "server_authz",
-	0x0009: "cert_type",
-	0x000A: "supported_groups",
-	0x000B: "ec_point_formats",
-	0x000C: "srp",
 	0x000D: "signature_algorithms",
-	0x000E: "use_srtp",
-	0x000F: "heartbeat",
-	0x0010: "application_layer_protocol_negotiation",
-	0x0011: "status_request_v2",
-	0x0012: "signed_certificate_timestamp",
-	0x0013: "client_certificate_type",
-	0x0014: "server_certificate_type",
-	0x0015: "padding",
-	0x0016: "encrypt_then_mac",
-	0x0017: "extended_master_secret",
-	0x0018: "token_binding",
-	0x0019: "cached_info",
-	0x0023: "session_ticket",
-
-	// not extensions
+	0xfffa: "tls_header",
 	0xfffe: "certificate_load",
 	0xffff: "cipher_suite",
 }
@@ -156,4 +126,8 @@ func (mod *modulador) Get(id uint16) Modulo {
 	}
 
 	return nil
+}
+
+func ReturnErr(moduloName, msg string) error {
+	return fmt.Errorf("%v: %v", moduloName, msg)
 }

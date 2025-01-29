@@ -1,18 +1,10 @@
 package modulos
 
 import (
-	"golang.org/x/exp/maps"
+	"tlesio/systema"
 )
 
 type modulo0x00D struct {
-	Config     Config0x00D
-	ServerList map[uint16]int
-}
-
-type Config0x00D struct {
-	ClientWeight int
-	ServerWeight int
-	Tax          uint16 //Force the use of a specific signature algorithm
 }
 
 type Data0x00D struct {
@@ -21,14 +13,9 @@ type Data0x00D struct {
 }
 
 func InitModule0x000D(config interface{}) (Modulo, error) {
-
-	var extendido modulo0x00D
-
-	return &extendido, nil
+	return &modulo0x00D{}, nil
 }
 
-// Calculate the score for each signature algorithm and return the chosen one
-// score = serverWeight*preference + clientWeight*preference
 func (e *modulo0x00D) Execute(data interface{}) interface{} {
 
 	return nil
@@ -36,7 +23,28 @@ func (e *modulo0x00D) Execute(data interface{}) interface{} {
 
 // Assuming data is in correct format
 func (modulo0x00D) LoadData(data interface{}) (interface{}, error) {
-	return nil, nil
+
+	var offset uint16 = 2
+	var newData Data0x00D
+
+	mdata, ok := data.([]byte)
+	if !ok {
+		return nil, systema.ErrInvalidData
+	}
+
+	newData.Len = uint16(mdata[0])<<8 | uint16(mdata[1])/2
+	if len(mdata) < int(newData.Len) {
+		return nil, systema.ErrInvalidData
+	}
+
+	newData.Algos = make([]uint16, 0)
+	for i := 0; i < int(newData.Len); i++ {
+		newData.Algos = append(newData.Algos,
+			uint16(mdata[offset])<<8|uint16(mdata[offset+1]))
+		offset += 2
+	}
+
+	return &newData, nil
 }
 
 func (e *modulo0x00D) ID() uint16 {
@@ -48,33 +56,14 @@ func (e *modulo0x00D) Name() string {
 }
 
 func (e *modulo0x00D) GetConfig() interface{} {
-	return e.Config
+	return nil
 }
 
-// Show the supported signature algorithms
 func (e *modulo0x00D) Print() string {
-	return AlgosToName(e.ID(), maps.Keys(e.ServerList))
+	return "-- modulo0x00D --"
 }
 
 func (e *modulo0x00D) PrintRaw(data []byte) string {
 
-	var str string
-	var offset uint16 = 2
-
-	len := uint16(data[0])<<8 | uint16(data[1])/2
-	for i := 0; i < int(len); i++ {
-		str += "\n" + AlgoToName(e.ID(),
-			uint16(data[offset])<<8|uint16(data[offset+1]))
-		offset += 2
-	}
-
-	return str
-}
-
-func defaultConfig() Config0x00D {
-	return Config0x00D{
-		ClientWeight: 2,
-		ServerWeight: 1,
-		Tax:          0,
-	}
+	return "-- modulo0x00D RAW --"
 }

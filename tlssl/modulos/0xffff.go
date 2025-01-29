@@ -324,7 +324,8 @@ func (e *modulo0xFFFF) LoadData(mdata interface{}) (interface{}, error) {
 
 	newData.Algos = make([]uint16, 0)
 	for i := 0; i < int(newData.Len); i++ {
-		newData.Algos = append(newData.Algos, uint16(data[offset])<<8|uint16(data[offset+1]))
+		newData.Algos = append(newData.Algos,
+			uint16(data[offset])<<8|uint16(data[offset+1]))
 		offset += 2
 	}
 

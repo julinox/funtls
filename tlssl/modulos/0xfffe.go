@@ -115,6 +115,17 @@ func InitModule0xFFFE(cfg interface{}) (Modulo, error) {
 // Receive a signing algorithm and return a matching certificate
 func (e *modulo0xFFFE) Execute(data interface{}) interface{} {
 
+	dtt, ok := data.(uint16)
+	if !ok {
+		return nil
+	}
+
+	for _, v := range e.pki {
+		if _, ok := v.saSupport[dtt]; ok {
+			return v
+		}
+	}
+
 	return nil
 }
 

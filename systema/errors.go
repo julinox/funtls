@@ -14,4 +14,5 @@ var (
 	ErrNilModulo         = errors.New("nil modulos/interfaces")
 	ErrInvalidConfig     = errors.New("invalid configuration")
 	ErrInvalidData       = errors.New("invalid data")
+	ErrInvalidType       = errors.New("invalid type")
 )

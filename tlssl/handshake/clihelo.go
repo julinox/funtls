@@ -30,10 +30,10 @@ var (
 
 type CliHello interface {
 	Name() string
-	Handle([]byte) (*MsgHello, error)
+	Handle([]byte) (*MsgHelloCli, error)
 }
 
-type MsgHello struct {
+type MsgHelloCli struct {
 	Version      [2]byte
 	Random       [32]byte
 	SessionId    []byte
@@ -43,9 +43,9 @@ type MsgHello struct {
 
 type xCliHello struct {
 	name     string
-	helloMsg *MsgHello
+	helloMsg *MsgHelloCli
 	lg       *logrus.Logger
-	modsIF   mx.TLSModulo
+	mods     mx.TLSModulo
 }
 
 func NewCliHello(lg *logrus.Logger, mods mx.TLSModulo) CliHello {
@@ -56,13 +56,13 @@ func NewCliHello(lg *logrus.Logger, mods mx.TLSModulo) CliHello {
 	}
 
 	return &xCliHello{
-		name:   "CliHello",
-		lg:     lg,
-		modsIF: mods,
+		name: "CliHello",
+		lg:   lg,
+		mods: mods,
 	}
 }
 
-func (rox *xCliHello) Handle(buffer []byte) (*MsgHello, error) {
+func (rox *xCliHello) Handle(buffer []byte) (*MsgHelloCli, error) {
 
 	var err error
 	var aux uint32
@@ -72,7 +72,7 @@ func (rox *xCliHello) Handle(buffer []byte) (*MsgHello, error) {
 		return nil, fmt.Errorf("ClientHello buffer is nil or too small")
 	}
 
-	rox.helloMsg = &MsgHello{}
+	rox.helloMsg = &MsgHelloCli{}
 	offset += rox.parseVersion(buffer)
 	offset += rox.parseRandom(buffer[offset:])
 	aux, err = rox.parseSessionID(buffer[offset:])
@@ -97,6 +97,10 @@ func (rox *xCliHello) Handle(buffer []byte) (*MsgHello, error) {
 	rox.helloMsg.Extensions = make(map[uint16]interface{})
 	rox.parseExtensions(buffer[offset:])
 	return rox.helloMsg, nil
+}
+
+func (rox *xCliHello) Name() string {
+	return rox.name
 }
 
 func (rox *xCliHello) parseVersion(buffer []byte) uint32 {
@@ -177,7 +181,7 @@ func (rox *xCliHello) parseExtensions(buffer []byte) {
 		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
-		if aux := rox.modsIF.Get(extt); aux != nil {
+		if aux := rox.mods.Get(extt); aux != nil {
 			data, err := aux.LoadData(buffer[offset : offset+int(exttLen)])
 			if err != nil {
 				rox.lg.Errorf("extension data load %v: %v", aux.Name(), err)
@@ -191,8 +195,4 @@ func (rox *xCliHello) parseExtensions(buffer []byte) {
 
 		offset += int(exttLen)
 	}
-}
-
-func (rox *xCliHello) Name() string {
-	return rox.name
 }

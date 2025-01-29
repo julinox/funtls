@@ -1,10 +1,34 @@
-package handshake
+package server
+
+// -------------------------------------------
+// | Field       | Size   | Description       |
+// |-------------|--------|-------------------|
+// | ContentType | 1 byte | Payload Type      |
+// |-------------|--------|-------------------|
+// | Version     | 2 bytes| TLS version       |
+// |-------------|--------|-------------------|
+// | Length      | 2 bytes| Length of  payload|
+// -------------------------------------------
+
+// Content Types:
+// ------------------
+// ChangeCipherSpec
+// Alert
+// Handshake
+// Application Data
+// ------------------
+
+// Versions:
+// ------------------
+// 0x0301: TLS 1.0
+// 0x0302: TLS 1.1
+// 0x0303: TLS 1.2
+// 0x0304: TLS 1.3a
+// ------------------
 
 import (
+	"fmt"
 	"net"
-	"tlesio/systema"
-	"tlesio/tlssl"
-	mx "tlesio/tlssl/modulos"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -17,109 +41,58 @@ const (
 
 var _ENV_LOG_LEVEL_VAR_ = "TLS_LOG_LEVEL"
 
-type zzl struct {
-	lg     *logrus.Logger
-	tessio tlssl.TLS12
+type serverST struct {
+	tls *zzl
+	lg  *logrus.Logger
 }
 
 func RealServidor() {
 
-	var ssl zzl
 	var err error
+	var server serverST
 
-	ssl.lg = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
-	if ssl.lg == nil {
-		ssl.lg.Error("Error creating server logger")
-		return
-	}
-
-	tlsLog := getTLSLogger()
-	if tlsLog == nil {
-		ssl.lg.Error("Error creating TLS Logger")
-		return
-	}
-
+	server.lg = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
 	listener, err := net.Listen("tcp", port)
 	if err != nil {
-		ssl.lg.Error(err)
+		server.lg.Error(err)
+		return
+	}
+
+	server.tls, err = initTLS()
+	if err != nil {
+		server.lg.Error("Error initializing TLS: ", err)
 		return
 	}
 
 	defer listener.Close()
-	ssl.lg.Info("Listening on PORT ", port)
-	ssl.tessio, err = tlssl.NewTLS(tlsLog, getTLSModules(tlsLog))
-	if err != nil {
-		ssl.lg.Error("Error creating TLS Control: ", err)
-		return
-	}
-
-	if true {
-		return
-	}
-
+	server.lg.Info("Listening on PORT ", port)
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			ssl.lg.Error("Error accepting connection:", err)
+			server.lg.Error("Error accepting connection:", err)
 			continue
 		}
 
-		ssl.lg.Info("Connection accepted from ", conn.RemoteAddr())
-		go ssl.handleConnection(conn)
+		server.lg.Info("Connection accepted from ", conn.RemoteAddr())
+		go server.handleConnection(conn)
 	}
 }
 
-func (ssl *zzl) handleConnection(conn net.Conn) {
+func (server *serverST) handleConnection(conn net.Conn) {
 
 	defer conn.Close()
 	buffer := make([]byte, 4096)
 	n, err := conn.Read(buffer)
 	if err != nil {
-		ssl.lg.Error("Error reading data:", err)
+		server.lg.Error("Error reading data:", err)
 		return
 	}
 
 	if n <= 5 {
-		ssl.lg.Warning("Very little Data")
+		server.lg.Warning("Very little Data")
 		return
 	}
 
-	ssl.tessio.HandleTLS(buffer[:n])
-}
-
-func getTLSLogger() *logrus.Logger {
-
-	lg := clog.InitNewLogger(&clog.CustomFormatter{
-		Tag: "TLS", TagColor: "blue"})
-	if lg == nil {
-		return nil
-	}
-
-	lg.SetLevel(systema.GetLogLevel(_ENV_LOG_LEVEL_VAR_))
-	return lg
-}
-
-func getTLSModules(lg *logrus.Logger) []mx.ModuloInfo {
-
-	var basicModules = []mx.ModuloInfo{
-
-		// certificate_load
-
-		{Id: 0xFFFF, Fn: mx.InitModule0xFFFF},
-		{Id: 0x000D, Fn: mx.InitModule0x000D},
-		{Id: 0xFFFE, Fn: mx.InitModule0xFFFE,
-			Config: mx.Config0xFFFE{
-				Lg: lg,
-				Certs: []mx.Data0xFFFE_1{{
-					PathCert: "./certs/server.crt",
-					PathKey:  "./certs/server.key",
-				}, {
-					PathCert: "./certs/server2.crt",
-					PathKey:  "./certs/server.key"},
-				},
-			},
-		},
-	}
-
-	return basicModules
+	fmt.Println("ES handshake??")
+	return
 }
