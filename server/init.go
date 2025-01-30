@@ -2,7 +2,7 @@ package server
 
 import (
 	"tlesio/systema"
-	hx "tlesio/tlssl/handshake"
+	iff "tlesio/tlssl/interfaces"
 	mx "tlesio/tlssl/modulos"
 
 	clog "github.com/julinox/consolelogrus"
@@ -10,9 +10,9 @@ import (
 )
 
 type zzl struct {
-	lg    *logrus.Logger
-	mods  mx.TLSModulo
-	hmods *hx.HandShake
+	lg   *logrus.Logger
+	mods mx.TLSModulo
+	ifs  *iff.Interfaces
 }
 
 func initTLS() (*zzl, error) {
@@ -27,13 +27,13 @@ func initTLS() (*zzl, error) {
 		return nil, err
 	}
 
-	ssl.hmods, err = hx.InitHandhsakeIf(ssl.lg, ssl.mods)
+	ssl.ifs, err = iff.InitInterfaces(ssl.lg, ssl.mods)
 	if err != nil {
 		ssl.lg.Error("error initializing handshake interfaces: ", err)
 		return nil, err
 	}
 
-	if ssl.mods == nil || ssl.hmods == nil {
+	if ssl.mods == nil || ssl.ifs == nil {
 		return nil, systema.ErrNilModulo
 	}
 
@@ -56,19 +56,9 @@ func getTLSModules(lg *logrus.Logger) []mx.ModuloInfo {
 
 	var basicModules []mx.ModuloInfo
 
-	basicModules = append(basicModules, getModuleTLSHeader(lg))
 	basicModules = append(basicModules, getModuleCertificateLoad(lg))
-	basicModules = append(basicModules, getModuleCipherSuites(lg))
+	basicModules = append(basicModules, getModuleCipherSuites())
 	return basicModules
-}
-
-func getModuleTLSHeader(lg *logrus.Logger) mx.ModuloInfo {
-
-	return mx.ModuloInfo{
-		Id:     0xFFFA,
-		Fn:     mx.ModuleTLSHeader,
-		Config: mx.ConfigTLSHeader{Lg: lg},
-	}
 }
 
 func getModuleCertificateLoad(lg *logrus.Logger) mx.ModuloInfo {
@@ -89,7 +79,7 @@ func getModuleCertificateLoad(lg *logrus.Logger) mx.ModuloInfo {
 	}
 }
 
-func getModuleCipherSuites(lg *logrus.Logger) mx.ModuloInfo {
+func getModuleCipherSuites() mx.ModuloInfo {
 
 	return mx.ModuloInfo{
 		Id: 0xFFFF,

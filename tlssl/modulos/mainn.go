@@ -9,7 +9,6 @@ import (
 
 var ModuloName = map[uint16]string{
 	0x000D: "signature_algorithms",
-	0xfffa: "tls_header",
 	0xfffe: "certificate_load",
 	0xffff: "cipher_suite",
 }

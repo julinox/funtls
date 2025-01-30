@@ -1,4 +1,4 @@
-package handshake
+package interfaces
 
 import (
 	syst "tlesio/systema"
@@ -7,15 +7,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type HandShake struct {
+type Interfaces struct {
+	TLSHead    Header
 	CliHelo    CliHello
 	ServerHelo ServerHello
 }
 
-func InitHandhsakeIf(lg *logrus.Logger, mods mx.TLSModulo) (*HandShake, error) {
+func InitInterfaces(lg *logrus.Logger, mods mx.TLSModulo) (*Interfaces, error) {
 
-	var newHsIf HandShake
+	var newHsIf Interfaces
 
+	newHsIf.TLSHead = NewHeader()
+	lg.Info("Interface loaded: ", newHsIf.TLSHead.Name())
 	newHsIf.CliHelo = NewCliHello(lg, mods)
 	if newHsIf.CliHelo == nil {
 		return nil, syst.ErrNilModulo

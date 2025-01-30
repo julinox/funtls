@@ -1,34 +1,8 @@
 package server
 
-// -------------------------------------------
-// | Field       | Size   | Description       |
-// |-------------|--------|-------------------|
-// | ContentType | 1 byte | Payload Type      |
-// |-------------|--------|-------------------|
-// | Version     | 2 bytes| TLS version       |
-// |-------------|--------|-------------------|
-// | Length      | 2 bytes| Length of  payload|
-// -------------------------------------------
-
-// Content Types:
-// ------------------
-// ChangeCipherSpec
-// Alert
-// Handshake
-// Application Data
-// ------------------
-
-// Versions:
-// ------------------
-// 0x0301: TLS 1.0
-// 0x0302: TLS 1.1
-// 0x0303: TLS 1.2
-// 0x0304: TLS 1.3a
-// ------------------
-
 import (
-	"fmt"
 	"net"
+	handshake "tlesio/tlssl/interfaces"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -41,7 +15,7 @@ const (
 
 var _ENV_LOG_LEVEL_VAR_ = "TLS_LOG_LEVEL"
 
-type serverST struct {
+type ops struct {
 	tls *zzl
 	lg  *logrus.Logger
 }
@@ -49,7 +23,7 @@ type serverST struct {
 func RealServidor() {
 
 	var err error
-	var server serverST
+	var server ops
 
 	server.lg = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
 	listener, err := net.Listen("tcp", port)
@@ -74,11 +48,13 @@ func RealServidor() {
 		}
 
 		server.lg.Info("Connection accepted from ", conn.RemoteAddr())
-		go server.handleConnection(conn)
+		server.handleConnection(conn)
 	}
 }
 
-func (server *serverST) handleConnection(conn net.Conn) {
+func (server *ops) handleConnection(conn net.Conn) {
+
+	var offset uint32
 
 	defer conn.Close()
 	buffer := make([]byte, 4096)
@@ -93,6 +69,29 @@ func (server *serverST) handleConnection(conn net.Conn) {
 		return
 	}
 
-	fmt.Println("ES handshake??")
-	return
+	hh := server.tls.ifs.TLSHead.Header(buffer)
+	if hh == nil {
+		server.lg.Warning("Error reading header")
+		return
+	}
+
+	if hh.ContentType != handshake.ContentTypeHandshake {
+		server.lg.Warning("We do not negotiate with terrorist!")
+		return
+	}
+
+	offset += handshake.TLS_HEADER_SIZE
+	hs := server.tls.ifs.TLSHead.HandShake(buffer[offset:])
+	if hs == nil {
+		server.lg.Warning("Error reading handshake")
+		return
+	}
+
+	if hs.HandshakeType != handshake.HandshakeTypeClientHelo {
+		server.lg.Warning("Pretty rude from you not to say helo first")
+		return
+	}
+
+	offset += handshake.TLS_HANDSHAKE_SIZE
+	server.lg.Info("Header: ", hs)
 }

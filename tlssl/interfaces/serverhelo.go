@@ -1,4 +1,4 @@
-package handshake
+package interfaces
 
 import (
 	"crypto/rand"
