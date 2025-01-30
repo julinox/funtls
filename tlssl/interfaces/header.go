@@ -83,6 +83,7 @@ type TLSHandshake struct {
 type Header interface {
 	Header([]byte) *TLSHeader
 	HandShake([]byte) *TLSHandshake
+	Packet(*TLSHeader) []byte
 	Name() string
 }
 
@@ -122,4 +123,27 @@ func (h *tlsHead) HandShake(buffer []byte) *TLSHandshake {
 
 func (h *tlsHead) Name() string {
 	return "Header"
+}
+
+func (h *tlsHead) Packet(hh *TLSHeader) []byte {
+
+	var newBuffer []byte
+
+	switch hh.ContentType {
+	case ContentTypeChangeCipherSpec:
+		fallthrough
+	case ContentTypeAlert:
+		fallthrough
+	case ContentTypeHandshake:
+		fallthrough
+	case ContentTypeApplicationData:
+		newBuffer = append(newBuffer, byte(hh.ContentType))
+
+	default:
+		return nil
+	}
+
+	newBuffer = append(newBuffer, 0x03, 0x01)
+	newBuffer = append(newBuffer, byte(hh.Len>>8), byte(hh.Len))
+	return newBuffer
 }

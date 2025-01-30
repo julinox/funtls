@@ -2,7 +2,7 @@ package server
 
 import (
 	"net"
-	handshake "tlesio/tlssl/interfaces"
+	ifs "tlesio/tlssl/interfaces"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -75,24 +75,24 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 		return
 	}
 
-	if hh.ContentType != handshake.ContentTypeHandshake {
+	if hh.ContentType != ifs.ContentTypeHandshake {
 		server.lg.Warning("We do not negotiate with terrorist!")
 		return
 	}
 
-	offset += handshake.TLS_HEADER_SIZE
+	offset += ifs.TLS_HEADER_SIZE
 	hs := server.tls.ifs.TLSHead.HandShake(buffer[offset:])
 	if hs == nil {
 		server.lg.Warning("Error reading handshake")
 		return
 	}
 
-	if hs.HandshakeType != handshake.HandshakeTypeClientHelo {
+	if hs.HandshakeType != ifs.HandshakeTypeClientHelo {
 		server.lg.Warning("Pretty rude from you not to say helo first")
 		return
 	}
 
-	offset += handshake.TLS_HANDSHAKE_SIZE
+	offset += ifs.TLS_HANDSHAKE_SIZE
 	wkf := TLSMe(server.tls, buffer, conn, offset)
 	if wkf == nil {
 		return

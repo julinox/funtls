@@ -3,6 +3,8 @@ package server
 import (
 	"fmt"
 	"net"
+	"tlesio/systema"
+	ifs "tlesio/tlssl/interfaces"
 )
 
 type wkf struct {
@@ -34,12 +36,21 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn, offset uint32) *wkf {
 }
 
 func (wf *wkf) Start() {
-	wf.ssl.lg.Infof("Starting handshake with '%v'", wf.conn.RemoteAddr())
-	msg, err := wf.ssl.ifs.CliHelo.Handle(wf.buffer[wf.offset:])
+
+	wf.ssl.lg.Debugf("Starting handshake with '%v'", wf.conn.RemoteAddr())
+	msgHC, err := wf.ssl.ifs.CliHelo.Handle(wf.buffer[wf.offset:])
 	if err != nil {
 		wf.ssl.lg.Error("Error handling client hello:", err)
 		return
 	}
 
-	fmt.Println(msg)
+	_, err = wf.ssl.ifs.ServerHelo.Handle(msgHC)
+	if err != nil {
+		wf.ssl.lg.Error("Error handling server hello:", err)
+		return
+	}
+
+	// Pick certificate
+	pp := ifs.TLSHeader{ContentType: ifs.ContentTypeHandshake, Len: 512}
+	fmt.Println(systema.PrettyPrintBytes(wf.ssl.ifs.TLSHead.Packet(&pp)))
 }

@@ -4,7 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"tlesio/systema"
-	tx "tlesio/tlssl/modulos"
+	mx "tlesio/tlssl/modulos"
 
 	"github.com/sirupsen/logrus"
 )
@@ -22,12 +22,11 @@ type MsgHelloServer struct {
 }
 
 type xServerHello struct {
-	lg       *logrus.Logger
-	mods     tx.TLSModulo
-	helloMsg *MsgHelloServer
+	lg   *logrus.Logger
+	mods mx.TLSModulo
 }
 
-func NewServerHello(lg *logrus.Logger, mods tx.TLSModulo) ServerHello {
+func NewServerHello(lg *logrus.Logger, mods mx.TLSModulo) ServerHello {
 
 	if lg == nil || mods == nil {
 		return nil
@@ -48,59 +47,60 @@ func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
 		return nil, systema.ErrNilParams
 	}
 
-	sh.helloMsg = &newMsg
-	err = sh.setVersion(msg.Version)
+	err = newMsg.setVersion(newMsg.Version)
 	if err != nil {
 		return nil, err
 	}
 
-	err = sh.setRandom()
+	err = newMsg.setRandom()
 	if err != nil {
 		return nil, err
 	}
 
-	err = sh.setCipherSuites(msg.CipherSuites)
+	// Get Cipher Suite module
+	modd := sh.mods.Get(0xffff)
+	if modd == nil {
+		// This should never happen
+		return nil, fmt.Errorf("server hello error getting cipher suite module")
+	}
+
+	err = newMsg.setCS(msg.CipherSuites, modd)
 	if err != nil {
 		return nil, err
 	}
 
-	return sh.helloMsg, nil
+	return &newMsg, nil
 }
 
 func (sh *xServerHello) Name() string {
 	return "ServerHello"
 }
 
-func (sh *xServerHello) setVersion(version [2]byte) error {
+func (mh *MsgHelloServer) setVersion(version [2]byte) error {
 
-	sh.helloMsg.Version = version
+	mh.Version = version
 	return nil
 }
 
-func (sh *xServerHello) setRandom() error {
+func (mh *MsgHelloServer) setRandom() error {
 
 	random, err := generateServerRandom()
 	if err != nil {
 		return err
 	}
 
-	sh.helloMsg.Random = random
+	mh.Random = random
 	return nil
 }
 
-func (sh *xServerHello) setCipherSuites(algos []uint16) error {
+func (mh *MsgHelloServer) setCS(algos []uint16, modd mx.Modulo) error {
 
-	csm := sh.mods.Get(0xffff)
-	if csm == nil {
-		return fmt.Errorf("server hello error getting cipher suite module")
-	}
-
-	cs, ok := csm.Execute(algos).(uint16)
+	cs, ok := modd.Execute(algos).(uint16)
 	if !ok {
 		return fmt.Errorf("server hello error getting cipher suite")
 	}
 
-	sh.helloMsg.CipherSuites = cs
+	mh.CipherSuites = cs
 	return nil
 }
 

@@ -366,8 +366,8 @@ func (e *modulo0xFFFF) PrintRaw(data []byte) string {
 
 func xffffDefaultConfig() CipherSuiteConf {
 	return CipherSuiteConf{
-		ClientWeight: 2,
-		ServerWeight: 1,
+		ClientWeight: 1,
+		ServerWeight: 2,
 		Tax:          0,
 	}
 }
