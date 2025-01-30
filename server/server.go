@@ -15,7 +15,7 @@ const (
 
 var _ENV_LOG_LEVEL_VAR_ = "TLS_LOG_LEVEL"
 
-type ops struct {
+type serverOp struct {
 	tls *zzl
 	lg  *logrus.Logger
 }
@@ -23,7 +23,7 @@ type ops struct {
 func RealServidor() {
 
 	var err error
-	var server ops
+	var server serverOp
 
 	server.lg = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
 	listener, err := net.Listen("tcp", port)
@@ -48,11 +48,11 @@ func RealServidor() {
 		}
 
 		server.lg.Info("Connection accepted from ", conn.RemoteAddr())
-		server.handleConnection(conn)
+		go server.handleConnection(conn)
 	}
 }
 
-func (server *ops) handleConnection(conn net.Conn) {
+func (server *serverOp) handleConnection(conn net.Conn) {
 
 	var offset uint32
 
@@ -93,5 +93,10 @@ func (server *ops) handleConnection(conn net.Conn) {
 	}
 
 	offset += handshake.TLS_HANDSHAKE_SIZE
-	server.lg.Info("Header: ", hs)
+	wkf := TLSMe(server.tls, buffer, conn, offset)
+	if wkf == nil {
+		return
+	}
+
+	wkf.Start()
 }

@@ -226,22 +226,22 @@ var SupportedCiphersSuite = map[uint16]int{
 }
 
 type modulo0xFFFF struct {
-	config     Config0xFFFF
+	config     CipherSuiteConf
 	serverList map[uint16]int
 }
 
-type Config0xFFFF struct {
+type CipherSuiteConf struct {
 	ClientWeight int
 	ServerWeight int
 	Tax          uint16 //Force the use of a specific algorithm
 }
 
-type Data0xFFFF struct {
+type CipherSuiteData struct {
 	Len   uint16
 	Algos []uint16
 }
 
-func InitModule0xFFFF(config interface{}) (Modulo, error) {
+func ModuloCipherSuites(config interface{}) (Modulo, error) {
 
 	var extendido modulo0xFFFF
 
@@ -249,7 +249,7 @@ func InitModule0xFFFF(config interface{}) (Modulo, error) {
 		config = xffffDefaultConfig()
 	}
 
-	val, ok := config.(Config0xFFFF)
+	val, ok := config.(CipherSuiteConf)
 	if !ok {
 		return nil, fmt.Errorf("%v (%v)", systema.ErrInvalidConfig, "Modulo 0xFFFF")
 	}
@@ -310,7 +310,7 @@ func (e *modulo0xFFFF) Execute(data interface{}) interface{} {
 func (e *modulo0xFFFF) LoadData(mdata interface{}) (interface{}, error) {
 
 	var offset uint16 = 2
-	var newData Data0xFFFF
+	var newData CipherSuiteData
 
 	data, ok := mdata.([]byte)
 	if !ok {
@@ -364,8 +364,8 @@ func (e *modulo0xFFFF) PrintRaw(data []byte) string {
 	return str
 }
 
-func xffffDefaultConfig() Config0xFFFF {
-	return Config0xFFFF{
+func xffffDefaultConfig() CipherSuiteConf {
+	return CipherSuiteConf{
 		ClientWeight: 2,
 		ServerWeight: 1,
 		Tax:          0,

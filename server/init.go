@@ -65,10 +65,10 @@ func getModuleCertificateLoad(lg *logrus.Logger) mx.ModuloInfo {
 
 	return mx.ModuloInfo{
 		Id: 0xFFFE,
-		Fn: mx.InitModule0xFFFE,
-		Config: mx.Config0xFFFE{
+		Fn: mx.ModuloCertificates,
+		Config: mx.CertificatesConfig{
 			Lg: lg,
-			Certs: []mx.Data0xFFFE_1{{
+			Certs: []mx.CertificatesData_1{{
 				PathCert: "./certs/server.crt",
 				PathKey:  "./certs/server.key",
 			}, {
@@ -83,6 +83,6 @@ func getModuleCipherSuites() mx.ModuloInfo {
 
 	return mx.ModuloInfo{
 		Id: 0xFFFF,
-		Fn: mx.InitModule0xFFFF,
+		Fn: mx.ModuloCipherSuites,
 	}
 }

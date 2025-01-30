@@ -48,17 +48,17 @@ var _SignatureHashAlgorithms = map[uint16]string{
 	_RSA_PKCS1_SHA512:       "rsa_pkcs1_sha512",
 }
 
-type Data0xFFFE_1 struct {
+type CertificatesData_1 struct {
 	PathCert string
 	PathKey  string
 }
 
-type Config0xFFFE struct {
+type CertificatesConfig struct {
 	Lg    *logrus.Logger
-	Certs []Data0xFFFE_1
+	Certs []CertificatesData_1
 }
 
-type Data0xFFFE struct {
+type CertificatesData struct {
 	Name      string
 	Pkey      crypto.PrivateKey
 	Cert      *x509.Certificate
@@ -67,16 +67,16 @@ type Data0xFFFE struct {
 
 type modulo0xFFFE struct {
 	lg     *logrus.Logger
-	config *Config0xFFFE
-	pki    []*Data0xFFFE
+	config *CertificatesConfig
+	pki    []*CertificatesData
 }
 
-func InitModule0xFFFE(cfg interface{}) (Modulo, error) {
+func ModuloCertificates(cfg interface{}) (Modulo, error) {
 
 	var modd modulo0xFFFE
 
 	x509.ParsePKCS8PrivateKey(nil)
-	data, ok := cfg.(Config0xFFFE)
+	data, ok := cfg.(CertificatesConfig)
 	if !ok {
 		return nil, fmt.Errorf("error casting Config0xFFFE")
 	}
@@ -87,7 +87,7 @@ func InitModule0xFFFE(cfg interface{}) (Modulo, error) {
 
 	modd.lg = data.Lg
 	modd.config = &data
-	modd.pki = make([]*Data0xFFFE, 0)
+	modd.pki = make([]*CertificatesData, 0)
 	for _, v := range data.Certs {
 		data, err := modd.LoadData(v)
 		if data == nil {
@@ -100,7 +100,7 @@ func InitModule0xFFFE(cfg interface{}) (Modulo, error) {
 			continue
 		}
 
-		dataf := data.(*Data0xFFFE)
+		dataf := data.(*CertificatesData)
 		dataf.setSASupport()
 		modd.pki = append(modd.pki, dataf)
 	}
@@ -145,9 +145,9 @@ func (e *modulo0xFFFE) GetConfig() interface{} {
 func (e *modulo0xFFFE) LoadData(data interface{}) (interface{}, error) {
 
 	var err error
-	var newPki Data0xFFFE
+	var newPki CertificatesData
 
-	dt, ok := data.(Data0xFFFE_1)
+	dt, ok := data.(CertificatesData_1)
 	if !ok {
 		return nil, systema.ErrInvalidData
 	}
@@ -186,7 +186,7 @@ func (e *modulo0xFFFE) PrintRaw(data []byte) string {
 	return "-*-"
 }
 
-func (d *Data0xFFFE) setSASupport() {
+func (d *CertificatesData) setSASupport() {
 
 	d.saSupport = make(map[uint16]bool)
 	switch pub := d.Cert.PublicKey.(type) {
