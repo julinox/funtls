@@ -52,7 +52,7 @@ func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
 		return nil, systema.ErrNilParams
 	}
 
-	err = newMsg.setVersion(newMsg.Version)
+	err = newMsg.setVersion(msg.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -86,15 +86,21 @@ func (sh *xServerHello) Packet(msg *MsgHelloServer) []byte {
 		return nil
 	}
 
-	// Handshake type
-	newBuffer = append(newBuffer, byte(HandshakeTypeServerHelo))
-	fmt.Println("total LEN:", 1+3+2+32+1+len(msg.SessionId)+1+2)
+	newBuffer = append(newBuffer, msg.Version[:]...)
+	newBuffer = append(newBuffer, msg.Random[:]...)
+	newBuffer = append(newBuffer, byte(len(msg.SessionId)))
+	newBuffer = append(newBuffer, msg.SessionId...)
+	newBuffer = append(newBuffer, byte(msg.CipherSuites>>8),
+		byte(msg.CipherSuites))
+	// Compression methods
+	newBuffer = append(newBuffer, 0x00)
 	return newBuffer
 }
 
 func (mh *MsgHelloServer) setVersion(version [2]byte) error {
 
-	mh.Version = version
+	// Force TLS 1.2
+	mh.Version = [2]byte{0x03, 0x03}
 	return nil
 }
 

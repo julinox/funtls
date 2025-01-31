@@ -1,9 +1,8 @@
 package server
 
 import (
-	"fmt"
+	"encoding/binary"
 	"net"
-	"tlesio/systema"
 	ifs "tlesio/tlssl/interfaces"
 )
 
@@ -44,29 +43,56 @@ func (wf *wkf) Start() {
 		return
 	}
 
-	msgHS, err := wf.ssl.ifs.ServerHelo.Handle(msgHC)
+	// Check TLS version (muste be 1.0[0x0303])
+	if binary.BigEndian.Uint16(msgHC.Version[:]) != 0x0303 {
+		wf.ssl.lg.Errorf("TLS version not supported: %.4x",
+			binary.BigEndian.Uint16(msgHC.Version[:]))
+		return
+	}
+
+	// Prepare buffer with server hello message
+	pkt := wf.sayHelloBack(msgHC)
+	wf.conn.Write(pkt)
+	wf.ssl.lg.Debug("Server Hello sent")
+	//fmt.Println(systema.PrettyPrintBytes(pkt))
+	// Pick certificate
+}
+
+// Build Server Hello packet message
+func (wf *wkf) sayHelloBack(cMsg *ifs.MsgHelloCli) []byte {
+
+	var outputBuff []byte
+
+	sMsg, err := wf.ssl.ifs.ServerHelo.Handle(cMsg)
 	if err != nil {
 		wf.ssl.lg.Error("Error handling server hello:", err)
-		return
+		return nil
 	}
 
-	// Pick certificate
-	pkt := ifs.TLSHeader{ContentType: ifs.ContentTypeHandshake, Len: 512}
+	// Server hello payload
+	buff3 := wf.ssl.ifs.ServerHelo.Packet(sMsg)
 
-	// header
-	wf.buffer = wf.ssl.ifs.TLSHead.Packet(&pkt)
+	// Extensions payload (none for now!)
+	buff2 := wf.addExtensions()
 
-	// ??
-	xx := wf.ssl.ifs.ServerHelo.Packet(msgHS)
-	fmt.Println(systema.PrettyPrintBytes(xx))
+	// Handshake header
+	buff1 := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
+		HandshakeType: ifs.HandshakeTypeServerHelo,
+		Len:           len(buff3) + len(buff2)})
 
-	// wire
-	n, err := wf.conn.Write(wf.buffer)
-	if err != nil {
-		wf.ssl.lg.Error("error sending: ", err.Error())
-		return
-	}
+	// TLS Header
+	outputBuff = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
+		ContentType: ifs.ContentTypeHandshake,
+		Version:     0x0303,
+		Len:         len(buff3) + len(buff2) + len(buff1)})
 
-	fmt.Printf("Enviados '%v'\n", n)
-	//fmt.Println(len(wf.buffer), " -->", systema.PrettyPrintBytes(wf.buffer))
+	// Concatenate all buffers
+	outputBuff = append(outputBuff, buff1...)
+	outputBuff = append(outputBuff, buff2...)
+	outputBuff = append(outputBuff, buff3...)
+	return outputBuff
+}
+
+func (wf *wkf) addExtensions() []byte {
+	return nil
 }

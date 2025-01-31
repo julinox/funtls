@@ -81,10 +81,11 @@ type TLSHandshake struct {
 }
 
 type Header interface {
+	Name() string
 	Header([]byte) *TLSHeader
 	HandShake([]byte) *TLSHandshake
-	Packet(*TLSHeader) []byte
-	Name() string
+	HeaderPacket(*TLSHeader) []byte
+	HandShakePacket(*TLSHandshake) []byte
 }
 
 type tlsHead struct {
@@ -104,7 +105,7 @@ func (h *tlsHead) Header(buffer []byte) *TLSHeader {
 
 	header.ContentType = ContentTypeType(buffer[0])
 	header.Version = uint16(buffer[1])<<8 | uint16(buffer[2])
-	header.Len = int(buffer[3])<<16 | int(buffer[4])<<8 | int(buffer[5])
+	header.Len = int(buffer[3])<<8 | int(buffer[4])
 	return &header
 }
 
@@ -125,7 +126,7 @@ func (h *tlsHead) Name() string {
 	return "Header"
 }
 
-func (h *tlsHead) Packet(hh *TLSHeader) []byte {
+func (h *tlsHead) HeaderPacket(hh *TLSHeader) []byte {
 
 	var newBuffer []byte
 
@@ -145,5 +146,14 @@ func (h *tlsHead) Packet(hh *TLSHeader) []byte {
 
 	newBuffer = append(newBuffer, 0x03, 0x01)
 	newBuffer = append(newBuffer, byte(hh.Len>>8), byte(hh.Len))
+	return newBuffer
+}
+
+func (h *tlsHead) HandShakePacket(hs *TLSHandshake) []byte {
+
+	var newBuffer []byte
+
+	newBuffer = append(newBuffer, byte(hs.HandshakeType))
+	newBuffer = append(newBuffer, byte(hs.Len>>16), byte(hs.Len>>8), byte(hs.Len))
 	return newBuffer
 }

@@ -81,6 +81,11 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 	}
 
 	offset += ifs.TLS_HEADER_SIZE
+	if hh.Len != len(buffer[offset:n]) {
+		server.lg.Warning("Header length does not match buffer length")
+		return
+	}
+
 	hs := server.tls.ifs.TLSHead.HandShake(buffer[offset:])
 	if hs == nil {
 		server.lg.Warning("Error reading handshake")
@@ -93,6 +98,11 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 	}
 
 	offset += ifs.TLS_HANDSHAKE_SIZE
+	if hs.Len != len(buffer[offset:n]) {
+		server.lg.Warning("Handshake length does not match buffer length")
+		return
+	}
+
 	wkf := TLSMe(server.tls, buffer, conn, offset)
 	if wkf == nil {
 		return
