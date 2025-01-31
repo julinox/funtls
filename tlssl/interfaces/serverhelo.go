@@ -12,6 +12,7 @@ import (
 type ServerHello interface {
 	Name() string
 	Handle(*MsgHelloCli) (*MsgHelloServer, error)
+	Packet(*MsgHelloServer) []byte
 }
 
 type MsgHelloServer struct {
@@ -36,6 +37,10 @@ func NewServerHello(lg *logrus.Logger, mods mx.TLSModulo) ServerHello {
 		lg:   lg,
 		mods: mods,
 	}
+}
+
+func (sh *xServerHello) Name() string {
+	return "ServerHello"
 }
 
 func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
@@ -72,8 +77,19 @@ func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
 	return &newMsg, nil
 }
 
-func (sh *xServerHello) Name() string {
-	return "ServerHello"
+// Build byte buffer from msg
+func (sh *xServerHello) Packet(msg *MsgHelloServer) []byte {
+
+	var newBuffer []byte
+
+	if msg == nil {
+		return nil
+	}
+
+	// Handshake type
+	newBuffer = append(newBuffer, byte(HandshakeTypeServerHelo))
+	fmt.Println("total LEN:", 1+3+2+32+1+len(msg.SessionId)+1+2)
+	return newBuffer
 }
 
 func (mh *MsgHelloServer) setVersion(version [2]byte) error {

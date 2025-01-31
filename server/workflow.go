@@ -44,13 +44,29 @@ func (wf *wkf) Start() {
 		return
 	}
 
-	_, err = wf.ssl.ifs.ServerHelo.Handle(msgHC)
+	msgHS, err := wf.ssl.ifs.ServerHelo.Handle(msgHC)
 	if err != nil {
 		wf.ssl.lg.Error("Error handling server hello:", err)
 		return
 	}
 
 	// Pick certificate
-	pp := ifs.TLSHeader{ContentType: ifs.ContentTypeHandshake, Len: 512}
-	fmt.Println(systema.PrettyPrintBytes(wf.ssl.ifs.TLSHead.Packet(&pp)))
+	pkt := ifs.TLSHeader{ContentType: ifs.ContentTypeHandshake, Len: 512}
+
+	// header
+	wf.buffer = wf.ssl.ifs.TLSHead.Packet(&pkt)
+
+	// ??
+	xx := wf.ssl.ifs.ServerHelo.Packet(msgHS)
+	fmt.Println(systema.PrettyPrintBytes(xx))
+
+	// wire
+	n, err := wf.conn.Write(wf.buffer)
+	if err != nil {
+		wf.ssl.lg.Error("error sending: ", err.Error())
+		return
+	}
+
+	fmt.Printf("Enviados '%v'\n", n)
+	//fmt.Println(len(wf.buffer), " -->", systema.PrettyPrintBytes(wf.buffer))
 }
