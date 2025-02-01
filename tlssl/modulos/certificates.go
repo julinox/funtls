@@ -113,7 +113,12 @@ func ModuloCertificates(cfg interface{}) (Modulo, error) {
 }
 
 // Receive a signing algorithm and return a matching certificate
+// Returns first certificate if no data is provided
 func (e *modulo0xFFFE) Execute(data interface{}) interface{} {
+
+	if data == nil {
+		return e.pki[0]
+	}
 
 	dtt, ok := data.(uint16)
 	if !ok {

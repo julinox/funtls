@@ -52,7 +52,7 @@ func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
 		return nil, systema.ErrNilParams
 	}
 
-	err = newMsg.setVersion(msg.Version)
+	err = newMsg.setVersion()
 	if err != nil {
 		return nil, err
 	}
@@ -92,12 +92,12 @@ func (sh *xServerHello) Packet(msg *MsgHelloServer) []byte {
 	newBuffer = append(newBuffer, msg.SessionId...)
 	newBuffer = append(newBuffer, byte(msg.CipherSuites>>8),
 		byte(msg.CipherSuites))
-	// Compression methods
+	// "Compression methods"
 	newBuffer = append(newBuffer, 0x00)
 	return newBuffer
 }
 
-func (mh *MsgHelloServer) setVersion(version [2]byte) error {
+func (mh *MsgHelloServer) setVersion() error {
 
 	// Force TLS 1.2
 	mh.Version = [2]byte{0x03, 0x03}

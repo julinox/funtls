@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
 	ifs "tlesio/tlssl/interfaces"
+	mx "tlesio/tlssl/modulos"
 )
 
 type wkf struct {
@@ -51,8 +53,18 @@ func (wf *wkf) Start() {
 	}
 
 	// Prepare buffer with server hello message
-	pkt := wf.sayHelloBack(msgHC)
-	wf.conn.Write(pkt)
+	//pkt := wf.sayHelloBack(msgHC)
+	wf.sayHelloBack(msgHC)
+	//wf.conn.Write(pkt)
+	/*modCert := wf.ssl.mods.Get(0xFFFE)
+	if modCert == nil {
+		wf.ssl.lg.Error("Error getting certificate module")
+		return
+	}*/
+
+	// Get certificate
+	//certs, err := modCert.Handle(nil)
+	wf.hereIsMyCert(msgHC)
 	wf.ssl.lg.Debug("Server Hello sent")
 	//fmt.Println(systema.PrettyPrintBytes(pkt))
 	// Pick certificate
@@ -94,5 +106,53 @@ func (wf *wkf) sayHelloBack(cMsg *ifs.MsgHelloCli) []byte {
 }
 
 func (wf *wkf) addExtensions() []byte {
+	return nil
+}
+
+// Build Certificate packet message
+func (wf *wkf) hereIsMyCert(cMsg *ifs.MsgHelloCli) []byte {
+
+	var chosenCert *mx.CertificatesData
+
+	modCerts := wf.ssl.mods.Get(0xFFFE)
+	if modCerts == nil {
+		wf.ssl.lg.Error("Error getting signature algorithm module")
+		return nil
+	}
+
+	data := cMsg.Extensions[0x000D]
+	// Get first certificate in the list
+	if data == nil {
+		modCerts.Execute(nil)
+		return nil
+	}
+
+	dtt, ok := data.(*mx.SignAlgoData)
+	if !ok {
+		wf.ssl.lg.Error("[hereIsMyCert] error casting SignAlgoData")
+		return nil
+	}
+
+	//fmt.Println(mx.AlgosToName(0x000d, dtt.Algos))
+	for i := 0; i < int(dtt.Len); i++ {
+		aux := modCerts.Execute(dtt.Algos[i])
+		if aux == nil {
+			continue
+		}
+
+		chosenCert, ok = aux.(*mx.CertificatesData)
+		if !ok {
+			wf.ssl.lg.Warn("Error casting CertificatesData")
+			continue
+		}
+
+	}
+
+	if chosenCert == nil {
+		wf.ssl.lg.Error("No certificate found")
+		return nil
+	}
+
+	fmt.Println(chosenCert)
 	return nil
 }

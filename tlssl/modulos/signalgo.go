@@ -7,12 +7,12 @@ import (
 type modulo0x00D struct {
 }
 
-type Data0x00D struct {
+type SignAlgoData struct {
 	Len   uint16
 	Algos []uint16
 }
 
-func InitModule0x000D(config interface{}) (Modulo, error) {
+func ModuloSignAlgo(config interface{}) (Modulo, error) {
 	return &modulo0x00D{}, nil
 }
 
@@ -25,7 +25,7 @@ func (e *modulo0x00D) Execute(data interface{}) interface{} {
 func (modulo0x00D) LoadData(data interface{}) (interface{}, error) {
 
 	var offset uint16 = 2
-	var newData Data0x00D
+	var newData SignAlgoData
 
 	mdata, ok := data.([]byte)
 	if !ok {

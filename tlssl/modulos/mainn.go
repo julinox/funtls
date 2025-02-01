@@ -48,7 +48,6 @@ type modulador struct {
 }
 
 func InitModulos(lg *logrus.Logger, mods []ModuloInfo) (TLSModulo, error) {
-	//func InitModulos(lg *logrus.Logger) (TLSModulo, error) {
 
 	var mod modulador
 

@@ -58,6 +58,7 @@ func getTLSModules(lg *logrus.Logger) []mx.ModuloInfo {
 
 	basicModules = append(basicModules, getModuleCertificateLoad(lg))
 	basicModules = append(basicModules, getModuleCipherSuites())
+	basicModules = append(basicModules, getModuleSignAlgo())
 	return basicModules
 }
 
@@ -84,5 +85,13 @@ func getModuleCipherSuites() mx.ModuloInfo {
 	return mx.ModuloInfo{
 		Id: 0xFFFF,
 		Fn: mx.ModuloCipherSuites,
+	}
+}
+
+func getModuleSignAlgo() mx.ModuloInfo {
+
+	return mx.ModuloInfo{
+		Id: 0x000D,
+		Fn: mx.ModuloSignAlgo,
 	}
 }
