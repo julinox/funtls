@@ -32,11 +32,20 @@ func RealServidor() {
 		return
 	}
 
+	// Init TLS Modules, Interfaces, Logger, etc
 	server.tls, err = initTLS()
 	if err != nil {
 		server.lg.Error("Error initializing TLS: ", err)
 		return
 	}
+
+	////////////////////////////////////// DEBUG //////////////////////////////////////
+	//fmt.Println(server.tls.mods.Get(0xFFFE).Name())
+
+	if true {
+		return
+	}
+	////////////////////////////////////// DEBUG //////////////////////////////////////
 
 	defer listener.Close()
 	server.lg.Info("Listening on PORT ", port)

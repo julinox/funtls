@@ -13,9 +13,34 @@ type zzl struct {
 	lg   *logrus.Logger
 	mods mx.TLSModulo
 	ifs  *iff.Interfaces
+	m0dz *mx.Modulos
 }
 
 func initTLS() (*zzl, error) {
+
+	var ssl zzl
+	var err error
+
+	ssl.lg = getTLSLogger()
+	ssl.m0dz = mx.NewModulos()
+	ssl.m0dz.Cert, err = initModCerts(ssl.lg)
+	if err != nil {
+		ssl.lg.Error("initi certificates module: ", err)
+		return nil, err
+	}
+
+	ssl.lg.Info("Module loaded: ", ssl.m0dz.Cert.Name())
+	pp, err1 := ssl.m0dz.Cert.GetByCriteria(mx.CriterionCN("julINoX.cOm.ar"))
+	if err1 != nil {
+		ssl.lg.Error("error getting certificate: ", err1)
+	} else {
+		ssl.lg.Info("CertificateX: ", pp.Subject.CommonName)
+	}
+
+	return &ssl, nil
+}
+
+func initTLS2() (*zzl, error) {
 
 	var ssl zzl
 	var err error
@@ -94,4 +119,18 @@ func getModuleSignAlgo() mx.ModuloInfo {
 		Id: 0x000D,
 		Fn: mx.ModuloSignAlgo,
 	}
+}
+
+func initModCerts(lg *logrus.Logger) (mx.ModCerts, error) {
+
+	if lg == nil {
+		return nil, systema.ErrNilLogger
+	}
+
+	certs := []*mx.CertPaths{
+		{PathCert: "./certs/server.crt", PathKey: "./certs/server.key"},
+		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
+	}
+
+	return mx.NewModCerts(lg, certs)
 }

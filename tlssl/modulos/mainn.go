@@ -72,6 +72,10 @@ func InitModulos(lg *logrus.Logger, mods []ModuloInfo) (TLSModulo, error) {
 	return &mod, nil
 }
 
+func ChepaCandela() {
+
+}
+
 func (mod *modulador) Load(info *ModuloInfo) error {
 
 	var err error

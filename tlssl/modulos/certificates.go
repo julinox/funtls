@@ -2,13 +2,8 @@ package modulos
 
 import (
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/rsa"
 	"crypto/x509"
-	"encoding/pem"
 	"fmt"
-	"os"
 	"tlesio/systema"
 
 	"github.com/sirupsen/logrus"
@@ -75,7 +70,7 @@ func ModuloCertificates(cfg interface{}) (Modulo, error) {
 
 	var modd modulo0xFFFE
 
-	x509.ParsePKCS8PrivateKey(nil)
+	//x509.ParsePKCS8PrivateKey(nil) <---- ????
 	data, ok := cfg.(CertificatesConfig)
 	if !ok {
 		return nil, fmt.Errorf("error casting Config0xFFFE")
@@ -189,119 +184,4 @@ func (e *modulo0xFFFE) Print() string {
 
 func (e *modulo0xFFFE) PrintRaw(data []byte) string {
 	return "-*-"
-}
-
-func (d *CertificatesData) setSASupport() {
-
-	d.saSupport = make(map[uint16]bool)
-	switch pub := d.Cert.PublicKey.(type) {
-	case *rsa.PublicKey:
-		// RSA PKCS1
-		d.saSupport[_RSA_PKCS1_SHA256] = true
-		d.saSupport[_RSA_PKCS1_SHA384] = true
-		d.saSupport[_RSA_PKCS1_SHA512] = true
-
-		// RSA-PSS
-		if pub.Size() >= 256 {
-			d.saSupport[_RSA_PSS_RSAE_SHA256] = true
-			d.saSupport[_RSA_PSS_RSAE_SHA384] = true
-			d.saSupport[_RSA_PSS_RSAE_SHA512] = true
-		}
-	}
-}
-
-func loadCertificate(path string) (*x509.Certificate, error) {
-
-	if path == "" {
-		return nil, fmt.Errorf("empty path")
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(data)
-	if block == nil || block.Type != "CERTIFICATE" {
-		return nil, fmt.Errorf("failed to parse certificate PEM")
-	}
-
-	return x509.ParseCertificate(block.Bytes)
-}
-
-func loadPrivateKey(path string) (crypto.PrivateKey, error) {
-
-	if path == "" {
-		return nil, fmt.Errorf("empty path")
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return nil, fmt.Errorf("failed to parse PEM block")
-	}
-
-	switch block.Type {
-	case "RSA PRIVATE KEY":
-		return x509.ParsePKCS1PrivateKey(block.Bytes)
-
-	case "EC PRIVATE KEY":
-		return x509.ParseECPrivateKey(block.Bytes)
-
-	case "PRIVATE KEY":
-		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
-
-		switch key := key.(type) {
-		case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
-			return key, nil
-
-		default:
-			return nil, fmt.Errorf("unknown private key type")
-		}
-	}
-
-	return nil, fmt.Errorf("unsupported private key type: %s", block.Type)
-}
-
-func validateKeyPair(cert *x509.Certificate, key crypto.PrivateKey) bool {
-
-	if cert == nil || key == nil {
-		return false
-	}
-
-	switch keyT := key.(type) {
-	case *rsa.PrivateKey:
-		return keyT.PublicKey.Equal(cert.PublicKey)
-
-	case *ecdsa.PrivateKey:
-		return keyT.PublicKey.Equal(cert.PublicKey)
-	}
-
-	return false
-}
-
-func printSASupport(saSupport map[uint16]bool, separator string) string {
-
-	var result string
-
-	count := 0
-	total := len(saSupport)
-	for sa, supported := range saSupport {
-		if supported {
-			result += _SignatureHashAlgorithms[sa]
-			count++
-			if count < total {
-				result += separator
-			}
-		}
-	}
-
-	return result
 }
