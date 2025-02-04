@@ -2,7 +2,6 @@ package server
 
 import (
 	"encoding/binary"
-	"fmt"
 	"net"
 	ifs "tlesio/tlssl/interfaces"
 )
@@ -117,7 +116,7 @@ func (wf *wkf) addExtensions() []byte {
 }
 
 // Build Certificate packet message
-func (wf *wkf) sayCertificate(cMsg *ifs.MsgHelloCli) ([]byte, error) {
+/*func (wf *wkf) sayCertificate(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
 	// Get certificate
 	cct, _ := wf.getCert(cMsg)
@@ -130,7 +129,7 @@ func (wf *wkf) sayCertificate(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
 func (wf *wkf) getCert(cMsg *ifs.MsgHelloCli) ([]*ifs.MsgCertificate, error) {
 
-	/*var chosenCert *mx.CertificatesData
+	var chosenCert *mx.CertificatesData
 
 	modCerts := wf.ssl.mods.Get(0xFFFE)
 	if modCerts == nil {
@@ -175,7 +174,7 @@ func (wf *wkf) getCert(cMsg *ifs.MsgHelloCli) ([]*ifs.MsgCertificate, error) {
 		{
 			Cert:   chosenCert.Cert.Raw,
 			Length: uint32(len(chosenCert.Cert.Raw))},
-	}*/
+	}
 
 	return nil, nil
-}
+}*/

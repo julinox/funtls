@@ -35,7 +35,7 @@ func RealServidor() {
 	// Init TLS Modules, Interfaces, Logger, etc
 	server.tls, err = initTLS()
 	if err != nil {
-		server.lg.Error("Error initializing TLS: ", err)
+		server.lg.Error("TLS Init err: ", err)
 		return
 	}
 
@@ -52,7 +52,7 @@ func RealServidor() {
 	for {
 		conn, err := listener.Accept()
 		if err != nil {
-			server.lg.Error("Error accepting connection:", err)
+			server.lg.Error("error accepting connection:", err)
 			continue
 		}
 
@@ -69,7 +69,7 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 	buffer := make([]byte, 4096)
 	n, err := conn.Read(buffer)
 	if err != nil {
-		server.lg.Error("Error reading data:", err)
+		server.lg.Error("error reading data:", err)
 		return
 	}
 
@@ -80,7 +80,7 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 
 	hh := server.tls.ifs.TLSHead.Header(buffer)
 	if hh == nil {
-		server.lg.Warning("Error reading header")
+		server.lg.Warning("error reading header")
 		return
 	}
 
@@ -97,7 +97,7 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 
 	hs := server.tls.ifs.TLSHead.HandShake(buffer[offset:])
 	if hs == nil {
-		server.lg.Warning("Error reading handshake")
+		server.lg.Warning("error reading handshake")
 		return
 	}
 

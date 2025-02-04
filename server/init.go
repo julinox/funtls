@@ -9,14 +9,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type modulos struct {
+/*type Modulos struct {
 	Cert         mx.ModCerts
 	CipherSuites mx.ModCipherSuites
-}
+}*/
 
 type zzl struct {
-	err  error
-	m0dz modulos
+	modz mx.ModuloZ
 	lg   *logrus.Logger
 	ifs  *iff.Interfaces
 }
@@ -26,42 +25,41 @@ func initTLS() (*zzl, error) {
 	var ssl zzl
 
 	ssl.lg = getTLSLogger()
-	ssl.m0dz.Cert = ssl.initModCerts()
-	ssl.m0dz.CipherSuites = ssl.initModCipherSuites()
+	ssl.initModCerts()
+	ssl.initModCipherSuites()
+	ssl.initSignAlgo()
+	if err := ssl.modz.CheckModInit(); err != nil {
+		ssl.lg.Error("error initializing TLS Modules: ", err)
+		return nil, err
+	}
+
+	ssl.lg.Info("TLS Modules initialized")
 	return &ssl, nil
 }
 
-func (x *zzl) initModCerts() mx.ModCerts {
+func (x *zzl) initModCerts() {
 
 	certs := []*mx.CertPaths{
 		{PathCert: "./certs/server.crt", PathKey: "./certs/server.key"},
 		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
 	}
 
-	newMod, err := mx.NewModCerts(x.lg, certs)
-	if newMod == nil {
-		x.err = err
-		x.lg.Errorf("mod 'Certs' init err: %v", x.err)
-		return nil
-	}
-
-	return newMod
+	x.modz.InitCerts(x.lg, certs)
 }
 
-func (x *zzl) initModCipherSuites() mx.ModCipherSuites {
+func (x *zzl) initModCipherSuites() {
 
-	newMod, err := mx.NewModCipherSuites(&mx.CipherSuiteConfig{
+	conf := &mx.CipherSuiteConfig{
 		ClientWeight: 1,
 		ServerWeight: 2,
-		Lg:           x.lg})
-
-	if newMod == nil {
-		x.err = err
-		x.lg.Errorf("mod 'CipherSUites' init err: %v", x.err)
-		return nil
+		Lg:           x.lg,
 	}
 
-	return newMod
+	x.modz.InitCipherSuites(conf)
+}
+
+func (x *zzl) initSignAlgo() {
+	x.modz.InitSignAlgo(x.lg)
 }
 
 func getTLSLogger() *logrus.Logger {

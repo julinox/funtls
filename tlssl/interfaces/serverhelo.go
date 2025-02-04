@@ -11,8 +11,8 @@ import (
 
 type ServerHello interface {
 	Name() string
-	Handle(*MsgHelloCli) (*MsgHelloServer, error)
 	Packet(*MsgHelloServer) []byte
+	Handle(*MsgHelloCli) (*MsgHelloServer, error)
 }
 
 type MsgHelloServer struct {
@@ -23,11 +23,11 @@ type MsgHelloServer struct {
 }
 
 type xServerHello struct {
+	mods *mx.ModuloZ
 	lg   *logrus.Logger
-	mods mx.TLSModulo
 }
 
-func NewServerHello(lg *logrus.Logger, mods mx.TLSModulo) ServerHello {
+func NewServerHello(lg *logrus.Logger, mods *mx.ModuloZ) ServerHello {
 
 	if lg == nil || mods == nil {
 		return nil
@@ -62,14 +62,7 @@ func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
 		return nil, err
 	}
 
-	// Get Cipher Suite module
-	modd := sh.mods.Get(0xffff)
-	if modd == nil {
-		// This should never happen
-		return nil, fmt.Errorf("server hello error getting cipher suite module")
-	}
-
-	err = newMsg.setCS(msg.CipherSuites, modd)
+	err = newMsg.setCS(msg.CipherSuites, sh.mods.CipherSuites)
 	if err != nil {
 		return nil, err
 	}
@@ -115,10 +108,12 @@ func (mh *MsgHelloServer) setRandom() error {
 	return nil
 }
 
-func (mh *MsgHelloServer) setCS(algos []uint16, modd mx.Modulo) error {
+func (mh *MsgHelloServer) setCS(algos []uint16, mod mx.ModCipherSuites) error {
 
-	cs, ok := modd.Execute(algos).(uint16)
-	if !ok {
+	//cs, ok := modd.Execute(algos).(uint16)
+
+	cs := mod.ChooseCS(algos)
+	if cs == 0 {
 		return fmt.Errorf("server hello error getting cipher suite")
 	}
 

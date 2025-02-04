@@ -45,11 +45,11 @@ type xCliHello struct {
 	name     string
 	helloMsg *MsgHelloCli
 	lg       *logrus.Logger
-	mods     mx.TLSModulo
+	//mods     mx.TLSModulo
+	mods *mx.ModuloZ
 }
 
-func NewCliHello(lg *logrus.Logger, mods mx.TLSModulo) CliHello {
-	//func NewCliHello(lg *logrus.Logger, mods mx.TLSModulo) CliHello {
+func NewCliHello(lg *logrus.Logger, mods *mx.ModuloZ) CliHello {
 
 	if lg == nil || mods == nil {
 		return nil
@@ -138,7 +138,7 @@ func (rox *xCliHello) parseSessionID(buffer []byte) (uint32, error) {
 	return offset + fieldLen, nil
 }
 
-func (rox *xCliHello) parseCipherSuites(buffer []byte) (uint32, error) {
+func (x *xCliHello) parseCipherSuites(buffer []byte) (uint32, error) {
 
 	offset := uint32(offsetCipherSuitesLen)
 	fieldLen := binary.BigEndian.Uint16(buffer[:2])
@@ -151,19 +151,19 @@ func (rox *xCliHello) parseCipherSuites(buffer []byte) (uint32, error) {
 	}
 
 	fl := fieldLen / 2
-	rox.helloMsg.CipherSuites = make([]uint16, fl)
+	x.helloMsg.CipherSuites = make([]uint16, fl)
 	for i := uint16(0); i < fl; i++ {
-		rox.helloMsg.CipherSuites[i] = binary.BigEndian.Uint16(
+		x.helloMsg.CipherSuites[i] = binary.BigEndian.Uint16(
 			buffer[offset : offset+2])
 		offset += 2
 	}
 
-	rox.lg.Trace("Field[CipherSuites]: ",
-		mx.AlgosToName(0xFFFF, rox.helloMsg.CipherSuites))
+	x.lg.Trace("Field[CipherSuites]: ",
+		mx.AlgosToName(0xFFFF, x.helloMsg.CipherSuites))
 	return offset, nil
 }
 
-func (rox *xCliHello) parseExtensions(buffer []byte) {
+func (x *xCliHello) parseExtensions(buffer []byte) {
 
 	// Parsing only supported extensions
 	if len(buffer) < 2 {
@@ -181,16 +181,20 @@ func (rox *xCliHello) parseExtensions(buffer []byte) {
 		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
-		if aux := rox.mods.Get(extt); aux != nil {
-			data, err := aux.LoadData(buffer[offset : offset+int(exttLen)])
+
+		// Load data for every extension
+		// By the way, very bad design to handle extensions
+		switch extt {
+		case 0x000D:
+			data, err := x.mods.SignAlgo.LoadData(
+				buffer[offset : offset+int(exttLen)])
 			if err != nil {
-				rox.lg.Errorf("extension data load %v: %v", aux.Name(), err)
+				x.lg.Errorf("data load(%v): %v", x.mods.SignAlgo.Name(), err)
 				continue
 			}
 
-			rox.helloMsg.Extensions[extt] = data
-			rox.lg.Trace(fmt.Sprintf("Field[Extension %v(0x%.2x)]: %v", aux.Name(), extt,
-				aux.PrintRaw(buffer[offset:offset+int(exttLen)])))
+			x.helloMsg.Extensions[extt] = data
+			//x.lg.Trace(fmt.Sprintf("Field[Extension %v(0x%.2x)]: %v", aux.Name(), extt,aux.PrintRaw(buffer[offset:offset+int(exttLen)])))
 		}
 
 		offset += int(exttLen)

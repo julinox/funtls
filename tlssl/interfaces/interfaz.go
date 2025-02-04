@@ -8,13 +8,13 @@ import (
 )
 
 type Interfaces struct {
-	TLSHead     Header
-	CliHelo     CliHello
-	ServerHelo  ServerHello
-	Certificake Certificate
+	TLSHead    Header
+	CliHelo    CliHello
+	ServerHelo ServerHello
+	//Certificake Certificate
 }
 
-func InitInterfaces(lg *logrus.Logger, mods mx.TLSModulo) (*Interfaces, error) {
+func InitInterfaces(lg *logrus.Logger, mods *mx.ModuloZ) (*Interfaces, error) {
 
 	var newHsIf Interfaces
 
@@ -28,7 +28,25 @@ func InitInterfaces(lg *logrus.Logger, mods mx.TLSModulo) (*Interfaces, error) {
 	lg.Info("Interface loaded: ", newHsIf.CliHelo.Name())
 	newHsIf.ServerHelo = NewServerHello(lg, mods)
 	lg.Info("Interface loaded: ", newHsIf.ServerHelo.Name())
-	newHsIf.Certificake = NewCertificate(lg, mods)
-	lg.Info("Interface loaded: ", newHsIf.Certificake.Name())
+	//newHsIf.Certificake = NewCertificate(lg, mods)
+	//lg.Info("Interface loaded: ", newHsIf.Certificake.Name())
 	return &newHsIf, nil
 }
+
+/*
+
+// 'Packetize' a bunch of certificates
+func (x *_xModCerts) Packet(msg []*MsgCertificate) []byte {
+
+	var newBuff []byte
+
+	for _, cert := range msg {
+		aux := make([]byte, 4)
+		binary.BigEndian.PutUint32(aux, cert.Length)
+		newBuff = append(newBuff, aux[1:4]...)
+		newBuff = append(newBuff, cert.Cert...)
+	}
+
+	return newBuff
+}
+*/

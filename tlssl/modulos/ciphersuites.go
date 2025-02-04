@@ -274,7 +274,7 @@ func NewModCipherSuites(cfg *CipherSuiteConfig) (ModCipherSuites, error) {
 }
 
 func (x *xModCipherSuites) Name() string {
-	return "cipher_suites"
+	return "Cipher_Suites"
 }
 
 func (x *xModCipherSuites) ChooseCS(clientList []uint16) uint16 {
