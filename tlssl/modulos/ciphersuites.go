@@ -1,9 +1,9 @@
 package modulos
 
 import (
-	"fmt"
 	"tlesio/systema"
 
+	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 )
 
@@ -225,15 +225,17 @@ var SupportedCiphersSuite = map[uint16]int{
 	0x0035: 5, // "TLS_RSA_WITH_AES_256_CBC_SHA",
 }
 
-type modulo0xFFFF struct {
-	config     CipherSuiteConf
-	serverList map[uint16]int
+type ModCipherSuites interface {
+	Name() string
+	ChooseCS([]uint16) uint16
+	LoadData([]byte) (*CipherSuiteData, error)
 }
 
-type CipherSuiteConf struct {
+type CipherSuiteConfig struct {
 	ClientWeight int
 	ServerWeight int
 	Tax          uint16 //Force the use of a specific algorithm
+	Lg           *logrus.Logger
 }
 
 type CipherSuiteData struct {
@@ -241,133 +243,100 @@ type CipherSuiteData struct {
 	Algos []uint16
 }
 
-func ModuloCipherSuites(config interface{}) (Modulo, error) {
+type xModCipherSuites struct {
+	lg        *logrus.Logger
+	supported map[uint16]int
+	config    *CipherSuiteConfig
+}
 
-	var extendido modulo0xFFFF
+func NewModCipherSuites(cfg *CipherSuiteConfig) (ModCipherSuites, error) {
 
-	if config == nil {
-		config = xffffDefaultConfig()
+	var newCS xModCipherSuites
+
+	if cfg == nil || cfg.Lg == nil {
+		return nil, systema.ErrNilParams
 	}
 
-	val, ok := config.(CipherSuiteConf)
-	if !ok {
-		return nil, fmt.Errorf("%v (%v)", systema.ErrInvalidConfig, "Modulo 0xFFFF")
-	}
-
-	extendido.config = val
-	extendido.serverList = make(map[uint16]int, 0)
-	// Force this algorithm
-	if val.Tax != 0 {
-		extendido.serverList[val.Tax] = 1
+	newCS.lg = cfg.Lg
+	newCS.config = cfg
+	newCS.supported = make(map[uint16]int)
+	if cfg.Tax != 0 {
+		newCS.supported[cfg.Tax] = 1
 
 	} else {
 		for algo, preference := range SupportedCiphersSuite {
-			extendido.serverList[algo] = preference
+			newCS.supported[algo] = preference
 		}
 	}
 
-	return &extendido, nil
+	newCS.lg.Info("Module loaded: ", newCS.Name())
+	return &newCS, nil
 }
 
-// Calculate the score for each algorithm and return the chosen one
-// score = serverWeight*preference + clientWeight*preference
-func (e *modulo0xFFFF) Execute(data interface{}) interface{} {
+func (x *xModCipherSuites) Name() string {
+	return "cipher_suites"
+}
 
-	var lighter int
-	var chosen uint16
+func (x *xModCipherSuites) ChooseCS(clientList []uint16) uint16 {
 
-	clientList, ok := data.([]uint16)
-	if !ok {
-		return nil
-	}
+	var neo uint16
 
-	if len(e.serverList) == 0 || len(clientList) == 0 {
-		return nil
+	if len(clientList) <= 0 || len(x.supported) <= 0 {
+		return 0
 	}
 
 	count := 1
-	lighter = 1 << 16
-	chosen = 0
-	for _, a := range clientList {
-		if e.serverList[a] == 0 {
+	lighter := ^int(0)
+	for _, algo := range clientList {
+		if x.supported[algo] == 0 {
 			continue
 		}
 
-		aux := (e.config.ServerWeight * e.serverList[a]) +
-			(e.config.ClientWeight * count)
-		if aux < lighter {
-			lighter = aux
-			chosen = a
+		if (x.config.ServerWeight*x.supported[algo])+
+			(x.config.ClientWeight*count) < lighter {
+			neo = algo
 		}
-
-		count++
 	}
 
-	return chosen
+	return neo
 }
 
-// Assuming data is in correct format
-func (e *modulo0xFFFF) LoadData(mdata interface{}) (interface{}, error) {
+func (x *xModCipherSuites) LoadData(buffer []byte) (*CipherSuiteData, error) {
 
-	var offset uint16 = 2
-	var newData CipherSuiteData
+	var cs CipherSuiteData
 
-	data, ok := mdata.([]byte)
-	if !ok {
+	if buffer == nil || len(buffer) <= 0 {
+		return nil, systema.ErrNilParams
+	}
+
+	cs.Len = uint16(buffer[0])<<8 | uint16(buffer[1])
+	if len(buffer) < int(cs.Len*2) {
 		return nil, systema.ErrInvalidData
 	}
 
-	newData.Len = uint16(data[0])<<8 | uint16(data[1])/2
-	if len(data) < int(newData.Len) {
-		return nil, systema.ErrInvalidData
+	cs.Algos = make([]uint16, cs.Len)
+	for i := 0; i < int(cs.Len); i++ {
+		cs.Algos[i] = uint16(buffer[i+2])<<8 | uint16(buffer[i+3])
 	}
 
-	newData.Algos = make([]uint16, 0)
-	for i := 0; i < int(newData.Len); i++ {
-		newData.Algos = append(newData.Algos,
-			uint16(data[offset])<<8|uint16(data[offset+1]))
-		offset += 2
-	}
-
-	return &newData, nil
+	return &cs, nil
 }
 
-func (e *modulo0xFFFF) ID() uint16 {
-	return 0xFFFF
+func (x *xModCipherSuites) Print() string {
+	return AlgosToName(0xFFFF, maps.Keys(x.supported))
 }
 
-func (e *modulo0xFFFF) Name() string {
-	return ModuloName[e.ID()]
-}
-
-func (e *modulo0xFFFF) GetConfig() interface{} {
-	return e.config
-}
-
-// Show the supported algorithms
-func (e *modulo0xFFFF) Print() string {
-	return AlgosToName(e.ID(), maps.Keys(e.serverList))
-}
-
-func (e *modulo0xFFFF) PrintRaw(data []byte) string {
+func (x *xModCipherSuites) PrintRaw(data []byte) string {
 
 	var str string
 	var offset uint16 = 2
 
 	len := uint16(data[0])<<8 | uint16(data[1])/2
 	for i := 0; i < int(len); i++ {
-		str += "\n" + AlgoToName(e.ID(),
+		str += "\n" + AlgoToName(0xFFFF,
 			uint16(data[offset])<<8|uint16(data[offset+1]))
 		offset += 2
 	}
 
 	return str
-}
-
-func xffffDefaultConfig() CipherSuiteConf {
-	return CipherSuiteConf{
-		ClientWeight: 1,
-		ServerWeight: 2,
-		Tax:          0,
-	}
 }
