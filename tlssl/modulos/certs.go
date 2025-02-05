@@ -11,6 +11,7 @@ import (
 	"os"
 	"strings"
 	"tlesio/systema"
+	ex "tlesio/tlssl/interfaces/extensions"
 
 	"github.com/sirupsen/logrus"
 )
@@ -140,15 +141,15 @@ func (p *pki) setSignAlgoSupport() {
 	switch pub := p.cert.PublicKey.(type) {
 	case *rsa.PublicKey:
 		// RSA PKCS1
-		p.saSupport[RSA_PKCS1_SHA256] = true
-		p.saSupport[RSA_PKCS1_SHA384] = true
-		p.saSupport[RSA_PKCS1_SHA512] = true
+		p.saSupport[ex.RSA_PKCS1_SHA256] = true
+		p.saSupport[ex.RSA_PKCS1_SHA384] = true
+		p.saSupport[ex.RSA_PKCS1_SHA512] = true
 
 		// RSA-PSS
 		if pub.Size() >= 256 {
-			p.saSupport[RSA_PSS_RSAE_SHA256] = true
-			p.saSupport[RSA_PSS_RSAE_SHA384] = true
-			p.saSupport[RSA_PSS_RSAE_SHA512] = true
+			p.saSupport[ex.RSA_PSS_RSAE_SHA256] = true
+			p.saSupport[ex.RSA_PSS_RSAE_SHA384] = true
+			p.saSupport[ex.RSA_PSS_RSAE_SHA512] = true
 		}
 	}
 }
@@ -238,7 +239,7 @@ func printSASupport(saSupport map[uint16]bool, separator string) string {
 	total := len(saSupport)
 	for sa, supported := range saSupport {
 		if supported {
-			result += SignatureHashAlgorithms[sa]
+			result += ex.SignatureHashAlgorithms[sa]
 			count++
 			if count < total {
 				result += separator

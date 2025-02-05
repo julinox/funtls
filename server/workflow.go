@@ -56,7 +56,7 @@ func (wf *wkf) Start() {
 	}
 
 	// server hello message
-	outputBuff, err = wf.serverHeloPkt(msgHC)
+	outputBuff, err = wf.pktServerHelo(msgHC)
 	if err != nil {
 		wf.ssl.lg.Error("server hello response packet:", err)
 		return
@@ -71,7 +71,7 @@ func (wf *wkf) Start() {
 }
 
 // Build Server Hello packet message
-func (wf *wkf) serverHeloPkt(cMsg *ifs.MsgHelloCli) ([]byte, error) {
+func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
 	var buffer []byte
 
@@ -102,6 +102,11 @@ func (wf *wkf) serverHeloPkt(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 	buffer = append(buffer, buff2...)
 	buffer = append(buffer, buff3...)
 	return buffer, nil
+}
+
+func (wf *wkf) pktCertificate() []byte {
+
+	return nil
 }
 
 func (wf *wkf) addExtensions() []byte {

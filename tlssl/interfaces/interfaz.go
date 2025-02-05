@@ -8,10 +8,10 @@ import (
 )
 
 type Interfaces struct {
-	TLSHead    Header
-	CliHelo    CliHello
-	ServerHelo ServerHello
-	//Certificake Certificate
+	TLSHead     Header
+	CliHelo     CliHello
+	ServerHelo  ServerHello
+	Certificake Certificate
 }
 
 func InitInterfaces(lg *logrus.Logger, mods *mx.ModuloZ) (*Interfaces, error) {
@@ -24,9 +24,11 @@ func InitInterfaces(lg *logrus.Logger, mods *mx.ModuloZ) (*Interfaces, error) {
 
 	newHsIf.TLSHead = NewHeader()
 	lg.Info("Interface loaded: ", newHsIf.TLSHead.Name())
-	newHsIf.CliHelo = NewCliHello(lg, mods)
+	newHsIf.CliHelo = NewIfCliHello(lg, mods)
 	lg.Info("Interface loaded: ", newHsIf.CliHelo.Name())
-	newHsIf.ServerHelo = NewServerHello(lg, mods)
+	newHsIf.ServerHelo = NewIfcServerHello(lg, mods)
 	lg.Info("Interface loaded: ", newHsIf.ServerHelo.Name())
+	newHsIf.Certificake = NewIfcCertificate(lg)
+	lg.Info("Interface loaded: ", newHsIf.Certificake.Name())
 	return &newHsIf, nil
 }

@@ -18,6 +18,7 @@ type zzl struct {
 	modz *mx.ModuloZ
 	lg   *logrus.Logger
 	ifs  *iff.Interfaces
+	//exts *iff.Extensions
 }
 
 func initTLS() (*zzl, error) {
@@ -29,7 +30,6 @@ func initTLS() (*zzl, error) {
 	ssl.modz = mx.NewModuloZ()
 	ssl.initModCerts()
 	ssl.initModCipherSuites()
-	ssl.initSignAlgo()
 	if err = ssl.modz.CheckModInit(); err != nil {
 		ssl.lg.Error("error initializing TLS Modules: ", err)
 		return nil, err
@@ -41,7 +41,7 @@ func initTLS() (*zzl, error) {
 		return nil, err
 	}
 
-	ssl.lg.Info("TLS Modules initialized")
+	ssl.lg.Info("TLS Ready")
 	return &ssl, nil
 }
 
@@ -66,9 +66,9 @@ func (x *zzl) initModCipherSuites() {
 	x.modz.InitCipherSuites(conf)
 }
 
-func (x *zzl) initSignAlgo() {
+/*func (x *zzl) initSignAlgo() {
 	x.modz.InitSignAlgo(x.lg)
-}
+}*/
 
 func getTLSLogger() *logrus.Logger {
 

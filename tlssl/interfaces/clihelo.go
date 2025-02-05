@@ -43,13 +43,12 @@ type MsgHelloCli struct {
 
 type xCliHello struct {
 	name     string
+	mods     *mx.ModuloZ
 	helloMsg *MsgHelloCli
 	lg       *logrus.Logger
-	//mods     mx.TLSModulo
-	mods *mx.ModuloZ
 }
 
-func NewCliHello(lg *logrus.Logger, mods *mx.ModuloZ) CliHello {
+func NewIfCliHello(lg *logrus.Logger, mods *mx.ModuloZ) CliHello {
 
 	if lg == nil || mods == nil {
 		return nil
@@ -178,13 +177,13 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 
 	offset += 2
 	for offset < int(extLen) {
-		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
+		//extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
 
 		// Load data for every extension
 		// By the way, very bad design to handle extensions
-		switch extt {
+		/*switch extt {
 		case 0x000D:
 			data, err := x.mods.SignAlgo.LoadData(
 				buffer[offset : offset+int(exttLen)])
@@ -196,7 +195,7 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 			x.helloMsg.Extensions[extt] = data
 			x.lg.Trace(fmt.Sprintf("Field[Extension SignAlgo(0x000D)]: %v",
 				x.mods.SignAlgo.PrintRaw(buffer[offset:offset+int(exttLen)])))
-		}
+		}*/
 
 		offset += int(exttLen)
 	}

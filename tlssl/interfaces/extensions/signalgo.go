@@ -1,9 +1,7 @@
-package modulos
+package extensions
 
 import (
 	"tlesio/systema"
-
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -40,29 +38,22 @@ var SignatureHashAlgorithms = map[uint16]string{
 	RSA_PKCS1_SHA512:       "rsa_pkcs1_sha512",
 }
 
-type ModSignAlgo interface {
-	Name() string
-	LoadData([]byte) (*SignAlgoData, error)
-	PrintRaw([]byte) string
-}
-
-type xModSignAlgo struct {
-	lg *logrus.Logger
-}
-
 type SignAlgoData struct {
 	Len   uint16
 	Algos []uint16
 }
 
-func NewModSignAlgo(lg *logrus.Logger) (ModSignAlgo, error) {
+type xModSignAlgo struct {
+}
 
-	if lg == nil {
-		return nil, systema.ErrNilLogger
-	}
+type ExtSignAlgo interface {
+	Name() string
+	LoadData([]byte) (*SignAlgoData, error)
+	PrintRaw([]byte) string
+}
 
-	lg.Info("Module loaded: ", "Signature_Algorithms")
-	return &xModSignAlgo{lg}, nil
+func NewExtSignAlgo() ExtSignAlgo {
+	return &xModSignAlgo{}
 }
 
 func (x xModSignAlgo) Name() string {

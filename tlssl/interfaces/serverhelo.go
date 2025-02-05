@@ -27,7 +27,7 @@ type xServerHello struct {
 	lg   *logrus.Logger
 }
 
-func NewServerHello(lg *logrus.Logger, mods *mx.ModuloZ) ServerHello {
+func NewIfcServerHello(lg *logrus.Logger, mods *mx.ModuloZ) ServerHello {
 
 	if lg == nil || mods == nil {
 		return nil

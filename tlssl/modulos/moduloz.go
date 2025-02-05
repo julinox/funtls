@@ -9,8 +9,6 @@ import (
 type ModuloZ struct {
 	Certs        ModCerts
 	CipherSuites ModCipherSuites
-	SignAlgo     ModSignAlgo
-	Extensions   ModExtensions
 	err          error // only for initialization
 }
 
@@ -48,21 +46,6 @@ func (z *ModuloZ) InitCipherSuites(cfg *CipherSuiteConfig) error {
 	return nil
 }
 
-func (z *ModuloZ) InitSignAlgo(lg *logrus.Logger) error {
-
-	if z.err != nil {
-		return z.err
-	}
-
-	aux, err := NewModSignAlgo(lg)
-	if aux == nil {
-		return err
-	}
-
-	z.SignAlgo = aux
-	return nil
-}
-
 // Check if all modules are initialized
 func (z *ModuloZ) CheckModInit() error {
 
@@ -76,10 +59,6 @@ func (z *ModuloZ) CheckModInit() error {
 
 	if z.CipherSuites == nil {
 		return fmt.Errorf("module 'ModCipherSuites' not initialized")
-	}
-
-	if z.SignAlgo == nil {
-		return fmt.Errorf("module 'ModSignAlgo' not initialized")
 	}
 
 	return nil
