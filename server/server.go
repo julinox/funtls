@@ -39,14 +39,6 @@ func RealServidor() {
 		return
 	}
 
-	////////////////////////////////////// DEBUG //////////////////////////////////////
-	//fmt.Println(server.tls.mods.Get(0xFFFE).Name())
-
-	if true {
-		return
-	}
-	////////////////////////////////////// DEBUG //////////////////////////////////////
-
 	defer listener.Close()
 	server.lg.Info("Listening on PORT ", port)
 	for {

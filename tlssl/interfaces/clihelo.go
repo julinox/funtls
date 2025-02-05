@@ -194,7 +194,8 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 			}
 
 			x.helloMsg.Extensions[extt] = data
-			//x.lg.Trace(fmt.Sprintf("Field[Extension %v(0x%.2x)]: %v", aux.Name(), extt,aux.PrintRaw(buffer[offset:offset+int(exttLen)])))
+			x.lg.Trace(fmt.Sprintf("Field[Extension SignAlgo(0x000D)]: %v",
+				x.mods.SignAlgo.PrintRaw(buffer[offset:offset+int(exttLen)])))
 		}
 
 		offset += int(exttLen)

@@ -286,14 +286,14 @@ func (x *xModCipherSuites) ChooseCS(clientList []uint16) uint16 {
 	}
 
 	count := 1
-	lighter := ^int(0)
+	lighter := ^uint16(0)
 	for _, algo := range clientList {
 		if x.supported[algo] == 0 {
 			continue
 		}
 
 		if (x.config.ServerWeight*x.supported[algo])+
-			(x.config.ClientWeight*count) < lighter {
+			(x.config.ClientWeight*count) < int(lighter) {
 			neo = algo
 		}
 	}

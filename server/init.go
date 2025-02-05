@@ -15,7 +15,7 @@ import (
 }*/
 
 type zzl struct {
-	modz mx.ModuloZ
+	modz *mx.ModuloZ
 	lg   *logrus.Logger
 	ifs  *iff.Interfaces
 }
@@ -23,13 +23,21 @@ type zzl struct {
 func initTLS() (*zzl, error) {
 
 	var ssl zzl
+	var err error
 
 	ssl.lg = getTLSLogger()
+	ssl.modz = mx.NewModuloZ()
 	ssl.initModCerts()
 	ssl.initModCipherSuites()
 	ssl.initSignAlgo()
-	if err := ssl.modz.CheckModInit(); err != nil {
+	if err = ssl.modz.CheckModInit(); err != nil {
 		ssl.lg.Error("error initializing TLS Modules: ", err)
+		return nil, err
+	}
+
+	ssl.ifs, err = iff.InitInterfaces(ssl.lg, ssl.modz)
+	if err != nil {
+		ssl.lg.Error("error initializing TLS Interfaces: ", err)
 		return nil, err
 	}
 

@@ -154,6 +154,7 @@ func (h *tlsHead) HandShakePacket(hs *TLSHandshake) []byte {
 	var newBuffer []byte
 
 	newBuffer = append(newBuffer, byte(hs.HandshakeType))
-	newBuffer = append(newBuffer, byte(hs.Len>>16), byte(hs.Len>>8), byte(hs.Len))
+	newBuffer = append(newBuffer, byte(hs.Len>>16), byte(hs.Len>>8),
+		byte(hs.Len))
 	return newBuffer
 }

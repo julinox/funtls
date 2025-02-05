@@ -43,6 +43,7 @@ var SignatureHashAlgorithms = map[uint16]string{
 type ModSignAlgo interface {
 	Name() string
 	LoadData([]byte) (*SignAlgoData, error)
+	PrintRaw([]byte) string
 }
 
 type xModSignAlgo struct {
@@ -87,4 +88,35 @@ func (x xModSignAlgo) LoadData(data []byte) (*SignAlgoData, error) {
 	}
 
 	return &newData, nil
+}
+
+func (x xModSignAlgo) PrintRaw(data []byte) string {
+
+	var length int
+	var newStr string = "{"
+	var offset uint16 = 2
+
+	length = int(data[0])<<8 | int(data[1])/2
+	if len(data) < length {
+		return "Invalid Data"
+	}
+
+	for i := 0; i < length; i++ {
+		id := uint16(data[offset])<<8 | uint16(data[offset+1])
+		algo := SignatureHashAlgorithms[id]
+		if algo == "" {
+			algo = "*"
+		}
+
+		if i == length-1 {
+			newStr += algo
+		} else {
+			newStr += algo + ","
+		}
+
+		offset += 2
+	}
+
+	newStr += "}"
+	return newStr
 }

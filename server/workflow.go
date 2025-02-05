@@ -2,7 +2,9 @@ package server
 
 import (
 	"encoding/binary"
+	"fmt"
 	"net"
+	"tlesio/systema"
 	ifs "tlesio/tlssl/interfaces"
 )
 
@@ -23,7 +25,7 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn, offset uint32) *wkf {
 	}
 
 	if len(buff) <= 45 {
-		ssl.lg.Error("Buffer is too small for a client hello")
+		ssl.lg.Error("buffer is too small for a client hello")
 		return nil
 	}
 
@@ -36,10 +38,13 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn, offset uint32) *wkf {
 
 func (wf *wkf) Start() {
 
+	var err error
+	var outputBuff []byte
+
 	wf.ssl.lg.Debugf("Starting handshake with '%v'", wf.conn.RemoteAddr())
 	msgHC, err := wf.ssl.ifs.CliHelo.Handle(wf.buffer[wf.offset:])
 	if err != nil {
-		wf.ssl.lg.Error("Error handling client hello:", err)
+		wf.ssl.lg.Error("client hello handle:", err)
 		return
 	}
 
@@ -50,41 +55,29 @@ func (wf *wkf) Start() {
 		return
 	}
 
-	// Prepare buffer with server hello message
-	//pkt := wf.sayHelloBack(msgHC)
-	wf.sayHelloBack(msgHC)
-	//wf.conn.Write(pkt)
-	/*modCert := wf.ssl.mods.Get(0xFFFE)
-	if modCert == nil {
-		wf.ssl.lg.Error("Error getting certificate module")
-		return
-	}*/
-
-	// Get certificate
-	//certs, err := modCert.Handle(nil)
-	/*certo := wf.getCert(msgHC)
-	if certo == nil {
-		wf.ssl.lg.Error("error getting certificate")
+	// server hello message
+	outputBuff, err = wf.serverHeloPkt(msgHC)
+	if err != nil {
+		wf.ssl.lg.Error("server hello response packet:", err)
 		return
 	}
 
-	byob := wf.ssl.ifs.Certificake.Packet(certo)
-	fmt.Println(systema.PrettyPrintBytes(byob))*/
-	wf.ssl.lg.Debug("Server Hello sent")
-	wf.ssl.lg.Debug("Where is MY CERT????")
-	//fmt.Println(systema.PrettyPrintBytes(pkt))
-	// Pick certificate
+	// Send it
+	err = wf.sendMe(outputBuff)
+	if err != nil {
+		wf.ssl.lg.Error("error sending response:", err)
+		return
+	}
 }
 
 // Build Server Hello packet message
-func (wf *wkf) sayHelloBack(cMsg *ifs.MsgHelloCli) []byte {
+func (wf *wkf) serverHeloPkt(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
-	var outputBuff []byte
+	var buffer []byte
 
 	sMsg, err := wf.ssl.ifs.ServerHelo.Handle(cMsg)
 	if err != nil {
-		wf.ssl.lg.Error("Error handling server hello:", err)
-		return nil
+		return nil, err
 	}
 
 	// Server hello payload
@@ -99,82 +92,36 @@ func (wf *wkf) sayHelloBack(cMsg *ifs.MsgHelloCli) []byte {
 		Len:           len(buff3) + len(buff2)})
 
 	// TLS Header
-	outputBuff = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
+	buffer = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
 		ContentType: ifs.ContentTypeHandshake,
 		Version:     0x0303,
 		Len:         len(buff3) + len(buff2) + len(buff1)})
 
 	// Concatenate all buffers
-	outputBuff = append(outputBuff, buff1...)
-	outputBuff = append(outputBuff, buff2...)
-	outputBuff = append(outputBuff, buff3...)
-	return outputBuff
+	buffer = append(buffer, buff1...)
+	buffer = append(buffer, buff2...)
+	buffer = append(buffer, buff3...)
+	return buffer, nil
 }
 
 func (wf *wkf) addExtensions() []byte {
 	return nil
 }
 
-// Build Certificate packet message
-/*func (wf *wkf) sayCertificate(cMsg *ifs.MsgHelloCli) ([]byte, error) {
+func (wf *wkf) sendMe(buffer []byte) error {
 
-	// Get certificate
-	cct, _ := wf.getCert(cMsg)
-	if cct == nil {
-		return nil, fmt.Errorf("error getting certificate")
+	if buffer == nil {
+		return systema.ErrNilParams
 	}
 
-	return nil, nil
+	if len(buffer) < 42 {
+		return fmt.Errorf("buffer is too small to send")
+	}
+
+	_, err := wf.conn.Write(buffer)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
-
-func (wf *wkf) getCert(cMsg *ifs.MsgHelloCli) ([]*ifs.MsgCertificate, error) {
-
-	var chosenCert *mx.CertificatesData
-
-	modCerts := wf.ssl.mods.Get(0xFFFE)
-	if modCerts == nil {
-		return nil, fmt.Errorf("error getting certificates module")
-	}
-
-	clientAlgos := cMsg.Extensions[0x000D]
-	if clientAlgos == nil {
-		// Get first certificate in the list
-		modCerts.Execute(nil)
-
-		return nil, fmt.Errorf("no client algorithms")
-	}
-
-	dtt, ok := data.(*mx.SignAlgoData)
-	if !ok {
-		wf.ssl.lg.Error("[hereIsMyCert] error casting SignAlgoData")
-		return nil
-	}
-
-	//fmt.Println(mx.AlgosToName(0x000d, dtt.Algos))
-	for i := 0; i < int(dtt.Len); i++ {
-		aux := modCerts.Execute(dtt.Algos[i])
-		if aux == nil {
-			continue
-		}
-
-		chosenCert, ok = aux.(*mx.CertificatesData)
-		if !ok {
-			wf.ssl.lg.Warn("Error casting CertificatesData")
-			continue
-		}
-
-	}
-
-	if chosenCert == nil {
-		wf.ssl.lg.Error("No certificate found")
-		return nil
-	}
-
-	return []*ifs.MsgCertificate{
-		{
-			Cert:   chosenCert.Cert.Raw,
-			Length: uint32(len(chosenCert.Cert.Raw))},
-	}
-
-	return nil, nil
-}*/
