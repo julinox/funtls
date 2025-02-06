@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	syst "tlesio/systema"
+	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
 
 	"github.com/sirupsen/logrus"
@@ -44,20 +45,23 @@ type MsgHelloCli struct {
 type xCliHello struct {
 	name     string
 	mods     *mx.ModuloZ
+	exts     *ex.Extensions
 	helloMsg *MsgHelloCli
 	lg       *logrus.Logger
 }
 
-func NewIfCliHello(lg *logrus.Logger, mods *mx.ModuloZ) CliHello {
+func NewIfCliHello(params *IfaceParams) CliHello {
 
-	if lg == nil || mods == nil {
+	if params == nil || params.Lg == nil ||
+		params.Mx == nil || params.Ex == nil {
 		return nil
 	}
 
 	return &xCliHello{
 		name: "CliHello",
-		lg:   lg,
-		mods: mods,
+		lg:   params.Lg,
+		mods: params.Mx,
+		exts: params.Ex,
 	}
 }
 
@@ -177,9 +181,14 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 
 	offset += 2
 	for offset < int(extLen) {
-		//extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
+		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
+
+		fn := x.exts.GetExtLoadFn(extt)
+		if fn != nil {
+			fmt.Printf("Extension found(%.4x) -> %v\n", extt, fn)
+		}
 
 		// Load data for every extension
 		// By the way, very bad design to handle extensions

@@ -1,4 +1,4 @@
-package modulos
+package extensions
 
 import (
 	"tlesio/systema"

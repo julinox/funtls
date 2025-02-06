@@ -2,6 +2,7 @@ package server
 
 import (
 	"tlesio/systema"
+	ex "tlesio/tlssl/extensions"
 	iff "tlesio/tlssl/interfaces"
 	mx "tlesio/tlssl/modulos"
 
@@ -9,16 +10,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-/*type Modulos struct {
-	Cert         mx.ModCerts
-	CipherSuites mx.ModCipherSuites
-}*/
-
 type zzl struct {
 	modz *mx.ModuloZ
 	lg   *logrus.Logger
 	ifs  *iff.Interfaces
-	//exts *iff.Extensions
+	exts *ex.Extensions
 }
 
 func initTLS() (*zzl, error) {
@@ -35,7 +31,14 @@ func initTLS() (*zzl, error) {
 		return nil, err
 	}
 
-	ssl.ifs, err = iff.InitInterfaces(ssl.lg, ssl.modz)
+	ssl.exts, err = ex.NewExtensions(ssl.lg)
+	if err != nil {
+		ssl.lg.Error("error initializing TLS Extensions: ", err)
+		return nil, err
+	}
+
+	ssl.ifs, err = iff.InitInterfaces(&iff.IfaceParams{
+		Lg: ssl.lg, Mx: ssl.modz, Ex: ssl.exts})
 	if err != nil {
 		ssl.lg.Error("error initializing TLS Interfaces: ", err)
 		return nil, err
@@ -65,10 +68,6 @@ func (x *zzl) initModCipherSuites() {
 
 	x.modz.InitCipherSuites(conf)
 }
-
-/*func (x *zzl) initSignAlgo() {
-	x.modz.InitSignAlgo(x.lg)
-}*/
 
 func getTLSLogger() *logrus.Logger {
 

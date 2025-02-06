@@ -3,7 +3,7 @@ package modulos
 import (
 	"fmt"
 	"strings"
-	ex "tlesio/tlssl/interfaces/extensions"
+	ex "tlesio/tlssl/extensions"
 )
 
 func AlgoToName(varr, algo uint16) string {
@@ -13,7 +13,7 @@ func AlgoToName(varr, algo uint16) string {
 		return fmt.Sprintf("%s(0x%04X)", CipherSuiteNames[algo], algo)
 
 	case 0x000D:
-		return fmt.Sprintf("%s(0x%04X)", ex.SignatureHashAlgorithms[algo], algo)
+		return fmt.Sprintf("%s(0x%04X)", ex.SignHashAlgorithms[algo], algo)
 	}
 
 	return "unknown_algorithm_name_or_type"

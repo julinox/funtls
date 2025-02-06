@@ -2,10 +2,17 @@ package interfaces
 
 import (
 	"tlesio/systema"
+	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
 
 	"github.com/sirupsen/logrus"
 )
+
+type IfaceParams struct {
+	Lg *logrus.Logger
+	Mx *mx.ModuloZ
+	Ex *ex.Extensions
+}
 
 type Interfaces struct {
 	TLSHead     Header
@@ -14,21 +21,22 @@ type Interfaces struct {
 	Certificake Certificate
 }
 
-func InitInterfaces(lg *logrus.Logger, mods *mx.ModuloZ) (*Interfaces, error) {
+func InitInterfaces(params *IfaceParams) (*Interfaces, error) {
 
 	var newHsIf Interfaces
 
-	if lg == nil || mods == nil {
+	if params == nil || params.Lg == nil ||
+		params.Mx == nil || params.Ex == nil {
 		return nil, systema.ErrNilParams
 	}
 
 	newHsIf.TLSHead = NewHeader()
-	lg.Info("Interface loaded: ", newHsIf.TLSHead.Name())
-	newHsIf.CliHelo = NewIfCliHello(lg, mods)
-	lg.Info("Interface loaded: ", newHsIf.CliHelo.Name())
-	newHsIf.ServerHelo = NewIfcServerHello(lg, mods)
-	lg.Info("Interface loaded: ", newHsIf.ServerHelo.Name())
-	newHsIf.Certificake = NewIfcCertificate(lg)
-	lg.Info("Interface loaded: ", newHsIf.Certificake.Name())
+	params.Lg.Info("Interface loaded: ", newHsIf.TLSHead.Name())
+	newHsIf.CliHelo = NewIfCliHello(params)
+	params.Lg.Info("Interface loaded: ", newHsIf.CliHelo.Name())
+	newHsIf.ServerHelo = NewIfcServerHello(params)
+	params.Lg.Info("Interface loaded: ", newHsIf.ServerHelo.Name())
+	newHsIf.Certificake = NewIfcCertificate(params.Lg)
+	params.Lg.Info("Interface loaded: ", newHsIf.Certificake.Name())
 	return &newHsIf, nil
 }

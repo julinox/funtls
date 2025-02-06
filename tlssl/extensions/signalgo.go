@@ -1,6 +1,7 @@
 package extensions
 
 import (
+	"fmt"
 	"tlesio/systema"
 )
 
@@ -21,7 +22,7 @@ const (
 	RSA_PSS_RSAE_SHA512    = 0x0806
 )
 
-var SignatureHashAlgorithms = map[uint16]string{
+var SignHashAlgorithms = map[uint16]string{
 	ECDSA_SECP256R1_SHA256: "ecdsa_secp256r1_sha256",
 	ECDSA_SECP384R1_SHA384: "ecdsa_secp384r1_sha384",
 	ECDSA_SECP521R1_SHA512: "ecdsa_secp521r1_sha512",
@@ -48,7 +49,8 @@ type xModSignAlgo struct {
 
 type ExtSignAlgo interface {
 	Name() string
-	LoadData([]byte) (*SignAlgoData, error)
+	MeLoad() ExtLoadFN
+	LoadData([]byte, int) (interface{}, error)
 	PrintRaw([]byte) string
 }
 
@@ -61,8 +63,10 @@ func (x xModSignAlgo) Name() string {
 }
 
 // Assuming data is in correct format
-func (x xModSignAlgo) LoadData(data []byte) (*SignAlgoData, error) {
+func (x xModSignAlgo) LoadData(data []byte, sz int) (interface{}, error) {
 
+	fmt.Println("TE VEO O NO TE VEO")
+	return 0, nil
 	var offset uint16 = 2
 	var newData SignAlgoData
 
@@ -81,6 +85,10 @@ func (x xModSignAlgo) LoadData(data []byte) (*SignAlgoData, error) {
 	return &newData, nil
 }
 
+func (x xModSignAlgo) MeLoad() ExtLoadFN {
+	return x.LoadData
+}
+
 func (x xModSignAlgo) PrintRaw(data []byte) string {
 
 	var length int
@@ -94,7 +102,7 @@ func (x xModSignAlgo) PrintRaw(data []byte) string {
 
 	for i := 0; i < length; i++ {
 		id := uint16(data[offset])<<8 | uint16(data[offset+1])
-		algo := SignatureHashAlgorithms[id]
+		algo := SignHashAlgorithms[id]
 		if algo == "" {
 			algo = "*"
 		}

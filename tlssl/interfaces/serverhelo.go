@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"fmt"
 	"tlesio/systema"
+	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
 
 	"github.com/sirupsen/logrus"
@@ -24,18 +25,21 @@ type MsgHelloServer struct {
 
 type xServerHello struct {
 	mods *mx.ModuloZ
+	exts *ex.Extensions
 	lg   *logrus.Logger
 }
 
-func NewIfcServerHello(lg *logrus.Logger, mods *mx.ModuloZ) ServerHello {
+func NewIfcServerHello(params *IfaceParams) ServerHello {
 
-	if lg == nil || mods == nil {
+	if params == nil || params.Lg == nil ||
+		params.Mx == nil || params.Ex == nil {
 		return nil
 	}
 
 	return &xServerHello{
-		lg:   lg,
-		mods: mods,
+		lg:   params.Lg,
+		mods: params.Mx,
+		exts: params.Ex,
 	}
 }
 

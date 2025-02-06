@@ -11,7 +11,7 @@ import (
 	"os"
 	"strings"
 	"tlesio/systema"
-	ex "tlesio/tlssl/interfaces/extensions"
+	ex "tlesio/tlssl/extensions"
 
 	"github.com/sirupsen/logrus"
 )
@@ -239,7 +239,7 @@ func printSASupport(saSupport map[uint16]bool, separator string) string {
 	total := len(saSupport)
 	for sa, supported := range saSupport {
 		if supported {
-			result += ex.SignatureHashAlgorithms[sa]
+			result += ex.SignHashAlgorithms[sa]
 			count++
 			if count < total {
 				result += separator

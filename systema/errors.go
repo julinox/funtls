@@ -15,4 +15,5 @@ var (
 	ErrInvalidConfig     = errors.New("invalid configuration")
 	ErrInvalidData       = errors.New("invalid data")
 	ErrInvalidType       = errors.New("invalid type")
+	ErrUnsupported       = errors.New("unsupported")
 )
