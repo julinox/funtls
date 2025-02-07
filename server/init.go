@@ -24,23 +24,21 @@ func initTLS() (*zzl, error) {
 
 	ssl.lg = getTLSLogger()
 	ssl.modz = mx.NewModuloZ()
-	ssl.initModCerts()
-	ssl.initModCipherSuites()
-	if err = ssl.modz.CheckModInit(); err != nil {
+	if err = ssl.initModuloZ(); err != nil {
 		ssl.lg.Error("error initializing TLS Modules: ", err)
 		return nil, err
 	}
 
-	ssl.exts = ex.NewExtensions()
-	if err != nil {
-		ssl.lg.Error("error initializing TLS Extensions: ", err)
-		return nil, err
-	}
+	ssl.exts = ex.NewExtensions(ssl.lg)
+	ssl.initExtensions()
+	ssl.ifs = iff.InitInterfaces(
+		&iff.IfaceParams{
+			Lg: ssl.lg, Mx: ssl.modz, Ex: ssl.exts,
+		},
+	)
 
-	ssl.ifs, err = iff.InitInterfaces(&iff.IfaceParams{
-		Lg: ssl.lg, Mx: ssl.modz, Ex: ssl.exts})
-	if err != nil {
-		ssl.lg.Error("error initializing TLS Interfaces: ", err)
+	if ssl.ifs == nil {
+		ssl.lg.Error("error initializing TLS Interfaces")
 		return nil, err
 	}
 
@@ -48,25 +46,27 @@ func initTLS() (*zzl, error) {
 	return &ssl, nil
 }
 
-func (x *zzl) initModCerts() {
+func (x *zzl) initModuloZ() error {
+
+	csConf := &mx.CipherSuiteConfig{
+		ClientWeight: 1,
+		ServerWeight: 2,
+		Lg:           x.lg,
+	}
 
 	certs := []*mx.CertPaths{
 		{PathCert: "./certs/server.crt", PathKey: "./certs/server.key"},
 		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
 	}
 
+	x.modz.InitCipherSuites(csConf)
 	x.modz.InitCerts(x.lg, certs)
+	return x.modz.CheckModInit()
 }
 
-func (x *zzl) initModCipherSuites() {
+func (x *zzl) initExtensions() {
 
-	conf := &mx.CipherSuiteConfig{
-		ClientWeight: 1,
-		ServerWeight: 2,
-		Lg:           x.lg,
-	}
-
-	x.modz.InitCipherSuites(conf)
+	x.exts.Register(ex.NewExtSignAlgo())
 }
 
 func getTLSLogger() *logrus.Logger {

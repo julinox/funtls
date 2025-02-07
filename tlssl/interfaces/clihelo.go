@@ -181,48 +181,22 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 
 	offset += 2
 	for offset < int(extLen) {
-		//extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
-		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
+		extID := binary.BigEndian.Uint16(buffer[offset : offset+2])
+		extLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
-		/*if ex.SupportedExtensions[extt] != "" {
-			x.loadExtensionsData(buffer[offset:], extt, exttLen)
-		}*/
+		ext := x.exts.Get(extID)
+		if ext != nil {
+			data, err := ext.LoadData(buffer[offset:], int(extLen))
+			if err != nil {
+				x.lg.Errorf("data load(%v): %v", ex.ExtensionName[extID], err)
+			} else {
+				x.helloMsg.Extensions[extID] = data
+				x.lg.Trace(fmt.Sprintf("Field[Extension %v]: %v",
+					ex.ExtensionName[extID],
+					ext.PrintRaw(buffer[offset:offset+int(extLen)])))
+			}
+		}
 
-		offset += int(exttLen)
+		offset += int(extLen)
 	}
 }
-
-// Store extension data in the hello message
-/*func (x *xCliHello) loadExtensionsData(buffer []byte, ext, extLen uint16) {
-
-	fn := x.exts.GetExtLoadFn(ext)
-	if fn == nil {
-		return
-	}
-
-	data, err := fn(buffer, int(extLen))
-	if err != nil {
-		x.lg.Errorf("data load(%v): %v", ex.SupportedExtensions[ext], err)
-		return
-	}
-
-	x.helloMsg.Extensions[ext] = data
-	x.lg.Trace(fmt.Sprintf("Field[Extension SignAlgo(0x000D)]: %v",
-		x.exts.SignAlgo.PrintRaw(buffer[:int(extLen)])))
-}*/
-
-// Load data for every extension
-// By the way, very bad design to handle extensions
-/*switch extt {
-case 0x000D:
-	data, err := x.mods.SignAlgo.LoadData(
-		buffer[offset : offset+int(exttLen)])
-	if err != nil {
-		x.lg.Errorf("data load(%v): %v", x.mods.SignAlgo.Name(), err)
-		continue
-	}
-
-	x.helloMsg.Extensions[extt] = data
-	x.lg.Trace(fmt.Sprintf("Field[Extension SignAlgo(0x000D)]: %v",
-		x.mods.SignAlgo.PrintRaw(buffer[offset:offset+int(exttLen)])))
-}*/

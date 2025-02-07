@@ -1,7 +1,6 @@
 package interfaces
 
 import (
-	"tlesio/systema"
 	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
 
@@ -21,13 +20,13 @@ type Interfaces struct {
 	Certificake Certificate
 }
 
-func InitInterfaces(params *IfaceParams) (*Interfaces, error) {
+func InitInterfaces(params *IfaceParams) *Interfaces {
 
 	var newHsIf Interfaces
 
 	if params == nil || params.Lg == nil ||
 		params.Mx == nil || params.Ex == nil {
-		return nil, systema.ErrNilParams
+		return nil
 	}
 
 	newHsIf.TLSHead = NewHeader()
@@ -38,5 +37,5 @@ func InitInterfaces(params *IfaceParams) (*Interfaces, error) {
 	params.Lg.Info("Interface loaded: ", newHsIf.ServerHelo.Name())
 	newHsIf.Certificake = NewIfcCertificate(params.Lg)
 	params.Lg.Info("Interface loaded: ", newHsIf.Certificake.Name())
-	return &newHsIf, nil
+	return &newHsIf
 }

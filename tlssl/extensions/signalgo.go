@@ -1,7 +1,6 @@
 package extensions
 
 import (
-	"fmt"
 	"tlesio/systema"
 )
 
@@ -39,37 +38,30 @@ var SignHashAlgorithms = map[uint16]string{
 	RSA_PKCS1_SHA512:       "rsa_pkcs1_sha512",
 }
 
-type SignAlgoData struct {
+type ExtSignAlgoData struct {
 	Len   uint16
 	Algos []uint16
 }
 
-type xModSignAlgo struct {
+type xExtSignAlgo struct {
 }
 
-type ExtSignAlgo interface {
-	Name() string
-	MeLoad() ExtLoadFN
-	LoadData([]byte, int) (interface{}, error)
-	PrintRaw([]byte) string
+func NewExtSignAlgo() Extension {
+	return &xExtSignAlgo{}
 }
 
-func NewExtSignAlgo() ExtSignAlgo {
-	return &xModSignAlgo{}
-}
-
-func (x xModSignAlgo) Name() string {
+func (x xExtSignAlgo) Name() string {
 	return "Signature_Algorithms"
 }
 
-// Assuming data is in correct format
-func (x xModSignAlgo) LoadData(data []byte, sz int) (interface{}, error) {
+func (x xExtSignAlgo) ID() uint16 {
+	return 0x000D
+}
 
-	fmt.Println("TE VEO O NO TE VEO")
-	return 0, nil
+func (x xExtSignAlgo) LoadData(data []byte, sz int) (interface{}, error) {
+
 	var offset uint16 = 2
-	var newData SignAlgoData
-
+	var newData ExtSignAlgoData
 	newData.Len = uint16(data[0])<<8 | uint16(data[1])/2
 	if len(data) < int(newData.Len) {
 		return nil, systema.ErrInvalidData
@@ -85,11 +77,7 @@ func (x xModSignAlgo) LoadData(data []byte, sz int) (interface{}, error) {
 	return &newData, nil
 }
 
-func (x xModSignAlgo) MeLoad() ExtLoadFN {
-	return x.LoadData
-}
-
-func (x xModSignAlgo) PrintRaw(data []byte) string {
+func (x xExtSignAlgo) PrintRaw(data []byte) string {
 
 	var length int
 	var newStr string = "{"
@@ -118,4 +106,8 @@ func (x xModSignAlgo) PrintRaw(data []byte) string {
 
 	newStr += "}"
 	return newStr
+}
+
+func (x *xExtSignAlgo) PacketServerHelo() []byte {
+	return nil
 }
