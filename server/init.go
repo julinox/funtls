@@ -31,7 +31,7 @@ func initTLS() (*zzl, error) {
 		return nil, err
 	}
 
-	ssl.exts, err = ex.NewExtensions(ssl.lg)
+	ssl.exts = ex.NewExtensions()
 	if err != nil {
 		ssl.lg.Error("error initializing TLS Extensions: ", err)
 		return nil, err

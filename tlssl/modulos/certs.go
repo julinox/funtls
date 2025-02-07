@@ -154,6 +154,20 @@ func (p *pki) setSignAlgoSupport() {
 	}
 }
 
+func CriterionCN(cn string) func(*pki) bool {
+
+	return func(pki *pki) bool {
+		return strings.EqualFold(pki.cert.Subject.CommonName, cn)
+	}
+}
+
+func CriterionSignAlgo(algo uint16) func(*pki) bool {
+
+	return func(pki *pki) bool {
+		return pki.saSupport[algo]
+	}
+}
+
 func loadCertificate(path string) (*x509.Certificate, error) {
 
 	if path == "" {
@@ -248,18 +262,4 @@ func printSASupport(saSupport map[uint16]bool, separator string) string {
 	}
 
 	return result
-}
-
-func CriterionCN(cn string) func(*pki) bool {
-
-	return func(pki *pki) bool {
-		return strings.EqualFold(pki.cert.Subject.CommonName, cn)
-	}
-}
-
-func CriterionSignAlgo(algo uint16) func(*pki) bool {
-
-	return func(pki *pki) bool {
-		return pki.saSupport[algo]
-	}
 }

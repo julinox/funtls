@@ -166,9 +166,9 @@ func (x *xCliHello) parseCipherSuites(buffer []byte) (uint32, error) {
 	return offset, nil
 }
 
+// Parse and store only supported extensions data
 func (x *xCliHello) parseExtensions(buffer []byte) {
 
-	// Parsing only supported extensions
 	if len(buffer) < 2 {
 		return
 	}
@@ -181,31 +181,48 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 
 	offset += 2
 	for offset < int(extLen) {
-		extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
+		//extt := binary.BigEndian.Uint16(buffer[offset : offset+2])
 		exttLen := binary.BigEndian.Uint16(buffer[offset+2 : offset+4])
 		offset += 2 + 2
-
-		fn := x.exts.GetExtLoadFn(extt)
-		if fn != nil {
-			fmt.Printf("Extension found(%.4x) -> %v\n", extt, fn)
-		}
-
-		// Load data for every extension
-		// By the way, very bad design to handle extensions
-		/*switch extt {
-		case 0x000D:
-			data, err := x.mods.SignAlgo.LoadData(
-				buffer[offset : offset+int(exttLen)])
-			if err != nil {
-				x.lg.Errorf("data load(%v): %v", x.mods.SignAlgo.Name(), err)
-				continue
-			}
-
-			x.helloMsg.Extensions[extt] = data
-			x.lg.Trace(fmt.Sprintf("Field[Extension SignAlgo(0x000D)]: %v",
-				x.mods.SignAlgo.PrintRaw(buffer[offset:offset+int(exttLen)])))
+		/*if ex.SupportedExtensions[extt] != "" {
+			x.loadExtensionsData(buffer[offset:], extt, exttLen)
 		}*/
 
 		offset += int(exttLen)
 	}
 }
+
+// Store extension data in the hello message
+/*func (x *xCliHello) loadExtensionsData(buffer []byte, ext, extLen uint16) {
+
+	fn := x.exts.GetExtLoadFn(ext)
+	if fn == nil {
+		return
+	}
+
+	data, err := fn(buffer, int(extLen))
+	if err != nil {
+		x.lg.Errorf("data load(%v): %v", ex.SupportedExtensions[ext], err)
+		return
+	}
+
+	x.helloMsg.Extensions[ext] = data
+	x.lg.Trace(fmt.Sprintf("Field[Extension SignAlgo(0x000D)]: %v",
+		x.exts.SignAlgo.PrintRaw(buffer[:int(extLen)])))
+}*/
+
+// Load data for every extension
+// By the way, very bad design to handle extensions
+/*switch extt {
+case 0x000D:
+	data, err := x.mods.SignAlgo.LoadData(
+		buffer[offset : offset+int(exttLen)])
+	if err != nil {
+		x.lg.Errorf("data load(%v): %v", x.mods.SignAlgo.Name(), err)
+		continue
+	}
+
+	x.helloMsg.Extensions[extt] = data
+	x.lg.Trace(fmt.Sprintf("Field[Extension SignAlgo(0x000D)]: %v",
+		x.mods.SignAlgo.PrintRaw(buffer[offset:offset+int(exttLen)])))
+}*/
