@@ -73,7 +73,7 @@ func (wf *wkf) Start() {
 // Build Server Hello packet message
 func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
-	var buffer []byte
+	var outputBuff []byte
 
 	sMsg, err := wf.ssl.ifs.ServerHelo.Handle(cMsg)
 	if err != nil {
@@ -81,35 +81,31 @@ func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 	}
 
 	// Server hello payload
-	buff3 := wf.ssl.ifs.ServerHelo.Packet(sMsg)
+	sHelloBuff := wf.ssl.ifs.ServerHelo.Packet(sMsg)
 
-	// Extensions payload (none for now!)
-	buff2 := wf.addExtensions()
+	// Extensions payload
+	extsBuff := wf.ssl.ifs.ServerHelo.PacketExtensions(cMsg)
 
 	// Handshake header
-	buff1 := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
+	hsHeaderBuff := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
 		HandshakeType: ifs.HandshakeTypeServerHelo,
-		Len:           len(buff3) + len(buff2)})
+		Len:           len(sHelloBuff) + len(extsBuff)})
 
 	// TLS Header
-	buffer = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
+	outputBuff = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
 		ContentType: ifs.ContentTypeHandshake,
 		Version:     0x0303,
-		Len:         len(buff3) + len(buff2) + len(buff1)})
+		Len:         len(hsHeaderBuff) + len(sHelloBuff) + len(extsBuff)})
 
 	// Concatenate all buffers
-	buffer = append(buffer, buff1...)
-	buffer = append(buffer, buff2...)
-	buffer = append(buffer, buff3...)
-	return buffer, nil
+	outputBuff = append(outputBuff, hsHeaderBuff...)
+	outputBuff = append(outputBuff, sHelloBuff...)
+	outputBuff = append(outputBuff, extsBuff...)
+	return outputBuff, nil
 }
 
 func (wf *wkf) pktCertificate() []byte {
 
-	return nil
-}
-
-func (wf *wkf) addExtensions() []byte {
 	return nil
 }
 

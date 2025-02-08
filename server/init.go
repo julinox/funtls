@@ -67,6 +67,9 @@ func (x *zzl) initModuloZ() error {
 func (x *zzl) initExtensions() {
 
 	x.exts.Register(ex.NewExtSignAlgo())
+	x.exts.Register(ex.NewExtSessionTicket())
+	x.exts.Register(ex.NewExtSNI())
+	x.exts.Register(ex.NewExtEncryptThenMac())
 }
 
 func getTLSLogger() *logrus.Logger {

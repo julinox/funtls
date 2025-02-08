@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"tlesio/systema"
 	ex "tlesio/tlssl/extensions"
@@ -13,6 +14,7 @@ import (
 type ServerHello interface {
 	Name() string
 	Packet(*MsgHelloServer) []byte
+	PacketExtensions(*MsgHelloCli) []byte
 	Handle(*MsgHelloCli) (*MsgHelloServer, error)
 }
 
@@ -77,21 +79,58 @@ func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
 // Build byte buffer from msg
 func (sh *xServerHello) Packet(msg *MsgHelloServer) []byte {
 
-	var newBuffer []byte
+	var packetBuffer []byte
 
 	if msg == nil {
 		return nil
 	}
 
-	newBuffer = append(newBuffer, msg.Version[:]...)
-	newBuffer = append(newBuffer, msg.Random[:]...)
-	newBuffer = append(newBuffer, byte(len(msg.SessionId)))
-	newBuffer = append(newBuffer, msg.SessionId...)
-	newBuffer = append(newBuffer, byte(msg.CipherSuites>>8),
+	packetBuffer = append(packetBuffer, msg.Version[:]...)
+	packetBuffer = append(packetBuffer, msg.Random[:]...)
+	packetBuffer = append(packetBuffer, byte(len(msg.SessionId)))
+	packetBuffer = append(packetBuffer, msg.SessionId...)
+	packetBuffer = append(packetBuffer, byte(msg.CipherSuites>>8),
 		byte(msg.CipherSuites))
+
 	// "Compression methods"
-	newBuffer = append(newBuffer, 0x00)
-	return newBuffer
+	packetBuffer = append(packetBuffer, 0x00)
+	return packetBuffer
+}
+
+func (x *xServerHello) PacketExtensions(msg *MsgHelloCli) []byte {
+
+	var extsBuffer []byte
+
+	if msg == nil {
+		return nil
+	}
+
+	extsBuffer = make([]byte, 2)
+	for extID, extData := range msg.Extensions {
+		// This should never happen
+		ext := x.exts.Get(extID)
+		if ext == nil || extData == nil {
+			x.lg.Warnf("Packet Extension(%v) not found",
+				ex.ExtensionName[extID])
+			continue
+		}
+
+		auxBuffer, err := ext.PacketServerHelo(extData)
+		if err != nil {
+			x.lg.Errorf("Packet Extension(%v) : %v",
+				ex.ExtensionName[extID], err)
+			continue
+		}
+
+		if len(auxBuffer) == 0 {
+			continue
+		}
+
+		extsBuffer = append(extsBuffer, auxBuffer...)
+	}
+
+	binary.BigEndian.PutUint16(extsBuffer, uint16(len(extsBuffer)-2))
+	return extsBuffer
 }
 
 func (mh *MsgHelloServer) setVersion() error {

@@ -186,7 +186,7 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 		offset += 2 + 2
 		ext := x.exts.Get(extID)
 		if ext != nil {
-			data, err := ext.LoadData(buffer[offset:], int(extLen))
+			data, err := ext.LoadData(buffer[offset:offset+int(extLen)], int(extLen))
 			if err != nil {
 				x.lg.Errorf("data load(%v): %v", ex.ExtensionName[extID], err)
 			} else {
