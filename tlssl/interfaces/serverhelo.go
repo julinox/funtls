@@ -110,6 +110,7 @@ func (x *xServerHello) PacketExtensions(msg *MsgHelloCli) []byte {
 		// This should never happen
 		ext := x.exts.Get(extID)
 		if ext == nil || extData == nil {
+			fmt.Println("EXTTTT ", ext, extData)
 			x.lg.Warnf("Packet Extension(%v) not found",
 				ex.ExtensionName[extID])
 			continue

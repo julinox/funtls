@@ -1,5 +1,10 @@
 package extensions
 
+import (
+	"fmt"
+	"tlesio/systema"
+)
+
 const _MAX_SNI_NAMES = 5
 
 type ExtSNIName struct {
@@ -54,7 +59,28 @@ func (x xExtSNI) LoadData(data []byte, sz int) (interface{}, error) {
 
 func (x xExtSNI) PrintRaw(data []byte) string {
 
-	return ""
+	var str string
+
+	xdata, err := x.LoadData(data, len(data))
+	if err != nil {
+		return systema.PrettyPrintBytes(data)
+	}
+
+	sniData, ok := xdata.(*ExtSNIData)
+	if !ok {
+		return systema.PrettyPrintBytes(data)
+	}
+
+	str = "["
+	for i, name := range sniData.Names {
+		if i < len(sniData.Names)-1 {
+			str += fmt.Sprintf("{%v, ", name.Name)
+		} else {
+			str += fmt.Sprintf("%v", name.Name)
+		}
+	}
+
+	return str + "]"
 }
 
 func (x xExtSNI) PacketServerHelo(data interface{}) ([]byte, error) {

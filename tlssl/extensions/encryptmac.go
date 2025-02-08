@@ -1,5 +1,8 @@
 package extensions
 
+type ExtExtEncryptMacData struct {
+}
+
 type xExtEncryptMac struct {
 }
 
@@ -16,12 +19,11 @@ func (x xExtEncryptMac) ID() uint16 {
 }
 
 func (x xExtEncryptMac) LoadData(data []byte, sz int) (interface{}, error) {
-
-	return nil, nil
+	return &ExtExtEncryptMacData{}, nil
 }
 
 func (x xExtEncryptMac) PrintRaw(data []byte) string {
-	return ""
+	return "0x00 0x16(ExtID) 0x00 0x00(ExtLen)"
 }
 
 func (x xExtEncryptMac) PacketServerHelo(data interface{}) ([]byte, error) {

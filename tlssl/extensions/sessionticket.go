@@ -19,13 +19,11 @@ func (x xExtSessionTicket) ID() uint16 {
 }
 
 func (x xExtSessionTicket) LoadData(data []byte, sz int) (interface{}, error) {
-
 	return &ExtSessionTicketData{}, nil
 }
 
 func (x xExtSessionTicket) PrintRaw(data []byte) string {
-
-	return ""
+	return "0x00 0x23(ExtID) 0x00 0x00(ExtLen)"
 }
 
 func (x xExtSessionTicket) PacketServerHelo(data interface{}) ([]byte, error) {
