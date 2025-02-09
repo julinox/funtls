@@ -16,12 +16,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type Criteria func(*pki) bool
 type ModCerts interface {
 	Name() string
+	Print() string
 	Load(*CertPaths) (*pki, error)
-	GetAll() []*x509.Certificate
-	GetByCriteria(...Criteria) (*x509.Certificate, error)
+	Get(string) *x509.Certificate
+	GetByCriteria(uint16, string) *x509.Certificate
 }
 
 type CertPaths struct {
@@ -35,8 +35,9 @@ type MsgCertificate struct {
 }
 
 type pki struct {
-	name      string
+	cn        string
 	saSupport map[uint16]bool
+	san       map[string]bool
 	key       crypto.PrivateKey
 	cert      *x509.Certificate
 }
@@ -99,40 +100,64 @@ func (m *_xModCerts) Load(ptr *CertPaths) (*pki, error) {
 		return nil, fmt.Errorf("certificate and private key mismatch")
 	}
 
-	newPki.name = cc.Subject.CommonName
+	newPki.san = make(map[string]bool)
+	newPki.cn = cc.Subject.CommonName
+	newPki.san[newPki.cn] = true
 	newPki.key = key
 	newPki.cert = cc
 	newPki.setSignAlgoSupport()
+	for _, san := range cc.DNSNames {
+		newPki.san[san] = true
+	}
+
 	return &newPki, nil
 }
 
-func (m *_xModCerts) GetAll() []*x509.Certificate {
+func (m *_xModCerts) Get(cn string) *x509.Certificate {
 
-	certs := make([]*x509.Certificate, 0)
+	var certCopy x509.Certificate
+
 	for _, pki := range m.pkInfo {
-		certs = append(certs, pki.cert)
+		if strings.EqualFold(pki.cn, cn) {
+			certCopy = *pki.cert
+			return &certCopy
+		}
 	}
 
-	return certs
+	return nil
 }
 
-func (m *_xModCerts) GetByCriteria(cr ...Criteria) (*x509.Certificate, error) {
+// Criterias are Signature Algorithm (0 means no criteria) and cn reference
+// to the certificate common name or DNS name (empty string means no criteria)
+// If no criteria returns the first certificate found
+// cn is case sensitive, is it?
+func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
+
+	var certCopy x509.Certificate
 
 	for _, pki := range m.pkInfo {
-		matches := true
-		for _, criterion := range cr {
-			if !criterion(pki) {
-				matches = false
-				break
-			}
+		if sa != 0 && (!pki.saSupport[sa]) {
+			continue
 		}
 
-		if matches {
-			return pki.cert, nil
+		// 'cn' is in the SAN list (set at Load)
+		if cn != "" && !pki.san[cn] {
+			continue
 		}
+
+		certCopy = *pki.cert
+		return &certCopy
 	}
 
-	return nil, fmt.Errorf("no matching certificate found")
+	return nil
+}
+
+// Print certs info
+func (m *_xModCerts) Print() string {
+
+	var str string
+
+	return str
 }
 
 func (p *pki) setSignAlgoSupport() {
@@ -151,20 +176,6 @@ func (p *pki) setSignAlgoSupport() {
 			p.saSupport[ex.RSA_PSS_RSAE_SHA384] = true
 			p.saSupport[ex.RSA_PSS_RSAE_SHA512] = true
 		}
-	}
-}
-
-func CriterionCN(cn string) func(*pki) bool {
-
-	return func(pki *pki) bool {
-		return strings.EqualFold(pki.cert.Subject.CommonName, cn)
-	}
-}
-
-func CriterionSignAlgo(algo uint16) func(*pki) bool {
-
-	return func(pki *pki) bool {
-		return pki.saSupport[algo]
 	}
 }
 

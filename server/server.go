@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	ifs "tlesio/tlssl/interfaces"
 
@@ -38,6 +39,12 @@ func RealServidor() {
 		server.lg.Error("TLS Init err: ", err)
 		return
 	}
+
+	////////////////////// DEBUG //////////////////////
+	if jumpMe(server.tls) {
+		return
+	}
+	////////////////////// DEBUG //////////////////////
 
 	defer listener.Close()
 	server.lg.Info("Listening on PORT ", port)
@@ -110,4 +117,32 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 	}
 
 	wkf.Start()
+}
+
+func jumpMe2(tls *zzl) bool {
+
+	/*pkis := tls.modz.Certs.GetAll()
+	for _, pki := range pkis {
+		fmt.Println(pki.DNSNames)
+		//fmt.Println(e.SignatureAlgorithm)
+	}*/
+
+	return true
+}
+
+func jumpMe(tls *zzl) bool {
+
+	/*sa := mx.CriterionSignAlgo(ex.ECDSA_SECP256R1_SHA256)
+	//sa := mx.CriterionSignAlgo(ex.RSA_PKCS1_SHA256)
+	cn := mx.CriterionCN("julinox.com")
+	certt, err := tls.modz.Certs.GetByCriteria(sa, cn)
+	if err != nil {
+		fmt.Printf("ERROR: %v\n", err)
+		return true
+	}*/
+
+	//certt := tls.modz.Certs.Get("julinox.com")
+	//fmt.Println(certt.DNSNames)
+	fmt.Println(tls.modz.Certs.Print())
+	return true
 }

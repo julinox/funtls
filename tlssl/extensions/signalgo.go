@@ -1,7 +1,6 @@
 package extensions
 
 import (
-	"fmt"
 	"tlesio/systema"
 )
 
@@ -110,6 +109,5 @@ func (x xExtSignAlgo) PrintRaw(data []byte) string {
 }
 
 func (x *xExtSignAlgo) PacketServerHelo(data interface{}) ([]byte, error) {
-	fmt.Println("SOY PAQUETE SERVER HELLO DE SIGNATURE ALGORITHMS")
 	return nil, nil
 }

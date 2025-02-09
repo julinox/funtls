@@ -35,7 +35,7 @@ func InitInterfaces(params *IfaceParams) *Interfaces {
 	params.Lg.Info("Interface loaded: ", newHsIf.CliHelo.Name())
 	newHsIf.ServerHelo = NewIfcServerHello(params)
 	params.Lg.Info("Interface loaded: ", newHsIf.ServerHelo.Name())
-	newHsIf.Certificake = NewIfcCertificate(params.Lg)
+	newHsIf.Certificake = NewIfcCertificate(params)
 	params.Lg.Info("Interface loaded: ", newHsIf.Certificake.Name())
 	return &newHsIf
 }

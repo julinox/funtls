@@ -39,7 +39,8 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn, offset uint32) *wkf {
 func (wf *wkf) Start() {
 
 	var err error
-	var outputBuff []byte
+	var serverHelloPkt []byte
+	var certificatePkt []byte
 
 	wf.ssl.lg.Debugf("Starting handshake with '%v'", wf.conn.RemoteAddr())
 	msgHC, err := wf.ssl.ifs.CliHelo.Handle(wf.buffer[wf.offset:])
@@ -56,14 +57,17 @@ func (wf *wkf) Start() {
 	}
 
 	// server hello message
-	outputBuff, err = wf.pktServerHelo(msgHC)
+	serverHelloPkt, err = wf.pktServerHelo(msgHC)
 	if err != nil {
 		wf.ssl.lg.Error("server hello response packet:", err)
 		return
 	}
 
+	// Give me the certificate right now
+	certificatePkt = wf.pktCertificate()
+
 	// Send it
-	err = wf.sendMe(outputBuff)
+	err = wf.sendMe(append(serverHelloPkt, certificatePkt...))
 	if err != nil {
 		wf.ssl.lg.Error("error sending response:", err)
 		return
@@ -106,6 +110,7 @@ func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
 func (wf *wkf) pktCertificate() []byte {
 
+	wf.ssl.ifs.Certificake.Handle()
 	return nil
 }
 

@@ -1,6 +1,9 @@
 package interfaces
 
 import (
+	ex "tlesio/tlssl/extensions"
+	mx "tlesio/tlssl/modulos"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -11,18 +14,22 @@ type Certificate interface {
 }
 
 type xCertificate struct {
-	lg *logrus.Logger
+	exts *ex.Extensions
+	lg   *logrus.Logger
+	mods *mx.ModuloZ
 }
 
-func NewIfcCertificate(lg *logrus.Logger) Certificate {
+func NewIfcCertificate(params *IfaceParams) Certificate {
 
 	var newCertificate xCertificate
 
-	if lg == nil {
+	if params.Lg == nil || params.Ex == nil {
 		return nil
 	}
 
-	newCertificate.lg = lg
+	newCertificate.lg = params.Lg
+	newCertificate.exts = params.Ex
+	newCertificate.mods = params.Mx
 	return &newCertificate
 }
 
@@ -32,9 +39,8 @@ func (c *xCertificate) Name() string {
 
 func (c *xCertificate) Handle() {
 
-	// Choose certifcate list to send
-	// For that i need 2 extensions: ServerName and SignatureAlgorithms
-	// Need the data sent by the client regarding these 2 extensions
+	// Choose certifcate list to send. Extensions ServerName and
+	// SignatureAlgorithms are used to select one
 
 }
 
