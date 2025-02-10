@@ -64,7 +64,11 @@ func (wf *wkf) Start() {
 	}
 
 	// Give me the certificate right now
-	certificatePkt = wf.pktCertificate()
+	certificatePkt, err = wf.pktCertificate(msgHC)
+	if err != nil {
+		wf.ssl.lg.Error("certificate packet:", err)
+		return
+	}
 
 	// Send it
 	err = wf.sendMe(append(serverHelloPkt, certificatePkt...))
@@ -108,14 +112,23 @@ func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 	return outputBuff, nil
 }
 
-func (wf *wkf) pktCertificate() []byte {
+func (wf *wkf) pktCertificate(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
-	wf.ssl.ifs.Certificake.Handle()
-	return nil
+	var outputBuff []byte
+
+	cert := wf.ssl.ifs.Certificake.Handle(cMsg)
+	if cert == nil {
+		return nil, fmt.Errorf("certificate not found")
+	}
+
+	wf.ssl.lg.Debugf("Certificate found: %s", cert.Subject.CommonName)
+	fmt.Println("AHORA PAQUETIZA MIJOOOO!")
+	return outputBuff, nil
 }
 
 func (wf *wkf) sendMe(buffer []byte) error {
 
+	return nil
 	if buffer == nil {
 		return systema.ErrNilParams
 	}

@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"crypto/x509"
 	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
 
@@ -9,8 +10,8 @@ import (
 
 type Certificate interface {
 	Name() string
-	Handle()
 	Packet() []byte
+	Handle(*MsgHelloCli) *x509.Certificate
 }
 
 type xCertificate struct {
@@ -33,17 +34,65 @@ func NewIfcCertificate(params *IfaceParams) Certificate {
 	return &newCertificate
 }
 
-func (c *xCertificate) Name() string {
+func (x *xCertificate) Name() string {
 	return "Certificate"
 }
 
-func (c *xCertificate) Handle() {
+func (x *xCertificate) Handle(cMsg *MsgHelloCli) *x509.Certificate {
 
 	// Choose certifcate list to send. Extensions ServerName and
 	// SignatureAlgorithms are used to select one
 
+	dnsNames := x.getClientCnames(cMsg.Extensions[0x0000])
+	saAlgos := x.getClientSaAlgos(cMsg.Extensions[0x000D])
+
+	// Brute force. Why???
+	for _, cn := range dnsNames {
+		for _, sa := range saAlgos {
+			if cert := x.mods.Certs.GetByCriteria(sa, cn); cert != nil {
+				return cert
+			}
+		}
+	}
+
+	return nil
 }
 
-func (c *xCertificate) Packet() []byte {
+func (x *xCertificate) Packet() []byte {
 	return nil
+}
+
+func (x xCertificate) getClientCnames(data interface{}) []string {
+
+	var dnsNames []string
+
+	if data == nil {
+		return nil
+	}
+
+	extData, ok := data.(*ex.ExtSNIData)
+	if !ok {
+		return nil
+	}
+
+	dnsNames = make([]string, 0)
+	for _, name := range extData.Names {
+		dnsNames = append(dnsNames, name.Name)
+	}
+
+	return dnsNames
+}
+
+func (x xCertificate) getClientSaAlgos(data interface{}) []uint16 {
+
+	if data == nil {
+		return nil
+	}
+
+	extData, ok := data.(*ex.ExtSignAlgoData)
+	if !ok {
+		return nil
+	}
+
+	return extData.Algos
 }

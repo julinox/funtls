@@ -14,6 +14,7 @@ import (
 	ex "tlesio/tlssl/extensions"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/maps"
 )
 
 type ModCerts interface {
@@ -127,10 +128,9 @@ func (m *_xModCerts) Get(cn string) *x509.Certificate {
 	return nil
 }
 
-// Criterias are Signature Algorithm (0 means no criteria) and cn reference
-// to the certificate common name or DNS name (empty string means no criteria)
-// If no criteria returns the first certificate found
-// cn is case sensitive, is it?
+// Criterias are Signature Algorithm (0 means no criteria) and
+// CN (Common name) or DNS name (empty string means no name)
+// Returns the first certificate found when no criteria is used
 func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
 
 	var certCopy x509.Certificate
@@ -156,6 +156,16 @@ func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
 func (m *_xModCerts) Print() string {
 
 	var str string
+
+	for i, pki := range m.pkInfo {
+		if i < len(m.pkInfo)-1 {
+			str += fmt.Sprintf("%s | %s | %s\n", pki.cn, maps.Keys(pki.san),
+				printSASupport(pki.saSupport, ","))
+		} else {
+			str += fmt.Sprintf("%s | %s | %s\n", pki.cn, maps.Keys(pki.san),
+				printSASupport(pki.saSupport, ","))
+		}
+	}
 
 	return str
 }
