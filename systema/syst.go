@@ -49,3 +49,7 @@ func FileExists(path string) bool {
 	_, err := os.Stat(path)
 	return !os.IsNotExist(err)
 }
+
+func Uint24(n int) []byte {
+	return []byte{byte(n >> 16), byte(n >> 8), byte(n)}
+}

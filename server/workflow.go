@@ -116,19 +116,39 @@ func (wf *wkf) pktCertificate(cMsg *ifs.MsgHelloCli) ([]byte, error) {
 
 	var outputBuff []byte
 
-	cert := wf.ssl.ifs.Certificake.Handle(cMsg)
-	if cert == nil {
+	certs := wf.ssl.ifs.Certificake.Handle(cMsg)
+	if certs == nil {
 		return nil, fmt.Errorf("certificate not found")
 	}
 
-	wf.ssl.lg.Debugf("Certificate found: %s", cert.Subject.CommonName)
-	fmt.Println("AHORA PAQUETIZA MIJOOOO!")
+	// Certificates buffer
+	wf.ssl.lg.Debugf("Certificate found: %s", certs[0].Subject.CommonName)
+	certsPartialBuff := wf.ssl.ifs.Certificake.Packet(certs)
+
+	// Add total certificates length
+	certsBuff := systema.Uint24(len(certsPartialBuff))
+	certsBuff = append(certsBuff, certsPartialBuff...)
+
+	// Handshake header
+	hsHeaderBuff := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
+		HandshakeType: ifs.HandshakeTypeCertificate,
+		Len:           len(certsBuff),
+	})
+
+	// TLS Header
+	outputBuff = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
+		ContentType: ifs.ContentTypeHandshake,
+		Len:         len(hsHeaderBuff) + len(certsBuff),
+	})
+
+	// Concatenate all buffers
+	outputBuff = append(outputBuff, hsHeaderBuff...)
+	outputBuff = append(outputBuff, certsBuff...)
 	return outputBuff, nil
 }
 
 func (wf *wkf) sendMe(buffer []byte) error {
 
-	return nil
 	if buffer == nil {
 		return systema.ErrNilParams
 	}

@@ -144,7 +144,12 @@ func (h *tlsHead) HeaderPacket(hh *TLSHeader) []byte {
 		return nil
 	}
 
-	newBuffer = append(newBuffer, 0x03, 0x01)
+	if hh.Version != 0 {
+		newBuffer = append(newBuffer, byte(hh.Version>>8), byte(hh.Version))
+	} else {
+		newBuffer = append(newBuffer, 0x03, 0x03)
+	}
+
 	newBuffer = append(newBuffer, byte(hh.Len>>8), byte(hh.Len))
 	return newBuffer
 }
