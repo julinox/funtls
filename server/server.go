@@ -104,7 +104,7 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 		return
 	}
 
-	wkf := TLSMe(server.tls, buffer, conn, offset)
+	wkf := TLSMe(server.tls, buffer[ifs.TLS_HEADER_SIZE:n], conn)
 	if wkf == nil {
 		return
 	}

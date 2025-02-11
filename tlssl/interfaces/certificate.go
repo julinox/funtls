@@ -39,10 +39,10 @@ func (x *xCertificate) Name() string {
 	return "Certificate"
 }
 
+// Choose certifcate list to send. Extensions ServerName and
+// SignatureAlgorithms are used to select one
+// First certificate in the list is the chosen one
 func (x *xCertificate) Handle(cMsg *MsgHelloCli) []*x509.Certificate {
-
-	// Choose certifcate list to send. Extensions ServerName and
-	// SignatureAlgorithms are used to select one
 
 	var certs []*x509.Certificate
 

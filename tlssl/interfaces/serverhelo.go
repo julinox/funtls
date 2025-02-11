@@ -107,10 +107,14 @@ func (x *xServerHello) PacketExtensions(msg *MsgHelloCli) []byte {
 
 	extsBuffer = make([]byte, 2)
 	for extID, extData := range msg.Extensions {
-		// This should never happen
 		ext := x.exts.Get(extID)
+		// Renegiation info skip
+		if ext.ID() == 0xFF01 {
+			continue
+		}
+
+		// This should never happen
 		if ext == nil || extData == nil {
-			fmt.Println("EXTTTT ", ext, extData)
 			x.lg.Warnf("Packet Extension(%v) not found",
 				ex.ExtensionName[extID])
 			continue
@@ -130,6 +134,13 @@ func (x *xServerHello) PacketExtensions(msg *MsgHelloCli) []byte {
 		extsBuffer = append(extsBuffer, auxBuffer...)
 	}
 
+	// Force renegotiation info
+	rInfoBuff, err := x.exts.Get(0xFF01).PacketServerHelo(nil)
+	if err != nil {
+		x.lg.Errorf("Force Renegiation Info: %v", err)
+	}
+
+	extsBuffer = append(extsBuffer, rInfoBuff...)
 	binary.BigEndian.PutUint16(extsBuffer, uint16(len(extsBuffer)-2))
 	return extsBuffer
 }

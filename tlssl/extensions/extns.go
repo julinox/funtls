@@ -9,6 +9,7 @@ var ExtensionName = map[uint16]string{
 	0x000D: "signature_algorithms",
 	0x0016: "encrypt_then_mac",
 	0x0023: "session_ticket",
+	0xFF01: "renegotiation_info",
 }
 
 type ExtLoadFN func([]byte, int) (interface{}, error)

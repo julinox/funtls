@@ -1,22 +1,24 @@
 package server
 
 import (
+	"crypto/x509"
 	"encoding/binary"
 	"fmt"
 	"net"
-	"tlesio/systema"
+	"time"
 	ifs "tlesio/tlssl/interfaces"
+	cbf "tlesio/tlssl/interfaces/cryptobuff"
 )
 
 type wkf struct {
-	ssl    *zzl
-	buffer []byte
-	conn   net.Conn
-	offset uint32
+	ssl        *zzl
+	cryptoBuff cbf.CryptoBuff
+	conn       net.Conn
+	buffer     []byte // Original buffer including TLS header
 }
 
 // Handle Handshake Request
-func TLSMe(ssl *zzl, buff []byte, conn net.Conn, offset uint32) *wkf {
+func TLSMe(ssl *zzl, buff []byte, conn net.Conn) *wkf {
 
 	var newWF wkf
 
@@ -32,135 +34,64 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn, offset uint32) *wkf {
 	newWF.ssl = ssl
 	newWF.buffer = buff
 	newWF.conn = conn
-	newWF.offset = offset
+	newWF.cryptoBuff = cbf.NewCryptoBuff(ssl.lg, conn)
 	return &newWF
 }
 
 func (wf *wkf) Start() {
 
 	var err error
-	var serverHelloPkt []byte
-	var certificatePkt []byte
 
 	wf.ssl.lg.Debugf("Starting handshake with '%v'", wf.conn.RemoteAddr())
-	msgHC, err := wf.ssl.ifs.CliHelo.Handle(wf.buffer[wf.offset:])
+	msgHC, err := wf.ssl.ifs.CliHelo.Handle(wf.buffer[ifs.TLS_HANDSHAKE_SIZE:])
 	if err != nil {
 		wf.ssl.lg.Error("client hello handle:", err)
 		return
 	}
 
-	// Check TLS version (muste be 1.0[0x0303])
+	// Check TLS version (muste be 1.2[0x0303])
 	if binary.BigEndian.Uint16(msgHC.Version[:]) != 0x0303 {
 		wf.ssl.lg.Errorf("TLS version not supported: %.4x",
 			binary.BigEndian.Uint16(msgHC.Version[:]))
 		return
 	}
 
+	// Save client hello packet
+	wf.cryptoBuff.Set(cbf.CLIENT_HELLO, wf.buffer)
+
 	// server hello message
-	serverHelloPkt, err = wf.pktServerHelo(msgHC)
+	err = wf.pktServerHelo(msgHC)
 	if err != nil {
 		wf.ssl.lg.Error("server hello response packet:", err)
 		return
 	}
 
 	// Give me the certificate right now
-	certificatePkt, err = wf.pktCertificate(msgHC)
+	err = wf.pktCertificate(msgHC)
 	if err != nil {
 		wf.ssl.lg.Error("certificate packet:", err)
 		return
 	}
 
-	// Send it
-	err = wf.sendMe(append(serverHelloPkt, certificatePkt...))
-	if err != nil {
-		wf.ssl.lg.Error("error sending response:", err)
+	cct := wf.cryptoBuff.GetCert()
+	if cct == nil {
+		wf.ssl.lg.Error("cryptobuff has no certificate")
 		return
 	}
+
+	switch cct.PublicKeyAlgorithm {
+	case x509.RSA:
+		wf.rsaMe()
+	default:
+		wf.ssl.lg.Warnf("Public key algorithm not supported")
+	}
 }
 
-// Build Server Hello packet message
-func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) ([]byte, error) {
+func (wf *wkf) rsaMe() {
 
-	var outputBuff []byte
-
-	sMsg, err := wf.ssl.ifs.ServerHelo.Handle(cMsg)
-	if err != nil {
-		return nil, err
-	}
-
-	// Server hello payload
-	sHelloBuff := wf.ssl.ifs.ServerHelo.Packet(sMsg)
-
-	// Extensions payload
-	extsBuff := wf.ssl.ifs.ServerHelo.PacketExtensions(cMsg)
-
-	// Handshake header
-	hsHeaderBuff := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
-		HandshakeType: ifs.HandshakeTypeServerHelo,
-		Len:           len(sHelloBuff) + len(extsBuff)})
-
-	// TLS Header
-	outputBuff = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
-		ContentType: ifs.ContentTypeHandshake,
-		Version:     0x0303,
-		Len:         len(hsHeaderBuff) + len(sHelloBuff) + len(extsBuff)})
-
-	// Concatenate all buffers
-	outputBuff = append(outputBuff, hsHeaderBuff...)
-	outputBuff = append(outputBuff, sHelloBuff...)
-	outputBuff = append(outputBuff, extsBuff...)
-	return outputBuff, nil
-}
-
-func (wf *wkf) pktCertificate(cMsg *ifs.MsgHelloCli) ([]byte, error) {
-
-	var outputBuff []byte
-
-	certs := wf.ssl.ifs.Certificake.Handle(cMsg)
-	if certs == nil {
-		return nil, fmt.Errorf("certificate not found")
-	}
-
-	// Certificates buffer
-	wf.ssl.lg.Debugf("Certificate found: %s", certs[0].Subject.CommonName)
-	certsPartialBuff := wf.ssl.ifs.Certificake.Packet(certs)
-
-	// Add total certificates length
-	certsBuff := systema.Uint24(len(certsPartialBuff))
-	certsBuff = append(certsBuff, certsPartialBuff...)
-
-	// Handshake header
-	hsHeaderBuff := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
-		HandshakeType: ifs.HandshakeTypeCertificate,
-		Len:           len(certsBuff),
-	})
-
-	// TLS Header
-	outputBuff = wf.ssl.ifs.TLSHead.HeaderPacket(&ifs.TLSHeader{
-		ContentType: ifs.ContentTypeHandshake,
-		Len:         len(hsHeaderBuff) + len(certsBuff),
-	})
-
-	// Concatenate all buffers
-	outputBuff = append(outputBuff, hsHeaderBuff...)
-	outputBuff = append(outputBuff, certsBuff...)
-	return outputBuff, nil
-}
-
-func (wf *wkf) sendMe(buffer []byte) error {
-
-	if buffer == nil {
-		return systema.ErrNilParams
-	}
-
-	if len(buffer) < 42 {
-		return fmt.Errorf("buffer is too small to send")
-	}
-
-	_, err := wf.conn.Write(buffer)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	wf.pktServerHeloDone()
+	err := wf.cryptoBuff.Send(cbf.SERVER_HELLO | cbf.CERTIFICATE |
+		cbf.SERVER_HELLO_DONE)
+	fmt.Println("ERR? ->", err)
+	time.Sleep(400 * time.Millisecond)
 }

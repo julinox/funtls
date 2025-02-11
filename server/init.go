@@ -10,6 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+type ZZL struct {
+}
+
 type zzl struct {
 	modz *mx.ModuloZ
 	lg   *logrus.Logger
@@ -70,6 +73,7 @@ func (x *zzl) initExtensions() {
 	x.exts.Register(ex.NewExtSessionTicket())
 	x.exts.Register(ex.NewExtSNI())
 	x.exts.Register(ex.NewExtEncryptThenMac())
+	x.exts.Register(ex.NewExtRenegotiation())
 }
 
 func getTLSLogger() *logrus.Logger {

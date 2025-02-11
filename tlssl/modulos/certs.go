@@ -17,6 +17,11 @@ import (
 	"golang.org/x/exp/maps"
 )
 
+var (
+	PKI_TYPE_RSA = 0x01
+	PKI_TYPE_EC  = 0x02
+)
+
 type ModCerts interface {
 	Name() string
 	Print() string
