@@ -19,10 +19,10 @@ type ServerHello interface {
 }
 
 type MsgHelloServer struct {
-	Version      [2]byte
-	Random       [32]byte
-	SessionId    []byte
-	CipherSuites uint16
+	Version     [2]byte
+	Random      [32]byte
+	SessionId   []byte
+	CipherSuite uint16
 }
 
 type xServerHello struct {
@@ -89,8 +89,8 @@ func (sh *xServerHello) Packet(msg *MsgHelloServer) []byte {
 	packetBuffer = append(packetBuffer, msg.Random[:]...)
 	packetBuffer = append(packetBuffer, byte(len(msg.SessionId)))
 	packetBuffer = append(packetBuffer, msg.SessionId...)
-	packetBuffer = append(packetBuffer, byte(msg.CipherSuites>>8),
-		byte(msg.CipherSuites))
+	packetBuffer = append(packetBuffer, byte(msg.CipherSuite>>8),
+		byte(msg.CipherSuite))
 
 	// "Compression methods"
 	packetBuffer = append(packetBuffer, 0x00)
@@ -172,7 +172,7 @@ func (mh *MsgHelloServer) setCS(algos []uint16, mod mx.ModCipherSuites) error {
 		return fmt.Errorf("server hello error getting cipher suite")
 	}
 
-	mh.CipherSuites = cs
+	mh.CipherSuite = cs
 	return nil
 }
 

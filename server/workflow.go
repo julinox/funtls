@@ -1,11 +1,10 @@
 package server
 
 import (
-	"crypto/x509"
 	"encoding/binary"
 	"fmt"
 	"net"
-	"time"
+	"tlesio/systema"
 	ifs "tlesio/tlssl/interfaces"
 	cbf "tlesio/tlssl/interfaces/cryptobuff"
 )
@@ -79,19 +78,59 @@ func (wf *wkf) Start() {
 		return
 	}
 
-	switch cct.PublicKeyAlgorithm {
-	case x509.RSA:
-		wf.rsaMe()
-	default:
-		wf.ssl.lg.Warnf("Public key algorithm not supported")
+	// Practice ciphering
+	wf.practiceCipher()
+
+	/*suite, err := wf.ssl.modz.CipherSuites.GetSuite(
+		wf.cryptoBuff.GetCipherSuite())
+	if err != nil {
+		wf.ssl.lg.Error("suite not found:", err)
+		return
 	}
+
+	switch suite.KeyExchange {
+	case mx.KEY_EXCHANGE_RSA:
+		wf.handleClientKeyExchange()
+
+	case mx.KEY_EXCHANGE_DHE:
+		wf.ssl.lg.Warn("DHE not implemented yet")
+
+	default:
+		wf.ssl.lg.Error("key exchange not supported")
+		return
+	}
+
+	wf.handleClientKeyExchange()*/
 }
 
-func (wf *wkf) rsaMe() {
+func (wf *wkf) handleClientKeyExchange() {
 
+	var err error
+
+	newBuff := make([]byte, 4096)
 	wf.pktServerHeloDone()
-	err := wf.cryptoBuff.Send(cbf.SERVER_HELLO | cbf.CERTIFICATE |
+	err = wf.cryptoBuff.Send(cbf.SERVER_HELLO | cbf.CERTIFICATE |
 		cbf.SERVER_HELLO_DONE)
-	fmt.Println("ERR? ->", err)
-	time.Sleep(400 * time.Millisecond)
+
+	if err != nil {
+		wf.ssl.lg.Error("RSA process send:", err)
+		return
+	}
+
+	wf.ssl.lg.Info("RSA partial handshake done")
+
+	// Receive client key exchange
+	n, err := wf.conn.Read(newBuff)
+	if err != nil {
+		wf.ssl.lg.Error("RSA process read:", err)
+		return
+	}
+
+	fmt.Println("Received:", n, "bytes")
+	fmt.Println(systema.PrettyPrintBytes(newBuff[:n]))
+}
+
+func (wf *wkf) practiceCipher() {
+
+	fmt.Println(wf.ssl.modz.TLSSuite.PrintAll())
 }

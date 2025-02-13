@@ -35,6 +35,7 @@ type xCryptoBuffs struct {
 	certificate       []byte
 	finished          []byte
 	cert              *x509.Certificate
+	cipherSuite       uint16
 }
 
 type ifaces struct {
@@ -52,6 +53,8 @@ type CryptoBuff interface {
 	Set(int, []byte)
 	Send(int) error
 	PPrint(int) string
+	SetCipherSuite(uint16)
+	GetCipherSuite() uint16
 	SetCert(*x509.Certificate)
 	GetCert() *x509.Certificate
 }
@@ -136,6 +139,14 @@ func (x *xCryptoBuff) SetCert(cert *x509.Certificate) {
 
 func (x *xCryptoBuff) GetCert() *x509.Certificate {
 	return x.buffs.cert
+}
+
+func (x *xCryptoBuff) SetCipherSuite(cipherSuite uint16) {
+	x.buffs.cipherSuite = cipherSuite
+}
+
+func (x *xCryptoBuff) GetCipherSuite() uint16 {
+	return x.buffs.cipherSuite
 }
 
 func (x *xCryptoBuff) PPrint(op int) string {

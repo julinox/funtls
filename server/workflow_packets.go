@@ -5,6 +5,7 @@ import (
 	"tlesio/systema"
 	ifs "tlesio/tlssl/interfaces"
 	cbf "tlesio/tlssl/interfaces/cryptobuff"
+	mx "tlesio/tlssl/modulos"
 )
 
 func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) error {
@@ -31,7 +32,12 @@ func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) error {
 	outputBuff = append(outputBuff, hsHeaderBuff...)
 	outputBuff = append(outputBuff, sHelloBuff...)
 	outputBuff = append(outputBuff, extsBuff...)
+
+	// Save server hello parameters
 	wf.cryptoBuff.Set(cbf.SERVER_HELLO, outputBuff)
+	wf.cryptoBuff.SetCipherSuite(sMsg.CipherSuite)
+	wf.ssl.lg.Debugf("Suite chosen: %v(%v)",
+		mx.CipherSuiteNames[sMsg.CipherSuite], sMsg.CipherSuite)
 	return nil
 }
 
@@ -45,7 +51,7 @@ func (wf *wkf) pktCertificate(cMsg *ifs.MsgHelloCli) error {
 		return fmt.Errorf("certificate not found")
 	}
 
-	// First cert is the chosen one
+	// Save chosen certificate
 	wf.cryptoBuff.SetCert(certs[0])
 	wf.ssl.lg.Debugf("Certificate found: %s", certs[0].Subject.CommonName)
 	certsPartialBuff := wf.ssl.ifs.Certificake.Packet(certs)

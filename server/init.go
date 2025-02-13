@@ -5,6 +5,7 @@ import (
 	ex "tlesio/tlssl/extensions"
 	iff "tlesio/tlssl/interfaces"
 	mx "tlesio/tlssl/modulos"
+	sts "tlesio/tlssl/suites"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -62,7 +63,13 @@ func (x *zzl) initModuloZ() error {
 		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
 	}
 
+	suites := []sts.Suite{
+		sts.NewAES_256_CBC_SHA256(x.lg),
+	}
+
+	//tlsSuites := []
 	x.modz.InitCipherSuites(csConf)
+	x.modz.InitTLSSuite(x.lg, suites)
 	x.modz.InitCerts(x.lg, certs)
 	return x.modz.CheckModInit()
 }
