@@ -9,6 +9,10 @@ import (
 
 func padPKCS7(data []byte, blockSize int) []byte {
 
+	if len(data) == 0 {
+		return nil
+	}
+
 	padLen := blockSize - (len(data) % blockSize)
 	padding := bytes.Repeat([]byte{byte(padLen)}, padLen)
 	return append(data, padding...)
@@ -17,7 +21,7 @@ func padPKCS7(data []byte, blockSize int) []byte {
 func unpadPKCS7(data []byte) ([]byte, error) {
 
 	if len(data) == 0 {
-		return nil, fmt.Errorf("empty data")
+		return nil, fmt.Errorf("PKCS7 unpad empty data")
 	}
 
 	padLen := int(data[len(data)-1])
@@ -28,18 +32,21 @@ func unpadPKCS7(data []byte) ([]byte, error) {
 	return data[:len(data)-padLen], nil
 }
 
-func aesCBC(clearText, key, iv []byte) ([]byte, error) {
+func aesCBC(data, key, iv []byte, padd bool) ([]byte, error) {
 
-	var cipherText []byte
+	var finalFlow []byte
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	paddedClearText := padPKCS7(clearText, aes.BlockSize)
-	cipherText = make([]byte, len(paddedClearText))
+	if padd {
+		data = padPKCS7(data, aes.BlockSize)
+	}
+
+	finalFlow = make([]byte, len(data))
 	sypher := cipher.NewCBCEncrypter(block, iv)
-	sypher.CryptBlocks(cipherText, paddedClearText)
-	return cipherText, nil
+	sypher.CryptBlocks(finalFlow, data)
+	return finalFlow, nil
 }

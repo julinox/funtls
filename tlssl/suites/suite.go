@@ -59,6 +59,12 @@ func (sc *SuiteContext) Printea() string {
 		sc.IV, sc.Key, sc.HKey, sc.Data, macModeToString(sc.MacMode))
 }
 
+func (sc *SuiteContext) PrinteaRaw() string {
+
+	return fmt.Sprintf("IV: %x\nKey: %x\nHKey: %x\nData: %x\nMacMode: %s",
+		sc.IV, sc.Key, sc.HKey, sc.Data, macModeToString(sc.MacMode))
+}
+
 func macModeToString(macMode int) string {
 	switch macMode {
 	case MTE:

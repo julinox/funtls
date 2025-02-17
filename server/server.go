@@ -65,6 +65,7 @@ func (server *serverOp) cifro() {
 	contexto.Key = []byte("12345678901234567890123456789012")
 	contexto.IV = []byte("1234567890123456")
 	contexto.HKey = []byte("macDonalds")
+	contexto.MacMode = suites.MTE
 
 	// Cifro
 	cipherText, err := server.tls.modz.TLSSuite.GetSuite(0x003D).Cipher(&contexto)
@@ -73,23 +74,22 @@ func (server *serverOp) cifro() {
 		return
 	}
 
-	fmt.Println(contexto.Printea())
-	fmt.Println()
+	fmt.Println(contexto.PrinteaRaw())
 	fmt.Printf("Cifrado: '%x'\n", cipherText)
+	contexto.Data = cipherText
+	fmt.Println()
+	server.descifro(&contexto)
 }
 
 func (server *serverOp) descifro(ctx *suites.SuiteContext) {
 
 	// Descifro
+	ctx.IV = nil
 	_, err := server.tls.modz.TLSSuite.GetSuite(0x003D).CipherNot(ctx)
 	if err != nil {
 		fmt.Println("Descifrado ERR:", err)
 		return
 	}
-
-	fmt.Println("----------------------------------")
-	fmt.Println(ctx.Printea())
-
 }
 
 func (server *serverOp) handleConnection(conn net.Conn) {

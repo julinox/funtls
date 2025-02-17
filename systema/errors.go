@@ -17,5 +17,6 @@ var (
 	ErrInvalidType        = errors.New("invalid type")
 	ErrUnsupported        = errors.New("unsupported")
 	ErrInvalidSuiteFormat = errors.New("invalid suite format")
-	ErrInvalidKeySize     = errors.New("invalid key size")
+	ErrInvalidKeySize     = errors.New("invalid key or key size")
+	ErrInvalidIVSize      = errors.New("invalid IV or IV size")
 )
