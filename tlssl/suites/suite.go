@@ -1,5 +1,7 @@
 package suites
 
+import "fmt"
+
 const (
 	AES = iota + 1
 	CHACHA20
@@ -49,6 +51,21 @@ type Suite interface {
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
 	MacMe(*SuiteContext) ([]byte, error)
-	//ETM(*SuiteContext) ([]byte, error)
-	//MTE(*SuiteContext) ([]byte, error)
+}
+
+func (sc *SuiteContext) Printea() string {
+
+	return fmt.Sprintf("IV: %s\nKey: %s\nHKey: %s\nData: %s\nMacMode: %s",
+		sc.IV, sc.Key, sc.HKey, sc.Data, macModeToString(sc.MacMode))
+}
+
+func macModeToString(macMode int) string {
+	switch macMode {
+	case MTE:
+		return "MTE"
+	case AEAD:
+		return "AEAD"
+	}
+
+	return "ETM"
 }

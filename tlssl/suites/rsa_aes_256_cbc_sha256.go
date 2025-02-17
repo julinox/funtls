@@ -2,7 +2,6 @@ package suites
 
 import (
 	"crypto/aes"
-	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
@@ -85,19 +84,7 @@ func (x *x0x003D) CipherNot(sc *SuiteContext) ([]byte, error) {
 		return nil, fmt.Errorf("ciphertext is not multiple of block size")
 	}
 
-	block, err := aes.NewCipher(sc.Key)
-	if err != nil {
-		return nil, err
-	}
-
-	mode := cipher.NewCBCDecrypter(block, sc.IV)
-	mode.CryptBlocks(sc.Data, sc.Data)
-	plainText, err := unpadPKCS7(sc.Data)
-	if err != nil {
-		return nil, err
-	}
-
-	return plainText, nil
+	return nil, nil
 }
 
 func (x *x0x003D) MacMe(cc *SuiteContext) ([]byte, error) {
