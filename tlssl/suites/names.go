@@ -1,6 +1,6 @@
 package suites
 
-var CSNames = map[uint16]string{
+var CipherSuiteNames = map[uint16]string{
 	0x0000: "TLS_NULL_WITH_NULL_NULL",
 	0x0001: "TLS_RSA_WITH_NULL_MD5",
 	0x0002: "TLS_RSA_WITH_NULL_SHA",

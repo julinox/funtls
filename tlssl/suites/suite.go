@@ -51,18 +51,34 @@ type Suite interface {
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
 	MacMe(*SuiteContext) ([]byte, error)
+	//PrintInfo() string
+	//PrintInfoRaw() string
 }
 
-func (sc *SuiteContext) Printea() string {
+func (sc *SuiteContext) Print() string {
 
 	return fmt.Sprintf("IV: %s\nKey: %s\nHKey: %s\nData: %s\nMacMode: %s",
 		sc.IV, sc.Key, sc.HKey, sc.Data, macModeToString(sc.MacMode))
 }
 
-func (sc *SuiteContext) PrinteaRaw() string {
+func (sc *SuiteContext) PrintRaw() string {
 
 	return fmt.Sprintf("IV: %x\nKey: %x\nHKey: %x\nData: %x\nMacMode: %s",
 		sc.IV, sc.Key, sc.HKey, sc.Data, macModeToString(sc.MacMode))
+}
+
+func (info *SuiteInfo) Print() string {
+
+	var str string
+
+	str += fmt.Sprintf("MAC: %s\n", macModeToString(info.Mac))
+	str += fmt.Sprintf("Mode: %s\n", modeToString(info.Mode))
+	str += fmt.Sprintf("Hash: %s\n", hashToString(info.Hash))
+	str += fmt.Sprintf("Cipher: %s\n", cipherToString(info.Cipher))
+	str += fmt.Sprintf("KeySize: %d\n", info.KeySize)
+	str += fmt.Sprintf("KeyExchange: %s",
+		keyExchangeToString(info.KeyExchange))
+	return str
 }
 
 func macModeToString(macMode int) string {
@@ -74,4 +90,54 @@ func macModeToString(macMode int) string {
 	}
 
 	return "ETM"
+}
+
+func modeToString(mode int) string {
+
+	switch mode {
+	case CBC:
+		return "CBC"
+	case GCM:
+		return "GCM"
+	}
+
+	return "Unknown"
+}
+
+func hashToString(hash int) string {
+
+	switch hash {
+	case SHA:
+		return "SHA"
+	case SHA256:
+		return "SHA256"
+	case SHA384:
+		return "SHA384"
+	}
+
+	return "Unknown"
+}
+
+func cipherToString(cipher int) string {
+
+	switch cipher {
+	case AES:
+		return "AES"
+	case CHACHA20:
+		return "CHACHA20"
+	}
+
+	return "Unknown"
+}
+
+func keyExchangeToString(keyExchange int) string {
+
+	switch keyExchange {
+	case RSA:
+		return "RSA"
+	case DHE:
+		return "DHE"
+	}
+
+	return "Unknown"
 }

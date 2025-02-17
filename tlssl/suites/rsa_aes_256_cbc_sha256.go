@@ -93,21 +93,23 @@ func (x *x0x003D) CipherNot(sc *SuiteContext) ([]byte, error) {
 	}
 
 	sc.Data = cipherText
-	fmt.Println(sc.PrinteaRaw())
 	switch sc.MacMode {
 	case ETM:
 		fmt.Println("DECIPHER ETM")
 
 	case MTE:
-		// 2° AESCBC^-1(CiphertText) = Plaintext || MAC || Padding
-		// 3° Plaintext = 2° - 256bits - padding
-		// 4° MAC = HMAC(Plaintext, HKey)
-
-		clearText, err := aesCBC(sc.Data, sc.Key, sc.IV, false)
+		// AESCBC^-1(CiphertText) = Plaintext || HMAC
+		plainTextHmac, err := aesCBC(sc.Data, sc.Key, sc.IV, false)
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("Decipher MTE: %x\n", clearText)
+
+		err = x.isAuthenticated(plainTextHmac, sc.HKey)
+		if err != nil {
+			return nil, err
+		}
+
+		return plainTextHmac[:len(plainTextHmac)-sha256.Size], nil
 
 	default:
 		return nil, fmt.Errorf("no specific mode to decipher")
@@ -139,6 +141,27 @@ func (x *x0x003D) basicCheck(cc *SuiteContext) error {
 
 	if len(cc.IV) != aes.BlockSize {
 		return systema.ErrInvalidIVSize
+	}
+
+	return nil
+}
+
+// Check if given text is authenticated
+func (x *x0x003D) isAuthenticated(data, hkey []byte) error {
+
+	if len(data) < sha256.Size {
+		return fmt.Errorf("invalid data size")
+	}
+
+	given := data[len(data)-sha256.Size:]
+	clearText := data[:len(data)-sha256.Size]
+	expected, err := x.MacMe(&SuiteContext{Data: clearText, HKey: hkey})
+	if err != nil {
+		return err
+	}
+
+	if !hmac.Equal(given, expected) {
+		return fmt.Errorf("invalid HMAC")
 	}
 
 	return nil

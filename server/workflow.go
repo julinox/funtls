@@ -6,14 +6,14 @@ import (
 	"net"
 	"tlesio/systema"
 	ifs "tlesio/tlssl/interfaces"
-	cbf "tlesio/tlssl/interfaces/cryptobuff"
+	"tlesio/tlssl/suites"
 )
 
 type wkf struct {
-	ssl        *zzl
-	cryptoBuff cbf.CryptoBuff
-	conn       net.Conn
-	buffer     []byte // Original buffer including TLS header
+	ssl       *zzl
+	conn      net.Conn
+	hsContext ifs.HandShakeContext
+	buffer    []byte // Original buffer including TLS header
 }
 
 // Handle Handshake Request
@@ -33,7 +33,7 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn) *wkf {
 	newWF.ssl = ssl
 	newWF.buffer = buff
 	newWF.conn = conn
-	newWF.cryptoBuff = cbf.NewCryptoBuff(ssl.lg, conn)
+	newWF.hsContext = ifs.NewHandShakeContext(ssl.lg, conn)
 	return &newWF
 }
 
@@ -56,7 +56,7 @@ func (wf *wkf) Start() {
 	}
 
 	// Save client hello packet
-	wf.cryptoBuff.SetBuffer(cbf.CLIENT_HELLO, wf.buffer)
+	wf.hsContext.SetBuffer(ifs.CLIENT_HELLO, wf.buffer)
 
 	// server hello message
 	err = wf.pktServerHelo(msgHC)
@@ -79,28 +79,25 @@ func (wf *wkf) Start() {
 		return
 	}
 
-	// Practice ciphering
-
-	/*suite, err := wf.ssl.modz.CipherSuites.GetSuite(
-		wf.cryptoBuff.GetCipherSuite())
-	if err != nil {
-		wf.ssl.lg.Error("suite not found:", err)
+	suite := wf.ssl.modz.TLSSuite.GetSuite(wf.hsContext.GetCipherSuite())
+	if suite == nil {
+		wf.ssl.lg.Error("null/null cipher suite")
 		return
 	}
 
-	switch suite.KeyExchange {
-	case mx.KEY_EXCHANGE_RSA:
-		wf.handleClientKeyExchange()
+	switch suite.Info().KeyExchange {
+	case suites.RSA:
+		wf.ssl.lg.Info("es RSA, directo a la accion")
 
-	case mx.KEY_EXCHANGE_DHE:
-		wf.ssl.lg.Warn("DHE not implemented yet")
+	case suites.DHE:
+		wf.ssl.lg.Warn("es DHE, no implementado")
 
 	default:
 		wf.ssl.lg.Error("key exchange not supported")
 		return
 	}
 
-	wf.handleClientKeyExchange()*/
+	fmt.Println(suite.Info().Print())
 }
 
 func (wf *wkf) handleClientKeyExchange() {
@@ -109,8 +106,8 @@ func (wf *wkf) handleClientKeyExchange() {
 
 	newBuff := make([]byte, 4096)
 	wf.pktServerHeloDone()
-	err = wf.cryptoBuff.Send(cbf.SERVER_HELLO | cbf.CERTIFICATE |
-		cbf.SERVER_HELLO_DONE)
+	err = wf.hsContext.Send(ifs.SERVER_HELLO | ifs.CERTIFICATE |
+		ifs.SERVER_HELLO_DONE)
 
 	if err != nil {
 		wf.ssl.lg.Error("RSA process send:", err)

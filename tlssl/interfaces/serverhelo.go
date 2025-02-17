@@ -68,7 +68,7 @@ func (sh *xServerHello) Handle(msg *MsgHelloCli) (*MsgHelloServer, error) {
 		return nil, err
 	}
 
-	err = newMsg.setCS(msg.CipherSuites, sh.mods.CipherSuites)
+	err = newMsg.setCS(msg.CipherSuites, sh.mods.TLSSuite)
 	if err != nil {
 		return nil, err
 	}
@@ -163,17 +163,16 @@ func (mh *MsgHelloServer) setRandom() error {
 	return nil
 }
 
-func (mh *MsgHelloServer) setCS(algos []uint16, mod mx.ModCipherSuites) error {
+func (mh *MsgHelloServer) setCS(algos []uint16, mod mx.ModTLSSuite) error {
 
-	//cs, ok := modd.Execute(algos).(uint16)
-
-	cs := mod.ChooseCS(algos)
-	if cs == 0 {
-		return fmt.Errorf("server hello error getting cipher suite")
+	for _, algo := range algos {
+		if mod.IsSupported(algo) {
+			mh.CipherSuite = algo
+			return nil
+		}
 	}
 
-	mh.CipherSuite = cs
-	return nil
+	return fmt.Errorf("no supported cipher suite")
 }
 
 func generateServerRandom() ([32]byte, error) {

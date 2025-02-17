@@ -3,9 +3,11 @@ package interfaces
 import (
 	"encoding/binary"
 	"fmt"
+	"strings"
 	syst "tlesio/systema"
 	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
+	"tlesio/tlssl/suites"
 
 	"github.com/sirupsen/logrus"
 )
@@ -162,7 +164,7 @@ func (x *xCliHello) parseCipherSuites(buffer []byte) (uint32, error) {
 	}
 
 	x.lg.Trace("Field[CipherSuites]: ",
-		mx.AlgosToName(0xFFFF, x.helloMsg.CipherSuites))
+		algosToName(0xFFFF, x.helloMsg.CipherSuites))
 	return offset, nil
 }
 
@@ -199,4 +201,28 @@ func (x *xCliHello) parseExtensions(buffer []byte) {
 
 		offset += int(extLen)
 	}
+}
+
+func algoToName(varr, algo uint16) string {
+
+	switch varr {
+	case 0xFFFF:
+		return fmt.Sprintf("%s(0x%04X)", suites.CipherSuiteNames[algo], algo)
+
+	case 0x000D:
+		return fmt.Sprintf("%s(0x%04X)", ex.SignHashAlgorithms[algo], algo)
+	}
+
+	return "unknown_algorithm_name_or_type"
+}
+
+func algosToName(varr uint16, algos []uint16) string {
+
+	var names []string
+
+	for _, v := range algos {
+		names = append(names, algoToName(varr, v))
+	}
+
+	return fmt.Sprintf("\n%s", strings.Join(names, "\n"))
 }

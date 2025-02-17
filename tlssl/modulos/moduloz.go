@@ -9,10 +9,9 @@ import (
 )
 
 type ModuloZ struct {
-	Certs        ModCerts
-	CipherSuites ModCipherSuites
-	TLSSuite     ModTLSSuite
-	err          error // only for initialization
+	Certs    ModCerts
+	TLSSuite ModTLSSuite
+	err      error // only for initialization
 }
 
 func NewModuloZ() *ModuloZ {
@@ -31,21 +30,6 @@ func (z *ModuloZ) InitCerts(lg *logrus.Logger, paths []*CertPaths) error {
 	}
 
 	z.Certs = aux
-	return nil
-}
-
-func (z *ModuloZ) InitCipherSuites(cfg *CipherSuiteConfig) error {
-
-	if z.err != nil {
-		return z.err
-	}
-
-	aux, err := NewModCipherSuites(cfg)
-	if aux == nil {
-		return err
-	}
-
-	z.CipherSuites = aux
 	return nil
 }
 
@@ -82,10 +66,6 @@ func (z *ModuloZ) CheckModInit() error {
 
 	if z.Certs == nil {
 		return fmt.Errorf("module 'ModCerts' not initialized")
-	}
-
-	if z.CipherSuites == nil {
-		return fmt.Errorf("module 'ModCipherSuites' not initialized")
 	}
 
 	if z.TLSSuite == nil {

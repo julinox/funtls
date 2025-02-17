@@ -11,9 +11,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type ZZL struct {
-}
-
 type zzl struct {
 	modz *mx.ModuloZ
 	lg   *logrus.Logger
@@ -52,12 +49,6 @@ func initTLS() (*zzl, error) {
 
 func (x *zzl) initModuloZ() error {
 
-	csConf := &mx.CipherSuiteConfig{
-		ClientWeight: 1,
-		ServerWeight: 2,
-		Lg:           x.lg,
-	}
-
 	certs := []*mx.CertPaths{
 		{PathCert: "./certs/server.crt", PathKey: "./certs/server.key"},
 		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
@@ -67,8 +58,6 @@ func (x *zzl) initModuloZ() error {
 		sts.NewAES_256_CBC_SHA256(x.lg),
 	}
 
-	//tlsSuites := []
-	x.modz.InitCipherSuites(csConf)
 	x.modz.InitTLSSuite(x.lg, suites)
 	x.modz.InitCerts(x.lg, certs)
 	return x.modz.CheckModInit()

@@ -15,11 +15,13 @@ type ModTLSSuite interface {
 	GetSuite(uint16) css.Suite
 	RegisterSuite(css.Suite) error
 	PrintAll() string
+	SetTax(uint16)
 }
 
 type xModTLSSuite struct {
 	lg        *logrus.Logger
 	supported map[uint16]css.Suite
+	tax       uint16
 }
 
 func NewModTLSSuite(lg *logrus.Logger) (ModTLSSuite, error) {
@@ -41,12 +43,21 @@ func (x *xModTLSSuite) Name() string {
 }
 
 func (x *xModTLSSuite) IsSupported(id uint16) bool {
+
+	if x.tax != 0 && id != x.tax {
+		return false
+	}
+
 	return x.supported[id] != nil
 }
 
 func (x *xModTLSSuite) AllSupported() []uint16 {
 
 	var all []uint16
+
+	if x.tax != 0 {
+		return []uint16{x.tax}
+	}
 
 	for k := range x.supported {
 		all = append(all, k)
@@ -76,6 +87,10 @@ func (x *xModTLSSuite) RegisterSuite(cs css.Suite) error {
 
 	x.supported[cs.ID()] = cs
 	return nil
+}
+
+func (x *xModTLSSuite) SetTax(tax uint16) {
+	x.tax = tax
 }
 
 func (x *xModTLSSuite) PrintAll() string {

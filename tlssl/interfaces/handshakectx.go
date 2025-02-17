@@ -1,11 +1,10 @@
-package cryptobuff
+package interfaces
 
 import (
 	"crypto/x509"
 	"fmt"
 	"net"
 	"tlesio/systema"
-	ifs "tlesio/tlssl/interfaces"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,7 +25,7 @@ var (
 
 var _BuffersMap = 5 + 1
 
-type xCryptoBuffs struct {
+type xHandhsakeContextData struct {
 	clientHello       []byte
 	clientKeyExchange []byte
 	serverHello       []byte
@@ -39,17 +38,17 @@ type xCryptoBuffs struct {
 }
 
 type ifaces struct {
-	header ifs.Header
+	header Header
 }
 
-type xCryptoBuff struct {
-	ifz   ifaces
-	conn  net.Conn
-	lg    *logrus.Logger
-	buffs *xCryptoBuffs
+type xHandhsakeContext struct {
+	ifz  ifaces
+	conn net.Conn
+	lg   *logrus.Logger
+	data *xHandhsakeContextData
 }
 
-type CryptoBuff interface {
+type HandShakeContext interface {
 	SetBuffer(int, []byte)
 	Send(int) error
 	PPrint(int) string
@@ -60,22 +59,22 @@ type CryptoBuff interface {
 	GetBuffer(int) []byte
 }
 
-func NewCryptoBuff(lg *logrus.Logger, conn net.Conn) CryptoBuff {
+func NewHandShakeContext(lg *logrus.Logger, conn net.Conn) HandShakeContext {
 
-	var newCryptoBuff xCryptoBuff
+	var newContext xHandhsakeContext
 
 	if conn == nil || lg == nil {
 		return nil
 	}
 
-	newCryptoBuff.lg = lg
-	newCryptoBuff.conn = conn
-	newCryptoBuff.buffs = &xCryptoBuffs{}
-	newCryptoBuff.ifz.header = ifs.NewHeader()
-	return &newCryptoBuff
+	newContext.lg = lg
+	newContext.conn = conn
+	newContext.data = &xHandhsakeContextData{}
+	newContext.ifz.header = NewHeader()
+	return &newContext
 }
 
-func (x *xCryptoBuff) SetBuffer(op int, buff []byte) {
+func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 
 	if buff == nil {
 		return
@@ -83,45 +82,45 @@ func (x *xCryptoBuff) SetBuffer(op int, buff []byte) {
 
 	switch op {
 	case CLIENT_HELLO:
-		x.buffs.clientHello = buff
+		x.data.clientHello = buff
 	case CLIENT_KEY_EXCHANGE:
-		x.buffs.clientKeyExchange = buff
+		x.data.clientKeyExchange = buff
 	case SERVER_HELLO:
-		x.buffs.serverHello = buff
+		x.data.serverHello = buff
 	case SERVER_KEY_EXCHANGE:
-		x.buffs.serverKeyExchange = buff
+		x.data.serverKeyExchange = buff
 	case SERVER_HELLO_DONE:
-		x.buffs.serverHelloDone = buff
+		x.data.serverHelloDone = buff
 	case CERTIFICATE:
-		x.buffs.certificate = buff
+		x.data.certificate = buff
 	case FINISHED:
-		x.buffs.finished = buff
+		x.data.finished = buff
 	}
 }
 
-func (x *xCryptoBuff) GetBuffer(op int) []byte {
+func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	switch op {
 	case CLIENT_HELLO:
-		return x.buffs.clientHello
+		return x.data.clientHello
 	case CLIENT_KEY_EXCHANGE:
-		return x.buffs.clientKeyExchange
+		return x.data.clientKeyExchange
 	case SERVER_HELLO:
-		return x.buffs.serverHello
+		return x.data.serverHello
 	case SERVER_KEY_EXCHANGE:
-		return x.buffs.serverKeyExchange
+		return x.data.serverKeyExchange
 	case SERVER_HELLO_DONE:
-		return x.buffs.serverHelloDone
+		return x.data.serverHelloDone
 	case CERTIFICATE:
-		return x.buffs.certificate
+		return x.data.certificate
 	case FINISHED:
-		return x.buffs.finished
+		return x.data.finished
 	}
 
 	return nil
 }
 
-func (x *xCryptoBuff) Send(op int) error {
+func (x *xHandhsakeContext) Send(op int) error {
 
 	var outBuff []byte
 
@@ -130,18 +129,18 @@ func (x *xCryptoBuff) Send(op int) error {
 		if op&aux != 0 {
 			switch aux {
 			case SERVER_HELLO:
-				outBuff = append(outBuff, x.pts(x.buffs.serverHello)...)
+				outBuff = append(outBuff, x.pts(x.data.serverHello)...)
 				x.lg.Debug("Sending SERVER_HELLO")
 
 			case CERTIFICATE:
-				outBuff = append(outBuff, x.pts(x.buffs.certificate)...)
+				outBuff = append(outBuff, x.pts(x.data.certificate)...)
 				x.lg.Debug("Sending CERTIFICATE")
 
 			case SERVER_KEY_EXCHANGE:
 				x.lg.Debug("Sending SERVER_KEY_EXCHANGE")
 
 			case SERVER_HELLO_DONE:
-				outBuff = append(outBuff, x.pts(x.buffs.serverHelloDone)...)
+				outBuff = append(outBuff, x.pts(x.data.serverHelloDone)...)
 				x.lg.Debug("Sending SERVER_HELLO_DONE")
 
 			case CHANGE_CIPHER_SPEC:
@@ -156,41 +155,41 @@ func (x *xCryptoBuff) Send(op int) error {
 	return x.sendData(outBuff)
 }
 
-func (x *xCryptoBuff) SetCert(cert *x509.Certificate) {
-	x.buffs.cert = cert
+func (x *xHandhsakeContext) SetCert(cert *x509.Certificate) {
+	x.data.cert = cert
 }
 
-func (x *xCryptoBuff) GetCert() *x509.Certificate {
-	return x.buffs.cert
+func (x *xHandhsakeContext) GetCert() *x509.Certificate {
+	return x.data.cert
 }
 
-func (x *xCryptoBuff) SetCipherSuite(cipherSuite uint16) {
-	x.buffs.cipherSuite = cipherSuite
+func (x *xHandhsakeContext) SetCipherSuite(cipherSuite uint16) {
+	x.data.cipherSuite = cipherSuite
 }
 
-func (x *xCryptoBuff) GetCipherSuite() uint16 {
-	return x.buffs.cipherSuite
+func (x *xHandhsakeContext) GetCipherSuite() uint16 {
+	return x.data.cipherSuite
 }
 
-func (x *xCryptoBuff) PPrint(op int) string {
+func (x *xHandhsakeContext) PPrint(op int) string {
 
 	var buff []byte
 
 	switch op {
 	case CLIENT_HELLO:
-		buff = x.buffs.clientHello
+		buff = x.data.clientHello
 	case CLIENT_KEY_EXCHANGE:
-		buff = x.buffs.clientKeyExchange
+		buff = x.data.clientKeyExchange
 	case SERVER_HELLO:
-		buff = x.buffs.serverHello
+		buff = x.data.serverHello
 	case SERVER_KEY_EXCHANGE:
-		buff = x.buffs.serverKeyExchange
+		buff = x.data.serverKeyExchange
 	case SERVER_HELLO_DONE:
-		buff = x.buffs.serverHelloDone
+		buff = x.data.serverHelloDone
 	case CERTIFICATE:
-		buff = x.buffs.certificate
+		buff = x.data.certificate
 	case FINISHED:
-		buff = x.buffs.finished
+		buff = x.data.finished
 	}
 
 	return fmt.Sprintf("*********-  %v  -*********\n%v", len(buff),
@@ -198,7 +197,7 @@ func (x *xCryptoBuff) PPrint(op int) string {
 }
 
 // Prepare buffer to be sent
-func (x *xCryptoBuff) pts(buffer []byte) []byte {
+func (x *xHandhsakeContext) pts(buffer []byte) []byte {
 
 	var outputBuffer []byte
 
@@ -207,8 +206,8 @@ func (x *xCryptoBuff) pts(buffer []byte) []byte {
 	}
 
 	// Add TLS header to buffer
-	outputBuffer = x.ifz.header.HeaderPacket(&ifs.TLSHeader{
-		ContentType: ifs.ContentTypeHandshake,
+	outputBuffer = x.ifz.header.HeaderPacket(&TLSHeader{
+		ContentType: ContentTypeHandshake,
 		Version:     0x0303,
 		Len:         len(buffer),
 	})
@@ -216,7 +215,7 @@ func (x *xCryptoBuff) pts(buffer []byte) []byte {
 	return append(outputBuffer, buffer...)
 }
 
-func (x *xCryptoBuff) sendData(buffer []byte) error {
+func (x *xHandhsakeContext) sendData(buffer []byte) error {
 
 	if buffer == nil {
 		return systema.ErrNilParams

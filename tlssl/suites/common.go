@@ -32,21 +32,29 @@ func unpadPKCS7(data []byte) ([]byte, error) {
 	return data[:len(data)-padLen], nil
 }
 
-func aesCBC(data, key, iv []byte, padd bool) ([]byte, error) {
+func aesCBC(data, key, iv []byte, crypt bool) ([]byte, error) {
 
-	var finalFlow []byte
+	var thText []byte
+	var sypher cipher.BlockMode
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	if padd {
-		data = padPKCS7(data, aes.BlockSize)
+	if crypt {
+		thText = padPKCS7(data, aes.BlockSize)
+		sypher = cipher.NewCBCEncrypter(block, iv)
+	} else {
+		thText = data
+		sypher = cipher.NewCBCDecrypter(block, iv)
 	}
 
-	finalFlow = make([]byte, len(data))
-	sypher := cipher.NewCBCEncrypter(block, iv)
-	sypher.CryptBlocks(finalFlow, data)
+	finalFlow := make([]byte, len(thText))
+	sypher.CryptBlocks(finalFlow, thText)
+	if !crypt {
+		return unpadPKCS7(finalFlow)
+	}
+
 	return finalFlow, nil
 }
