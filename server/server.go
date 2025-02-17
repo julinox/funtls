@@ -1,8 +1,10 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	ifs "tlesio/tlssl/interfaces"
+	"tlesio/tlssl/suites"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -39,6 +41,8 @@ func RealServidor() {
 		return
 	}
 
+	server.cifro()
+	return
 	defer listener.Close()
 	server.lg.Info("Listening on PORT ", port)
 	for {
@@ -51,6 +55,25 @@ func RealServidor() {
 		server.lg.Info("Connection accepted from ", conn.RemoteAddr())
 		go server.handleConnection(conn)
 	}
+}
+
+func (server *serverOp) cifro() {
+
+	var contexto suites.SuiteContext
+
+	contexto.Data = []byte("holamundo")
+	contexto.Key = []byte("12345678901234567890123456789012")
+	contexto.IV = []byte("1234567890123456")
+	contexto.HKey = []byte("macDonalds")
+
+	// Cifro
+	cipher, err := server.tls.modz.TLSSuite.GetSuite(0x003D).Cipher(&contexto)
+	if err != nil {
+		fmt.Println("Cifrado ERR:", err)
+		return
+	}
+
+	fmt.Println("Cifrado:", cipher)
 }
 
 func (server *serverOp) handleConnection(conn net.Conn) {

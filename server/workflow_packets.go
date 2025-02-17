@@ -34,7 +34,7 @@ func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) error {
 	outputBuff = append(outputBuff, extsBuff...)
 
 	// Save server hello parameters
-	wf.cryptoBuff.Set(cbf.SERVER_HELLO, outputBuff)
+	wf.cryptoBuff.SetBuffer(cbf.SERVER_HELLO, outputBuff)
 	wf.cryptoBuff.SetCipherSuite(sMsg.CipherSuite)
 	wf.ssl.lg.Debugf("Suite chosen: %v(%v)",
 		mx.CipherSuiteNames[sMsg.CipherSuite], sMsg.CipherSuite)
@@ -69,7 +69,7 @@ func (wf *wkf) pktCertificate(cMsg *ifs.MsgHelloCli) error {
 	// Concatenate all buffers
 	outputBuff = append(outputBuff, hsHeaderBuff...)
 	outputBuff = append(outputBuff, certsBuff...)
-	wf.cryptoBuff.Set(cbf.CERTIFICATE, outputBuff)
+	wf.cryptoBuff.SetBuffer(cbf.CERTIFICATE, outputBuff)
 	return nil
 }
 
@@ -81,7 +81,6 @@ func (wf *wkf) pktServerHeloDone() error {
 		Len:           0,
 	})
 
-	// Concatenate all buffers
-	wf.cryptoBuff.Set(cbf.SERVER_HELLO_DONE, hsHeaderBuff)
+	wf.cryptoBuff.SetBuffer(cbf.SERVER_HELLO_DONE, hsHeaderBuff)
 	return nil
 }

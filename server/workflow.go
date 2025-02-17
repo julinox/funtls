@@ -56,7 +56,7 @@ func (wf *wkf) Start() {
 	}
 
 	// Save client hello packet
-	wf.cryptoBuff.Set(cbf.CLIENT_HELLO, wf.buffer)
+	wf.cryptoBuff.SetBuffer(cbf.CLIENT_HELLO, wf.buffer)
 
 	// server hello message
 	err = wf.pktServerHelo(msgHC)
@@ -65,21 +65,21 @@ func (wf *wkf) Start() {
 		return
 	}
 
-	// Give me the certificate right now
+	// Certificate message
 	err = wf.pktCertificate(msgHC)
 	if err != nil {
 		wf.ssl.lg.Error("certificate packet:", err)
 		return
 	}
 
-	cct := wf.cryptoBuff.GetCert()
-	if cct == nil {
-		wf.ssl.lg.Error("cryptobuff has no certificate")
+	// Server hello done message
+	err = wf.pktServerHeloDone()
+	if err != nil {
+		wf.ssl.lg.Error("server hello done packet:", err)
 		return
 	}
 
 	// Practice ciphering
-	wf.practiceCipher()
 
 	/*suite, err := wf.ssl.modz.CipherSuites.GetSuite(
 		wf.cryptoBuff.GetCipherSuite())
@@ -128,9 +128,4 @@ func (wf *wkf) handleClientKeyExchange() {
 
 	fmt.Println("Received:", n, "bytes")
 	fmt.Println(systema.PrettyPrintBytes(newBuff[:n]))
-}
-
-func (wf *wkf) practiceCipher() {
-
-	fmt.Println(wf.ssl.modz.TLSSuite.PrintAll())
 }

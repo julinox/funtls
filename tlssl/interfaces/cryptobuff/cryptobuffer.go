@@ -50,13 +50,14 @@ type xCryptoBuff struct {
 }
 
 type CryptoBuff interface {
-	Set(int, []byte)
+	SetBuffer(int, []byte)
 	Send(int) error
 	PPrint(int) string
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
 	SetCert(*x509.Certificate)
 	GetCert() *x509.Certificate
+	GetBuffer(int) []byte
 }
 
 func NewCryptoBuff(lg *logrus.Logger, conn net.Conn) CryptoBuff {
@@ -74,7 +75,7 @@ func NewCryptoBuff(lg *logrus.Logger, conn net.Conn) CryptoBuff {
 	return &newCryptoBuff
 }
 
-func (x *xCryptoBuff) Set(op int, buff []byte) {
+func (x *xCryptoBuff) SetBuffer(op int, buff []byte) {
 
 	if buff == nil {
 		return
@@ -96,6 +97,28 @@ func (x *xCryptoBuff) Set(op int, buff []byte) {
 	case FINISHED:
 		x.buffs.finished = buff
 	}
+}
+
+func (x *xCryptoBuff) GetBuffer(op int) []byte {
+
+	switch op {
+	case CLIENT_HELLO:
+		return x.buffs.clientHello
+	case CLIENT_KEY_EXCHANGE:
+		return x.buffs.clientKeyExchange
+	case SERVER_HELLO:
+		return x.buffs.serverHello
+	case SERVER_KEY_EXCHANGE:
+		return x.buffs.serverKeyExchange
+	case SERVER_HELLO_DONE:
+		return x.buffs.serverHelloDone
+	case CERTIFICATE:
+		return x.buffs.certificate
+	case FINISHED:
+		return x.buffs.finished
+	}
+
+	return nil
 }
 
 func (x *xCryptoBuff) Send(op int) error {
