@@ -85,26 +85,7 @@ func (wf *wkf) Start() {
 		return
 	}
 
-	switch suite.Info().KeyExchange {
-	case suites.RSA:
-		wf.ssl.lg.Info("es RSA, directo a la accion")
-
-	case suites.DHE:
-		wf.ssl.lg.Warn("es DHE, no implementado")
-
-	default:
-		wf.ssl.lg.Error("key exchange not supported")
-		return
-	}
-
-	fmt.Println(suite.Info().Print())
-}
-
-func (wf *wkf) handleClientKeyExchange() {
-
-	var err error
-
-	newBuff := make([]byte, 4096)
+	// Send server hello, certificate, server hello done
 	wf.pktServerHeloDone()
 	err = wf.hsContext.Send(ifs.SERVER_HELLO | ifs.CERTIFICATE |
 		ifs.SERVER_HELLO_DONE)
@@ -114,7 +95,25 @@ func (wf *wkf) handleClientKeyExchange() {
 		return
 	}
 
-	wf.ssl.lg.Info("RSA partial handshake done")
+	switch suite.Info().KeyExchange {
+	case suites.RSA:
+		wf.ssl.lg.Info("es RSA, directo a la accion")
+		wf.handleClientKeyExchange()
+
+	case suites.DHE:
+		wf.ssl.lg.Warn("es DHE, no implementado")
+
+	default:
+		wf.ssl.lg.Error("key exchange not supported")
+		return
+	}
+}
+
+func (wf *wkf) handleClientKeyExchange() {
+
+	var err error
+
+	newBuff := make([]byte, 4096)
 
 	// Receive client key exchange
 	n, err := wf.conn.Read(newBuff)
@@ -123,6 +122,21 @@ func (wf *wkf) handleClientKeyExchange() {
 		return
 	}
 
-	fmt.Println("Received:", n, "bytes")
-	fmt.Println(systema.PrettyPrintBytes(newBuff[:n]))
+	wf.x(newBuff[:n])
+}
+
+// Get client key exchange message
+func (wf *wkf) x(buff []byte) error {
+
+	if len(buff) <= 0 {
+		return systema.ErrNilParams
+	}
+
+	Header := wf.ssl.ifs.TLSHead.Header(buff)
+	if Header == nil {
+		return systema.ErrInvalidType
+	}
+
+	fmt.Println("Header:", Header)
+	return nil
 }
