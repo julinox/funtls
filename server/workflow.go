@@ -37,7 +37,7 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn) *wkf {
 	return &newWF
 }
 
-func (wf *wkf) Start() {
+func (wf *wkf) Start2() {
 
 	var err error
 

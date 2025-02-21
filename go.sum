@@ -3,8 +3,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/julinox/consolelogrus v0.0.0-20250105143547-99de0a9d2ca5 h1:2UwvaYg/uVU2Z1XSvonm7XE/tvP84kkPYhyNxjfi0rc=
 github.com/julinox/consolelogrus v0.0.0-20250105143547-99de0a9d2ca5/go.mod h1:YhHYv2wj5D/UmDXNnS2tivJ1r8IzpU/b8aN6uZkOnRI=
-github.com/julinox/statemaquina v0.0.0-20250221151633-e778275ce0bf h1:0/tKM3jWAIyr6X28ZkJT+DU1+gekPyRGOHhckIxYnKk=
-github.com/julinox/statemaquina v0.0.0-20250221151633-e778275ce0bf/go.mod h1:V6GWlx9yYV/8JSS3yC56+C27eA8AVcpc832Qs06GA7k=
+github.com/julinox/statemaquina v0.0.0-20250221193640-262868197863 h1:TOUawMiQi+Wvno7MoSbBuZMJnXGe7TKrhsO+tppAzBU=
+github.com/julinox/statemaquina v0.0.0-20250221193640-262868197863/go.mod h1:V6GWlx9yYV/8JSS3yC56+C27eA8AVcpc832Qs06GA7k=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
