@@ -1,7 +1,8 @@
 package server
 
 import (
-	"tlesio/systema"
+	"os"
+	"strings"
 	ex "tlesio/tlssl/extensions"
 	iff "tlesio/tlssl/interfaces"
 	mx "tlesio/tlssl/modulos"
@@ -11,11 +12,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var (
+	_ENV_LOG_LEVEL_VAR_   = "TLS_LOG_LEVEL"
+	_ENV_CLIENT_AUTH_VAR_ = "TLS_CLIENT_AUTH"
+)
+
 type zzl struct {
-	modz *mx.ModuloZ
-	lg   *logrus.Logger
-	ifs  *iff.Interfaces
-	exts *ex.Extensions
+	modz       *mx.ModuloZ
+	lg         *logrus.Logger
+	ifs        *iff.Interfaces
+	exts       *ex.Extensions
+	clientAuth bool // Enable Client Authentication
 }
 
 func initTLS() (*zzl, error) {
@@ -38,6 +45,7 @@ func initTLS() (*zzl, error) {
 		},
 	)
 
+	ssl.clientAuth = getTLSClientAuthOpt()
 	if ssl.ifs == nil {
 		ssl.lg.Error("error initializing TLS Interfaces")
 		return nil, err
@@ -74,12 +82,36 @@ func (x *zzl) initExtensions() {
 
 func getTLSLogger() *logrus.Logger {
 
+	var lvl logrus.Level
+
 	lg := clog.InitNewLogger(&clog.CustomFormatter{
 		Tag: "TLS", TagColor: "blue"})
 	if lg == nil {
 		return nil
 	}
 
-	lg.SetLevel(systema.GetLogLevel(_ENV_LOG_LEVEL_VAR_))
+	levelStr := strings.ToUpper(os.Getenv(_ENV_LOG_LEVEL_VAR_))
+	switch levelStr {
+	case "TRACE":
+		lvl = logrus.TraceLevel
+	case "DEBUG":
+		lvl = logrus.DebugLevel
+	case "WARN":
+		lvl = logrus.WarnLevel
+	case "ERROR":
+		lvl = logrus.ErrorLevel
+	case "FATAL":
+		lvl = logrus.FatalLevel
+	case "PANIC":
+		lvl = logrus.PanicLevel
+	default:
+		lvl = logrus.InfoLevel
+	}
+
+	lg.SetLevel(lvl)
 	return lg
+}
+
+func getTLSClientAuthOpt() bool {
+	return os.Getenv(_ENV_CLIENT_AUTH_VAR_) == "true"
 }

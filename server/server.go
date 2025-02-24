@@ -13,8 +13,6 @@ const (
 	responseBody = "Hello, TLS!"
 )
 
-var _ENV_LOG_LEVEL_VAR_ = "TLS_LOG_LEVEL"
-
 type serverOp struct {
 	tls *zzl
 	lg  *logrus.Logger
@@ -32,20 +30,12 @@ func RealServidor() {
 		return
 	}
 
-	// Init TLS Modules, Interfaces, Logger, etc
+	// Init TLS: Modules, Interfaces, Logger, Options
 	server.tls, err = initTLS()
 	if err != nil {
 		server.lg.Error("TLS Init err: ", err)
 		return
 	}
-
-	// ---------------------- DEBUG -------------------
-	flow := &wkf{}
-	flow.ssl = server.tls
-	flow.conn = nil
-	flow.Start()
-	return
-	// ---------------------- DEBUG -------------------
 
 	defer listener.Close()
 	server.lg.Info("Listening on PORT ", port)
@@ -112,10 +102,10 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 		return
 	}
 
-	wkf := TLSMe(server.tls, buffer[ifs.TLS_HEADER_SIZE:n], conn)
-	if wkf == nil {
+	handle, _ := HandleRequest(server.tls, buffer[ifs.TLS_HEADER_SIZE:n], conn)
+	if handle == nil {
 		return
 	}
 
-	wkf.Start()
+	handle.LetsTalk()
 }

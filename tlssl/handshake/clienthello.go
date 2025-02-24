@@ -1,21 +1,22 @@
 package handshake
 
-import (
-	evilmac "github.com/julinox/statemaquina"
-)
-
-type clientHello struct {
+type xClientHello struct {
+	nextState int
+	nextError error
 }
 
-func (x *clientHello) Name() string {
+func NewClientHello() ClientHello {
+	return &xClientHello{}
+}
+
+func (x *xClientHello) Name() string {
 	return "_ClientHello_"
 }
 
-func (x *clientHello) Next() (int, error) {
-	return 0, nil
+func (x *xClientHello) Next() (int, error) {
+	return x.nextState, x.nextError
 }
 
-func NewClientHello() evilmac.State {
-
-	return &clientHello{}
+func (x *xClientHello) Handle(data []byte) error {
+	return nil
 }

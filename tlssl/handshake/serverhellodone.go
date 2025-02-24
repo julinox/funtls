@@ -1,20 +1,20 @@
 package handshake
 
-import (
-	evilmac "github.com/julinox/statemaquina"
-)
-
 type xServerHelloDone struct {
 }
 
-func NewServerHelloDone() evilmac.State {
-	return &xCertificate{}
+func NewServerHelloDone() ServerHelloDone {
+	return &xServerHelloDone{}
 }
 
 func (x *xServerHelloDone) Name() string {
-	return "_Certificate_"
+	return "_ServerHelloDone_"
 }
 
 func (x *xServerHelloDone) Next() (int, error) {
 	return 0, nil
+}
+
+func (x *xServerHelloDone) Handle(data []byte) error {
+	return nil
 }

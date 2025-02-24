@@ -1,20 +1,20 @@
 package handshake
 
-import (
-	evilmac "github.com/julinox/statemaquina"
-)
-
 type xChangeCipherSpec struct {
 }
 
-func NewChangeCipherSpec() evilmac.State {
+func NewChangeCipherSpec() ChangeCipherSpec {
 	return &xChangeCipherSpec{}
 }
 
 func (x *xChangeCipherSpec) Name() string {
-	return "_Certificate_"
+	return "_ChangeCipherSpec_"
 }
 
 func (x *xChangeCipherSpec) Next() (int, error) {
 	return 0, nil
+}
+
+func (x *xChangeCipherSpec) Handle(data []byte) error {
+	return nil
 }

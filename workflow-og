@@ -1,38 +1,4 @@
-package server
-
-import (
-	"net"
-)
-
-type wkf struct {
-	ssl  *zzl
-	conn net.Conn
-	//hsContext ifs.HandShakeContext
-	buffer []byte // Original buffer including TLS header
-}
-
-// Handle Handshake Request
-func TLSMe(ssl *zzl, buff []byte, conn net.Conn) *wkf {
-
-	var newWF wkf
-
-	if ssl == nil || buff == nil || conn == nil {
-		return nil
-	}
-
-	if len(buff) <= 45 {
-		ssl.lg.Error("buffer is too small for a client hello")
-		return nil
-	}
-
-	newWF.ssl = ssl
-	newWF.buffer = buff
-	newWF.conn = conn
-	//newWF.hsContext = ifs.NewHandShakeContext(ssl.lg, conn)
-	return &newWF
-}
-
-func (wf *wkf) Start() {
+func (wf *wkf) Start3() {
 
 	/*states := macStates()
 	config := &mac.StateMacCfg{

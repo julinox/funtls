@@ -1,13 +1,9 @@
 package handshake
 
-import (
-	evilmac "github.com/julinox/statemaquina"
-)
-
 type xCertificate struct {
 }
 
-func NewCertificate() evilmac.State {
+func NewCertificate() Certificate {
 	return &xCertificate{}
 }
 
@@ -17,4 +13,8 @@ func (x *xCertificate) Name() string {
 
 func (x *xCertificate) Next() (int, error) {
 	return 0, nil
+}
+
+func (x *xCertificate) Handle(data []byte) error {
+	return nil
 }

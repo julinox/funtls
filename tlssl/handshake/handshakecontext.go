@@ -32,7 +32,7 @@ type ifaces struct {
 
 type xHandhsakeContext struct {
 	ifz  ifaces
-	conn net.Conn
+	coms net.Conn
 	lg   *logrus.Logger
 	data *xHandhsakeContextData
 }
@@ -48,16 +48,16 @@ type HandShakeContext interface {
 	PPrint(int) string
 }
 
-func NewHandShakeContext(lg *logrus.Logger, conn net.Conn) HandShakeContext {
+func NewHandShakeContext(params *HandshakeParams) HandShakeContext {
 
 	var newContext xHandhsakeContext
 
-	if conn == nil || lg == nil {
+	if params == nil || params.Coms == nil || params.Lg == nil {
 		return nil
 	}
 
-	newContext.lg = lg
-	newContext.conn = conn
+	newContext.lg = params.Lg
+	newContext.coms = params.Coms
 	newContext.data = &xHandhsakeContextData{}
 	newContext.ifz.header = ifs.NewHeader()
 	return &newContext
@@ -245,7 +245,7 @@ func (x *xHandhsakeContext) sendData(buffer []byte) error {
 		return systema.ErrNilParams
 	}
 
-	_, err := x.conn.Write(buffer)
+	_, err := x.coms.Write(buffer)
 	if err != nil {
 		return err
 	}
