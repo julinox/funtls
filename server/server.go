@@ -39,6 +39,14 @@ func RealServidor() {
 		return
 	}
 
+	// ---------------------- DEBUG -------------------
+	flow := &wkf{}
+	flow.ssl = server.tls
+	flow.conn = nil
+	flow.Start()
+	return
+	// ---------------------- DEBUG -------------------
+
 	defer listener.Close()
 	server.lg.Info("Listening on PORT ", port)
 	for {

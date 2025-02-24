@@ -1,11 +1,10 @@
 package handshake
 
 import (
-	"github.com/julinox/statemaquina"
+	evilmac "github.com/julinox/statemaquina"
 )
 
 type clientHello struct {
-	buffer []byte
 }
 
 func (x *clientHello) Name() string {
@@ -13,10 +12,10 @@ func (x *clientHello) Name() string {
 }
 
 func (x *clientHello) Next() (int, error) {
-	return HANDSHAKE_SERVERHELLO, nil
+	return 0, nil
 }
 
-func NewClientHello() statemaquina.State {
+func NewClientHello() evilmac.State {
 
 	return &clientHello{}
 }

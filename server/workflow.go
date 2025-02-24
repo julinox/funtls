@@ -1,19 +1,14 @@
 package server
 
 import (
-	"encoding/binary"
-	"fmt"
 	"net"
-	"tlesio/systema"
-	ifs "tlesio/tlssl/interfaces"
-	"tlesio/tlssl/suites"
 )
 
 type wkf struct {
-	ssl       *zzl
-	conn      net.Conn
-	hsContext ifs.HandShakeContext
-	buffer    []byte // Original buffer including TLS header
+	ssl  *zzl
+	conn net.Conn
+	//hsContext ifs.HandShakeContext
+	buffer []byte // Original buffer including TLS header
 }
 
 // Handle Handshake Request
@@ -33,11 +28,29 @@ func TLSMe(ssl *zzl, buff []byte, conn net.Conn) *wkf {
 	newWF.ssl = ssl
 	newWF.buffer = buff
 	newWF.conn = conn
-	newWF.hsContext = ifs.NewHandShakeContext(ssl.lg, conn)
+	//newWF.hsContext = ifs.NewHandShakeContext(ssl.lg, conn)
 	return &newWF
 }
 
-func (wf *wkf) Start2() {
+func (wf *wkf) Start() {
+
+	/*states := macStates()
+	config := &mac.StateMacCfg{
+		StopOnError: true,
+		StopOnCount: len(states),
+		Lg:          wf.ssl.lg,
+	}
+
+	maq, err := mac.NewStateMaquina(config, states...)
+	if err != nil {
+		panic(err)
+	}
+
+	maq.Post(handshake.HANDSHAKE_CLIENTHELLO)
+	maq.Start()*/
+}
+
+/*func (wf *wkf) Start2() {
 
 	var err error
 
@@ -107,36 +120,4 @@ func (wf *wkf) Start2() {
 		wf.ssl.lg.Error("key exchange not supported")
 		return
 	}
-}
-
-func (wf *wkf) handleClientKeyExchange() {
-
-	var err error
-
-	newBuff := make([]byte, 4096)
-
-	// Receive client key exchange
-	n, err := wf.conn.Read(newBuff)
-	if err != nil {
-		wf.ssl.lg.Error("RSA process read:", err)
-		return
-	}
-
-	wf.x(newBuff[:n])
-}
-
-// Get client key exchange message
-func (wf *wkf) x(buff []byte) error {
-
-	if len(buff) <= 0 {
-		return systema.ErrNilParams
-	}
-
-	Header := wf.ssl.ifs.TLSHead.Header(buff)
-	if Header == nil {
-		return systema.ErrInvalidType
-	}
-
-	fmt.Println("Header:", Header)
-	return nil
-}
+}*/

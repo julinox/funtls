@@ -33,8 +33,8 @@ func (wf *wkf) pktServerHelo(cMsg *ifs.MsgHelloCli) error {
 	outputBuff = append(outputBuff, extsBuff...)
 
 	// Save server hello parameters
-	wf.hsContext.SetBuffer(ifs.SERVER_HELLO, outputBuff)
-	wf.hsContext.SetCipherSuite(sMsg.CipherSuite)
+	//wf.hsContext.SetBuffer(ifs.SERVER_HELLO, outputBuff)
+	//wf.hsContext.SetCipherSuite(sMsg.CipherSuite)
 	wf.ssl.lg.Debugf("Suite chosen: %v(%v)",
 		suites.CipherSuiteNames[sMsg.CipherSuite], sMsg.CipherSuite)
 	return nil
@@ -51,7 +51,7 @@ func (wf *wkf) pktCertificate(cMsg *ifs.MsgHelloCli) error {
 	}
 
 	// Save chosen certificate
-	wf.hsContext.SetCert(certs[0])
+	//wf.hsContext.SetCert(certs[0])
 	wf.ssl.lg.Debugf("Certificate found: %s", certs[0].Subject.CommonName)
 	certsPartialBuff := wf.ssl.ifs.Certificake.Packet(certs)
 
@@ -68,18 +68,18 @@ func (wf *wkf) pktCertificate(cMsg *ifs.MsgHelloCli) error {
 	// Concatenate all buffers
 	outputBuff = append(outputBuff, hsHeaderBuff...)
 	outputBuff = append(outputBuff, certsBuff...)
-	wf.hsContext.SetBuffer(ifs.CERTIFICATE, outputBuff)
+	//wf.hsContext.SetBuffer(ifs.CERTIFICATE, outputBuff)
 	return nil
 }
 
 func (wf *wkf) pktServerHeloDone() error {
 
 	// Handshake header
-	hsHeaderBuff := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
+	/*hsHeaderBuff := wf.ssl.ifs.TLSHead.HandShakePacket(&ifs.TLSHandshake{
 		HandshakeType: ifs.HandshakeTypeServerHeloDone,
 		Len:           0,
-	})
+	})*/
 
-	wf.hsContext.SetBuffer(ifs.SERVER_HELLO_DONE, hsHeaderBuff)
+	//wf.hsContext.SetBuffer(ifs.SERVER_HELLO_DONE, hsHeaderBuff)
 	return nil
 }
