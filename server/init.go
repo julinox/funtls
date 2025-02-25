@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	ex "tlesio/tlssl/extensions"
@@ -16,64 +17,28 @@ var (
 	_ENV_CLIENT_AUTH_VAR_ = "TLS_CLIENT_AUTH"
 )
 
-type TLSContext struct {
-	Lg            *logrus.Logger
-	Modz          *mx.ModuloZ
-	Exts          *ex.Extensions
-	OptClientAuth bool // Enable Client Authentication
+func (x *serverOp) initTLSContext() error {
+
+	x.initTLSContexLg()
+	x.initTLSContextModz()
+	x.initTLSContextExtensions()
+	x.tlsCtx.OptClientAuth = getTLSClientAuthOpt()
+	return nil
 }
 
-func initTLSContext() (*TLSContext, error) {
-
-	var err error
-	var ctx TLSContext
-
-	ctx.Lg = getTLSLogger()
-	ctx.Modz = mx.NewModuloZ()
-	if err = ctx.initModuloZ(); err != nil {
-		return nil, err
-	}
-
-	ctx.Exts = ex.NewExtensions(ctx.Lg)
-	ctx.initExtensions()
-	ctx.OptClientAuth = getTLSClientAuthOpt()
-	ctx.Lg.Info("TLS Ready")
-	return &ctx, nil
-}
-
-func (x *TLSContext) initModuloZ() error {
-
-	certs := []*mx.CertPaths{
-		{PathCert: "./certs/server.crt", PathKey: "./certs/server.key"},
-		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
-	}
-
-	suites := []sts.Suite{
-		sts.NewAES_256_CBC_SHA256(x.Lg),
-	}
-
-	x.Modz.InitTLSSuite(x.Lg, suites)
-	x.Modz.InitCerts(x.Lg, certs)
-	return x.Modz.CheckModInit()
-}
-
-func (x *TLSContext) initExtensions() {
-
-	x.Exts.Register(ex.NewExtSignAlgo())
-	x.Exts.Register(ex.NewExtSessionTicket())
-	x.Exts.Register(ex.NewExtSNI())
-	x.Exts.Register(ex.NewExtEncryptThenMac())
-	x.Exts.Register(ex.NewExtRenegotiation())
-}
-
-func getTLSLogger() *logrus.Logger {
+func (x *serverOp) initTLSContexLg() {
 
 	var lvl logrus.Level
+
+	if x.err != nil {
+		return
+	}
 
 	lg := clog.InitNewLogger(&clog.CustomFormatter{
 		Tag: "TLS", TagColor: "blue"})
 	if lg == nil {
-		return nil
+		x.err = fmt.Errorf("logger Init err")
+		return
 	}
 
 	levelStr := strings.ToUpper(os.Getenv(_ENV_LOG_LEVEL_VAR_))
@@ -95,7 +60,42 @@ func getTLSLogger() *logrus.Logger {
 	}
 
 	lg.SetLevel(lvl)
-	return lg
+	x.tlsCtx.Lg = lg
+}
+
+func (x *serverOp) initTLSContextModz() {
+
+	certs := []*mx.CertPaths{
+		{PathCert: "./certs/server.crt", PathKey: "./certs/server.key"},
+		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
+	}
+
+	suites := []sts.Suite{
+		sts.NewAES_256_CBC_SHA256(x.tlsCtx.Lg),
+	}
+
+	if x.err != nil {
+		return
+	}
+
+	x.tlsCtx.Modz = mx.NewModuloZ()
+	x.tlsCtx.Modz.InitTLSSuite(x.tlsCtx.Lg, suites)
+	x.tlsCtx.Modz.InitCerts(x.tlsCtx.Lg, certs)
+	x.err = x.tlsCtx.Modz.CheckModInit()
+}
+
+func (x *serverOp) initTLSContextExtensions() {
+
+	if x.err != nil {
+		return
+	}
+
+	x.tlsCtx.Exts = ex.NewExtensions(x.tlsCtx.Lg)
+	x.tlsCtx.Exts.Register(ex.NewExtSignAlgo())
+	x.tlsCtx.Exts.Register(ex.NewExtSessionTicket())
+	x.tlsCtx.Exts.Register(ex.NewExtSNI())
+	x.tlsCtx.Exts.Register(ex.NewExtEncryptThenMac())
+	x.tlsCtx.Exts.Register(ex.NewExtRenegotiation())
 }
 
 func getTLSClientAuthOpt() bool {

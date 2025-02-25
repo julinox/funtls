@@ -44,16 +44,16 @@ type HandShakeContext interface {
 	PPrint(int) string
 }
 
-func NewHandShakeContext(params *HandshakeParams) HandShakeContext {
+func NewHandShakeContext(lg *logrus.Logger, conn net.Conn) HandShakeContext {
 
 	var newContext xHandhsakeContext
 
-	if params == nil || params.Coms == nil || params.Lg == nil {
+	if lg == nil || conn == nil {
 		return nil
 	}
 
-	newContext.lg = params.Lg
-	newContext.coms = params.Coms
+	newContext.lg = lg
+	newContext.coms = conn
 	newContext.data = &xHandhsakeContextData{}
 	return &newContext
 }

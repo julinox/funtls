@@ -19,7 +19,6 @@ func NewModuloZ() *ModuloZ {
 }
 
 func (z *ModuloZ) InitCerts(lg *logrus.Logger, paths []*CertPaths) error {
-
 	if z.err != nil {
 		return z.err
 	}

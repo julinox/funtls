@@ -2,14 +2,8 @@ package handshake
 
 import (
 	"fmt"
-	"net"
-
-	"tlesio/systema"
-	ex "tlesio/tlssl/extensions"
-	mx "tlesio/tlssl/modulos"
 
 	evilmac "github.com/julinox/statemaquina"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -83,25 +77,15 @@ type Handshake struct {
 	TLSHeader      Header
 }
 
-type HandshakeParams struct {
-	CliHelloMsg []byte
-	Coms        net.Conn
-	Mods        *mx.ModuloZ
-	Lg          *logrus.Logger
-	Exts        *ex.Extensions
-	//Ifaces               *ifs.Interfaces
-	ClientAuthentication bool // Enable Client Authentication
-}
-
-func NewHandshake(params *HandshakeParams) (*Handshake, error) {
+func NewHandshake(ctx HandShakeContext) (*Handshake, error) {
 
 	var newHandshake Handshake
 
-	if params == nil || !validParams(params) {
-		return nil, systema.ErrNilParams
-
+	if ctx == nil {
+		return nil, fmt.Errorf("nil HandshakeContext object")
 	}
 
+	newHandshake.Contexto = ctx
 	newHandshake.Cert = NewCertificate()
 	newHandshake.CertRequest = NewCertificateRequest()
 	newHandshake.ChgCph = NewChangeCipherSpec()
@@ -111,21 +95,12 @@ func NewHandshake(params *HandshakeParams) (*Handshake, error) {
 	newHandshake.ServerHelo = NewServerHello()
 	newHandshake.ServerHeloDone = NewServerHelloDone()
 	newHandshake.ServerKeyExch = NewServerKeyExchange()
-	newHandshake.Contexto = NewHandShakeContext(params)
+	newHandshake.TLSHeader = NewHeader()
 	if err := checkHandshakeInit(&newHandshake); err != nil {
 		return nil, fmt.Errorf("handshake object creation: %v", err)
 	}
 
 	return &newHandshake, nil
-}
-
-func validParams(x *HandshakeParams) bool {
-	if x.Lg == nil || x.Coms == nil ||
-		x.Mods == nil || x.Exts == nil || len(x.CliHelloMsg) == 0 {
-		return false
-	}
-
-	return true
 }
 
 func checkHandshakeInit(hsk *Handshake) error {
@@ -172,6 +147,10 @@ func checkHandshakeInit(hsk *Handshake) error {
 
 	if hsk.Contexto == nil {
 		return fmt.Errorf("nil HandShakeContext object")
+	}
+
+	if hsk.TLSHeader == nil {
+		return fmt.Errorf("nil Header object")
 	}
 
 	return nil

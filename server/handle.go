@@ -1,8 +1,10 @@
 package server
 
 import (
+	"fmt"
 	"net"
 	"tlesio/systema"
+	"tlesio/tlssl"
 	"tlesio/tlssl/handshake"
 )
 
@@ -10,37 +12,33 @@ type xHandle struct {
 	handhsake *handshake.Handshake
 }
 
-func Handle(ctx *TLSContext, buff []byte, conn net.Conn) (*xHandle, error) {
+func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
 
 	var err error
 	var newHandle xHandle
 
-	if ctx == nil || buff == nil || conn == nil {
+	if ctx == nil || conn == nil {
 		return nil, systema.ErrNilParams
 	}
 
-	if len(buff) <= 45 {
-		ctx.Lg.Error("buffer is too small for a client hello")
-		return nil, systema.ErrInvalidBufferSize
+	handshakeCtx := handshake.NewHandShakeContext(ctx.Lg, conn)
+	if handshakeCtx == nil {
+		ctx.Lg.Error("error creating Handshake Context")
+		return nil, systema.ErrNilParams
 	}
 
-	handshakeParams := &handshake.HandshakeParams{
-		CliHelloMsg:          buff,
-		Coms:                 conn,
-		Mods:                 ctx.Modz,
-		Lg:                   ctx.Lg,
-		Exts:                 ctx.Exts,
-		ClientAuthentication: ctx.OptClientAuth,
-	}
-
-	newHandle.handhsake, err = handshake.NewHandshake(handshakeParams)
+	newHandle.handhsake, err = handshake.NewHandshake(handshakeCtx)
 	if err != nil {
 		ctx.Lg.Error(err)
 		return nil, err
 	}
 
+	// Save client hello message
 	return &newHandle, nil
 }
 
-func (x *xHandle) LetsTalk() {
+func (x *xHandle) LetsTalk(cliHello []byte) {
+
+	x.handhsake.Contexto.SetBuffer(handshake.CLIENTHELLO, cliHello)
+	fmt.Println(systema.PrettyPrintBytes((x.handhsake.Contexto.GetBuffer(handshake.CLIENTHELLO))))
 }

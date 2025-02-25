@@ -3,20 +3,19 @@ package server
 import (
 	"net"
 
+	"tlesio/tlssl"
 	"tlesio/tlssl/handshake"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	port         = ":8443"
-	responseBody = "Hello, TLS!"
-)
+var port = ":8443"
 
 type serverOp struct {
-	tlsCtx *TLSContext
 	lg     *logrus.Logger
+	tlsCtx *tlssl.TLSContext
+	err    error
 }
 
 func RealServidor() {
@@ -30,14 +29,14 @@ func RealServidor() {
 		server.lg.Error(err)
 		return
 	}
-
-	// Init TLS: Modules, Interfaces, Logger, Options
-	server.tlsCtx, err = initTLSContext()
-	if err != nil {
-		server.lg.Error("TLS Init err: ", err)
+	server.tlsCtx = &tlssl.TLSContext{}
+	server.initTLSContext()
+	if server.err != nil {
+		server.lg.Error("TLS Init err: ", server.err)
 		return
 	}
 
+	server.lg.Info("TLS Context Initialized")
 	defer listener.Close()
 	server.lg.Info("Listening on PORT ", port)
 	for {
@@ -66,6 +65,11 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 
 	if n <= 5 {
 		server.lg.Warning("Very little Data")
+		return
+	}
+
+	if len(buffer[:n]) <= 45 {
+		server.lg.Warning("buffer is too small for a client hello")
 		return
 	}
 
@@ -104,11 +108,10 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 		return
 	}
 
-	aux := handshake.TLS_HEADER_SIZE
-	handle, _ := Handle(server.tlsCtx, buffer[aux:n], conn)
+	handle, _ := Handle(server.tlsCtx, conn)
 	if handle == nil {
 		return
 	}
 
-	handle.LetsTalk()
+	handle.LetsTalk(buffer[:n])
 }

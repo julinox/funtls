@@ -1,8 +1,17 @@
 package handshake
 
+type MsgHelloCli struct {
+	Version      [2]byte
+	Random       [32]byte
+	SessionId    []byte
+	CipherSuites []uint16
+	Extensions   map[uint16]interface{} //ExtensionType -> ExtensionData
+}
+
 type xClientHello struct {
 	nextState int
 	nextError error
+	//ctx       HandShakeContext
 }
 
 func NewClientHello() ClientHello {
