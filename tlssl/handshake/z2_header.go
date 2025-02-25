@@ -1,4 +1,4 @@
-package interfaces
+package handshake
 
 // -------------------------------------------
 // | Field       | Size   | Description       |

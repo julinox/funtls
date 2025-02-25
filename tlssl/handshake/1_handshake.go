@@ -6,7 +6,6 @@ import (
 
 	"tlesio/systema"
 	ex "tlesio/tlssl/extensions"
-	ifs "tlesio/tlssl/interfaces"
 	mx "tlesio/tlssl/modulos"
 
 	evilmac "github.com/julinox/statemaquina"
@@ -81,15 +80,16 @@ type Handshake struct {
 	ServerHeloDone ServerHelloDone
 	ServerKeyExch  ServerKeyExchange
 	Contexto       HandShakeContext
+	TLSHeader      Header
 }
 
 type HandshakeParams struct {
-	CliHelloMsg          []byte
-	Coms                 net.Conn
-	Mods                 *mx.ModuloZ
-	Lg                   *logrus.Logger
-	Exts                 *ex.Extensions
-	Ifaces               *ifs.Interfaces
+	CliHelloMsg []byte
+	Coms        net.Conn
+	Mods        *mx.ModuloZ
+	Lg          *logrus.Logger
+	Exts        *ex.Extensions
+	//Ifaces               *ifs.Interfaces
 	ClientAuthentication bool // Enable Client Authentication
 }
 
@@ -121,8 +121,7 @@ func NewHandshake(params *HandshakeParams) (*Handshake, error) {
 
 func validParams(x *HandshakeParams) bool {
 	if x.Lg == nil || x.Coms == nil ||
-		x.Mods == nil || x.Exts == nil || x.Ifaces == nil ||
-		len(x.CliHelloMsg) == 0 {
+		x.Mods == nil || x.Exts == nil || len(x.CliHelloMsg) == 0 {
 		return false
 	}
 

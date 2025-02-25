@@ -10,33 +10,32 @@ type xHandle struct {
 	handhsake *handshake.Handshake
 }
 
-func HandleRequest(ssl *zzl, buff []byte, conn net.Conn) (*xHandle, error) {
+func Handle(ctx *TLSContext, buff []byte, conn net.Conn) (*xHandle, error) {
 
 	var err error
 	var newHandle xHandle
 
-	if ssl == nil || buff == nil || conn == nil {
+	if ctx == nil || buff == nil || conn == nil {
 		return nil, systema.ErrNilParams
 	}
 
 	if len(buff) <= 45 {
-		ssl.lg.Error("buffer is too small for a client hello")
+		ctx.Lg.Error("buffer is too small for a client hello")
 		return nil, systema.ErrInvalidBufferSize
 	}
 
 	handshakeParams := &handshake.HandshakeParams{
 		CliHelloMsg:          buff,
 		Coms:                 conn,
-		Mods:                 ssl.modz,
-		Lg:                   ssl.lg,
-		Exts:                 ssl.exts,
-		Ifaces:               ssl.ifs,
-		ClientAuthentication: ssl.clientAuth,
+		Mods:                 ctx.Modz,
+		Lg:                   ctx.Lg,
+		Exts:                 ctx.Exts,
+		ClientAuthentication: ctx.OptClientAuth,
 	}
 
 	newHandle.handhsake, err = handshake.NewHandshake(handshakeParams)
 	if err != nil {
-		ssl.lg.Error(err)
+		ctx.Lg.Error(err)
 		return nil, err
 	}
 

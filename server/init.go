@@ -4,7 +4,6 @@ import (
 	"os"
 	"strings"
 	ex "tlesio/tlssl/extensions"
-	iff "tlesio/tlssl/interfaces"
 	mx "tlesio/tlssl/modulos"
 	sts "tlesio/tlssl/suites"
 
@@ -17,45 +16,32 @@ var (
 	_ENV_CLIENT_AUTH_VAR_ = "TLS_CLIENT_AUTH"
 )
 
-type zzl struct {
-	modz       *mx.ModuloZ
-	lg         *logrus.Logger
-	ifs        *iff.Interfaces
-	exts       *ex.Extensions
-	clientAuth bool // Enable Client Authentication
+type TLSContext struct {
+	Lg            *logrus.Logger
+	Modz          *mx.ModuloZ
+	Exts          *ex.Extensions
+	OptClientAuth bool // Enable Client Authentication
 }
 
-func initTLS() (*zzl, error) {
+func initTLSContext() (*TLSContext, error) {
 
-	var ssl zzl
 	var err error
+	var ctx TLSContext
 
-	ssl.lg = getTLSLogger()
-	ssl.modz = mx.NewModuloZ()
-	if err = ssl.initModuloZ(); err != nil {
-		ssl.lg.Error("error initializing TLS Modules: ", err)
+	ctx.Lg = getTLSLogger()
+	ctx.Modz = mx.NewModuloZ()
+	if err = ctx.initModuloZ(); err != nil {
 		return nil, err
 	}
 
-	ssl.exts = ex.NewExtensions(ssl.lg)
-	ssl.initExtensions()
-	ssl.ifs = iff.InitInterfaces(
-		&iff.IfaceParams{
-			Lg: ssl.lg, Mx: ssl.modz, Ex: ssl.exts,
-		},
-	)
-
-	ssl.clientAuth = getTLSClientAuthOpt()
-	if ssl.ifs == nil {
-		ssl.lg.Error("error initializing TLS Interfaces")
-		return nil, err
-	}
-
-	ssl.lg.Info("TLS Ready")
-	return &ssl, nil
+	ctx.Exts = ex.NewExtensions(ctx.Lg)
+	ctx.initExtensions()
+	ctx.OptClientAuth = getTLSClientAuthOpt()
+	ctx.Lg.Info("TLS Ready")
+	return &ctx, nil
 }
 
-func (x *zzl) initModuloZ() error {
+func (x *TLSContext) initModuloZ() error {
 
 	certs := []*mx.CertPaths{
 		{PathCert: "./certs/server.crt", PathKey: "./certs/server.key"},
@@ -63,21 +49,21 @@ func (x *zzl) initModuloZ() error {
 	}
 
 	suites := []sts.Suite{
-		sts.NewAES_256_CBC_SHA256(x.lg),
+		sts.NewAES_256_CBC_SHA256(x.Lg),
 	}
 
-	x.modz.InitTLSSuite(x.lg, suites)
-	x.modz.InitCerts(x.lg, certs)
-	return x.modz.CheckModInit()
+	x.Modz.InitTLSSuite(x.Lg, suites)
+	x.Modz.InitCerts(x.Lg, certs)
+	return x.Modz.CheckModInit()
 }
 
-func (x *zzl) initExtensions() {
+func (x *TLSContext) initExtensions() {
 
-	x.exts.Register(ex.NewExtSignAlgo())
-	x.exts.Register(ex.NewExtSessionTicket())
-	x.exts.Register(ex.NewExtSNI())
-	x.exts.Register(ex.NewExtEncryptThenMac())
-	x.exts.Register(ex.NewExtRenegotiation())
+	x.Exts.Register(ex.NewExtSignAlgo())
+	x.Exts.Register(ex.NewExtSessionTicket())
+	x.Exts.Register(ex.NewExtSNI())
+	x.Exts.Register(ex.NewExtEncryptThenMac())
+	x.Exts.Register(ex.NewExtRenegotiation())
 }
 
 func getTLSLogger() *logrus.Logger {

@@ -2,7 +2,8 @@ package server
 
 import (
 	"net"
-	ifs "tlesio/tlssl/interfaces"
+
+	"tlesio/tlssl/handshake"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -14,8 +15,8 @@ const (
 )
 
 type serverOp struct {
-	tls *zzl
-	lg  *logrus.Logger
+	tlsCtx *TLSContext
+	lg     *logrus.Logger
 }
 
 func RealServidor() {
@@ -31,7 +32,7 @@ func RealServidor() {
 	}
 
 	// Init TLS: Modules, Interfaces, Logger, Options
-	server.tls, err = initTLS()
+	server.tlsCtx, err = initTLSContext()
 	if err != nil {
 		server.lg.Error("TLS Init err: ", err)
 		return
@@ -68,41 +69,43 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 		return
 	}
 
-	hh := server.tls.ifs.TLSHead.Header(buffer)
+	ifHeader := handshake.NewHeader()
+	hh := ifHeader.Header(buffer)
 	if hh == nil {
 		server.lg.Warning("error reading header")
 		return
 	}
 
-	if hh.ContentType != ifs.ContentTypeHandshake {
+	if hh.ContentType != handshake.ContentTypeHandshake {
 		server.lg.Warning("We do not negotiate with terrorist!")
 		return
 	}
 
-	offset += ifs.TLS_HEADER_SIZE
+	offset += handshake.TLS_HEADER_SIZE
 	if hh.Len != len(buffer[offset:n]) {
 		server.lg.Warning("Header length does not match buffer length")
 		return
 	}
 
-	hs := server.tls.ifs.TLSHead.HandShake(buffer[offset:])
+	hs := ifHeader.HandShake(buffer[offset:])
 	if hs == nil {
 		server.lg.Warning("error reading handshake")
 		return
 	}
 
-	if hs.HandshakeType != ifs.HandshakeTypeClientHelo {
+	if hs.HandshakeType != handshake.HandshakeTypeClientHelo {
 		server.lg.Warning("Pretty rude from you not to say helo first")
 		return
 	}
 
-	offset += ifs.TLS_HANDSHAKE_SIZE
+	offset += handshake.TLS_HANDSHAKE_SIZE
 	if hs.Len != len(buffer[offset:n]) {
 		server.lg.Warning("Handshake length does not match buffer length")
 		return
 	}
 
-	handle, _ := HandleRequest(server.tls, buffer[ifs.TLS_HEADER_SIZE:n], conn)
+	aux := handshake.TLS_HEADER_SIZE
+	handle, _ := Handle(server.tlsCtx, buffer[aux:n], conn)
 	if handle == nil {
 		return
 	}

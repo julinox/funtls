@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"net"
 	"tlesio/systema"
-	ifs "tlesio/tlssl/interfaces"
+
+	//ifs "tlesio/tlssl/interfaces"
 
 	"github.com/sirupsen/logrus"
 )
@@ -26,12 +27,7 @@ type xHandhsakeContextData struct {
 	cipherSuite        uint16
 }
 
-type ifaces struct {
-	header ifs.Header
-}
-
 type xHandhsakeContext struct {
-	ifz  ifaces
 	coms net.Conn
 	lg   *logrus.Logger
 	data *xHandhsakeContextData
@@ -59,7 +55,6 @@ func NewHandShakeContext(params *HandshakeParams) HandShakeContext {
 	newContext.lg = params.Lg
 	newContext.coms = params.Coms
 	newContext.data = &xHandhsakeContextData{}
-	newContext.ifz.header = ifs.NewHeader()
 	return &newContext
 }
 
@@ -230,11 +225,11 @@ func (x *xHandhsakeContext) pts(buffer []byte) []byte {
 	}
 
 	// Add TLS header to buffer
-	outputBuffer = x.ifz.header.HeaderPacket(&ifs.TLSHeader{
+	/*outputBuffer = x.ifz.header.HeaderPacket(&ifs.TLSHeader{
 		ContentType: ifs.ContentTypeHandshake,
 		Version:     0x0303,
 		Len:         len(buffer),
-	})
+	})*/
 
 	return append(outputBuffer, buffer...)
 }
