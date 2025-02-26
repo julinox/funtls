@@ -28,9 +28,10 @@ type xHandhsakeContextData struct {
 }
 
 type xHandhsakeContext struct {
-	coms net.Conn
-	lg   *logrus.Logger
-	data *xHandhsakeContextData
+	coms          net.Conn
+	lg            *logrus.Logger
+	data          *xHandhsakeContextData
+	optClientAuth bool
 }
 
 type HandShakeContext interface {
@@ -40,20 +41,22 @@ type HandShakeContext interface {
 	GetBuffer(int) []byte
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
+	GetOptClientAuth() bool
+	SetOptClientAuth(bool)
 	Send(int) error
 	PPrint(int) string
 }
 
-func NewHandShakeContext(lg *logrus.Logger, conn net.Conn) HandShakeContext {
+func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
 
 	var newContext xHandhsakeContext
 
-	if lg == nil || conn == nil {
+	if lg == nil || coms == nil {
 		return nil
 	}
 
 	newContext.lg = lg
-	newContext.coms = conn
+	newContext.coms = coms
 	newContext.data = &xHandhsakeContextData{}
 	return &newContext
 }
@@ -176,6 +179,14 @@ func (x *xHandhsakeContext) SetCipherSuite(cipherSuite uint16) {
 
 func (x *xHandhsakeContext) GetCipherSuite() uint16 {
 	return x.data.cipherSuite
+}
+
+func (x *xHandhsakeContext) GetOptClientAuth() bool {
+	return x.optClientAuth
+}
+
+func (x *xHandhsakeContext) SetOptClientAuth(optClientAuth bool) {
+	x.optClientAuth = optClientAuth
 }
 
 func (x *xHandhsakeContext) PPrint(op int) string {

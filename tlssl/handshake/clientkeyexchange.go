@@ -1,10 +1,19 @@
 package handshake
 
 type xClientKeyExchange struct {
+	stateBasicInfo
 }
 
-func NewClientKeyExchange() ClientKeyExchange {
-	return &xClientKeyExchange{}
+func NewClientKeyExchange(ctx HandShakeContext) ClientKeyExchange {
+
+	var newX xClientKeyExchange
+
+	if ctx == nil {
+		return nil
+	}
+
+	newX.ctx = ctx
+	return &newX
 }
 
 func (x *xClientKeyExchange) Name() string {
@@ -12,7 +21,8 @@ func (x *xClientKeyExchange) Name() string {
 }
 
 func (x *xClientKeyExchange) Next() (int, error) {
-	return 0, nil
+	x.Handle(nil)
+	return x.nextState, x.nextError
 }
 
 func (x *xClientKeyExchange) Handle(data []byte) error {

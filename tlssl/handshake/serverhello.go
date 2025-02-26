@@ -1,10 +1,21 @@
 package handshake
 
+import "fmt"
+
 type xServerHello struct {
+	stateBasicInfo
 }
 
-func NewServerHello() ServerHello {
-	return &xServerHello{}
+func NewServerHello(ctx HandShakeContext) ServerHello {
+
+	var newX xServerHello
+
+	if ctx == nil {
+		return nil
+	}
+
+	newX.ctx = ctx
+	return &newX
 }
 
 func (x *xServerHello) Name() string {
@@ -12,9 +23,12 @@ func (x *xServerHello) Name() string {
 }
 
 func (x *xServerHello) Next() (int, error) {
-	return 0, nil
+	x.Handle(nil)
+	return x.nextState, x.nextError
 }
 
 func (x *xServerHello) Handle(data []byte) error {
+	fmt.Println("I AM: ", x.Name())
+	x.nextState = CERTIFICATE
 	return nil
 }

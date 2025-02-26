@@ -77,6 +77,12 @@ type Handshake struct {
 	TLSHeader      Header
 }
 
+type stateBasicInfo struct {
+	nextState int
+	nextError error
+	ctx       HandShakeContext
+}
+
 func NewHandshake(ctx HandShakeContext) (*Handshake, error) {
 
 	var newHandshake Handshake
@@ -86,15 +92,15 @@ func NewHandshake(ctx HandShakeContext) (*Handshake, error) {
 	}
 
 	newHandshake.Contexto = ctx
-	newHandshake.Cert = NewCertificate()
-	newHandshake.CertRequest = NewCertificateRequest()
-	newHandshake.ChgCph = NewChangeCipherSpec()
-	newHandshake.ClientHelo = NewClientHello()
-	newHandshake.ClientKeyExch = NewClientKeyExchange()
-	newHandshake.Finish = NewFinished()
-	newHandshake.ServerHelo = NewServerHello()
-	newHandshake.ServerHeloDone = NewServerHelloDone()
-	newHandshake.ServerKeyExch = NewServerKeyExchange()
+	newHandshake.Cert = NewCertificate(ctx)
+	newHandshake.CertRequest = NewCertificateRequest(ctx)
+	newHandshake.ChgCph = NewChangeCipherSpec(ctx)
+	newHandshake.ClientHelo = NewClientHello(ctx)
+	newHandshake.ClientKeyExch = NewClientKeyExchange(ctx)
+	newHandshake.Finish = NewFinished(ctx)
+	newHandshake.ServerHelo = NewServerHello(ctx)
+	newHandshake.ServerHeloDone = NewServerHelloDone(ctx)
+	newHandshake.ServerKeyExch = NewServerKeyExchange(ctx)
 	newHandshake.TLSHeader = NewHeader()
 	if err := checkHandshakeInit(&newHandshake); err != nil {
 		return nil, fmt.Errorf("handshake object creation: %v", err)

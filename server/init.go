@@ -99,5 +99,5 @@ func (x *serverOp) initTLSContextExtensions() {
 }
 
 func getTLSClientAuthOpt() bool {
-	return os.Getenv(_ENV_CLIENT_AUTH_VAR_) == "true"
+	return strings.ToLower(os.Getenv(_ENV_CLIENT_AUTH_VAR_)) == "true"
 }

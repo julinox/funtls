@@ -1,10 +1,21 @@
 package handshake
 
+import "fmt"
+
 type xCertificate struct {
+	stateBasicInfo
 }
 
-func NewCertificate() Certificate {
-	return &xCertificate{}
+func NewCertificate(ctx HandShakeContext) Certificate {
+
+	var newX xCertificate
+
+	if ctx == nil {
+		return nil
+	}
+
+	newX.ctx = ctx
+	return &newX
 }
 
 func (x *xCertificate) Name() string {
@@ -12,9 +23,16 @@ func (x *xCertificate) Name() string {
 }
 
 func (x *xCertificate) Next() (int, error) {
-	return 0, nil
+	x.Handle(nil)
+	return x.nextState, x.nextError
 }
 
 func (x *xCertificate) Handle(data []byte) error {
+	fmt.Println("I AM: ", x.Name())
+	if x.ctx.GetOptClientAuth() {
+		fmt.Println("MUTUAL AUTH ENABLE")
+	}
+
+	//fmt.Println("MUTUAL AUTH ->". x.)
 	return nil
 }

@@ -15,7 +15,7 @@ var port = ":8443"
 type serverOp struct {
 	lg     *logrus.Logger
 	tlsCtx *tlssl.TLSContext
-	err    error
+	err    error // For initialization errors
 }
 
 func RealServidor() {
