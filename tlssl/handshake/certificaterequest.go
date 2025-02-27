@@ -23,11 +23,14 @@ func (x *xCertificateRequest) Name() string {
 }
 
 func (x *xCertificateRequest) Next() (int, error) {
+
 	x.Handle(nil)
 	return x.nextState, x.nextError
 }
 
 func (x *xCertificateRequest) Handle(data []byte) error {
+
+	x.nextState = SERVERHELLODONE
 	fmt.Println("I AM: ", x.Name())
 	return nil
 }

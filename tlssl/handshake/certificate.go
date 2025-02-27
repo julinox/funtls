@@ -23,16 +23,25 @@ func (x *xCertificate) Name() string {
 }
 
 func (x *xCertificate) Next() (int, error) {
-	x.Handle(nil)
+
+	x.Handle()
 	return x.nextState, x.nextError
 }
 
-func (x *xCertificate) Handle(data []byte) error {
-	fmt.Println("I AM: ", x.Name())
-	if x.ctx.GetOptClientAuth() {
-		fmt.Println("MUTUAL AUTH ENABLE")
+func (x *xCertificate) Handle() error {
+
+	dh := true
+	if dh {
+		x.nextState = SERVERKEYEXCHANGE
+
+	} else if x.ctx.GetOptClientAuth() {
+		x.nextState = CERTIFICATEREQUEST
+
+	} else {
+		x.nextState = SERVERHELLODONE
+
 	}
 
-	//fmt.Println("MUTUAL AUTH ->". x.)
+	fmt.Println("I AM: ", x.Name())
 	return nil
 }

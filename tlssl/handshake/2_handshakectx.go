@@ -13,36 +13,46 @@ import (
 
 var _BuffersMap = 9
 
+const (
+	CLIENTCERTIFICATE = 3
+	SERVERCERTIFICATE = 5
+)
+
 type xHandhsakeContextData struct {
-	certificate        []byte
 	certificateRequest []byte
+	certificateverify  []byte
 	changeCipherSpec   []byte
+	clientCertificate  []byte
 	clientHello        []byte
 	clientKeyExchange  []byte
 	finished           []byte
+	serverCertificate  []byte
 	serverHello        []byte
 	serverHelloDone    []byte
 	serverKeyExchange  []byte
-	cert               *x509.Certificate
+	serverCert         *x509.Certificate
 	cipherSuite        uint16
+	optClientAuth      bool
+	transitionStage    int
 }
 
 type xHandhsakeContext struct {
-	coms          net.Conn
-	lg            *logrus.Logger
-	data          *xHandhsakeContextData
-	optClientAuth bool
+	coms net.Conn
+	lg   *logrus.Logger
+	data *xHandhsakeContextData
 }
 
 type HandShakeContext interface {
 	SetCert(*x509.Certificate)
-	GetCert() *x509.Certificate
+	GetCert(int) *x509.Certificate
 	SetBuffer(int, []byte)
 	GetBuffer(int) []byte
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
 	GetOptClientAuth() bool
 	SetOptClientAuth(bool)
+	GetTransitionStage() int
+	SetTransitionStage(int)
 	Send(int) error
 	PPrint(int) string
 }
@@ -68,22 +78,36 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 	}
 
 	switch op {
-	case CERTIFICATE:
-		x.data.certificate = buff
 	case CERTIFICATEREQUEST:
 		x.data.certificateRequest = buff
+
+	case CERTIFICATEVERIFY:
+		x.data.certificateverify = buff
+
 	case CHANGECIPHERSPEC:
 		x.data.changeCipherSpec = buff
+
+	case CLIENTCERTIFICATE:
+		x.data.clientCertificate = buff
+
 	case CLIENTHELLO:
 		x.data.clientHello = buff
+
 	case CLIENTKEYEXCHANGE:
 		x.data.clientKeyExchange = buff
+
 	case FINISHED:
 		x.data.finished = buff
+
+	case SERVERCERTIFICATE:
+		x.data.serverCertificate = buff
+
 	case SERVERHELLO:
 		x.data.serverHello = buff
+
 	case SERVERHELLODONE:
 		x.data.serverHelloDone = buff
+
 	case SERVERKEYEXCHANGE:
 		x.data.serverKeyExchange = buff
 	}
@@ -92,22 +116,36 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	switch op {
-	case CERTIFICATE:
-		return x.data.certificate
 	case CERTIFICATEREQUEST:
 		return x.data.certificateRequest
+
+	case CERTIFICATEVERIFY:
+		return x.data.certificateverify
+
 	case CHANGECIPHERSPEC:
 		return x.data.changeCipherSpec
+
+	case CLIENTCERTIFICATE:
+		return x.data.clientCertificate
+
 	case CLIENTHELLO:
 		return x.data.clientHello
+
 	case CLIENTKEYEXCHANGE:
 		return x.data.clientKeyExchange
+
 	case FINISHED:
 		return x.data.finished
+
+	case SERVERCERTIFICATE:
+		return x.data.serverCertificate
+
 	case SERVERHELLO:
 		return x.data.serverHello
+
 	case SERVERHELLODONE:
 		return x.data.serverHelloDone
+
 	case SERVERKEYEXCHANGE:
 		return x.data.serverKeyExchange
 	}
@@ -123,13 +161,13 @@ func (x *xHandhsakeContext) Send(op int) error {
 		aux := 1 << i
 		if op&aux != 0 {
 			switch aux {
-			case CERTIFICATE:
-				outBuff = append(outBuff, x.pts(x.data.certificate)...)
-				x.lg.Debug("Sending CERTIFICATE")
-
 			case CERTIFICATEREQUEST:
 				outBuff = append(outBuff, x.pts(x.data.certificateRequest)...)
 				x.lg.Debug("Sending CERTIFICATEREQUEST")
+
+			case CERTIFICATEVERIFY:
+				outBuff = append(outBuff, x.pts(x.data.certificateverify)...)
+				x.lg.Debug("Sending CERTIFICATEVERIFY")
 
 			case CHANGECIPHERSPEC:
 				outBuff = append(outBuff, x.pts(x.data.changeCipherSpec)...)
@@ -146,6 +184,10 @@ func (x *xHandhsakeContext) Send(op int) error {
 			case FINISHED:
 				outBuff = append(outBuff, x.pts(x.data.finished)...)
 				x.lg.Debug("Sending FINISHED")
+
+			case SERVERCERTIFICATE:
+				outBuff = append(outBuff, x.pts(x.data.serverCertificate)...)
+				x.lg.Debug("Sending Server CERTIFICATE")
 
 			case SERVERHELLO:
 				outBuff = append(outBuff, x.pts(x.data.serverHello)...)
@@ -166,11 +208,20 @@ func (x *xHandhsakeContext) Send(op int) error {
 }
 
 func (x *xHandhsakeContext) SetCert(cert *x509.Certificate) {
-	x.data.cert = cert
+	x.data.serverCert = cert
 }
 
-func (x *xHandhsakeContext) GetCert() *x509.Certificate {
-	return x.data.cert
+func (x *xHandhsakeContext) GetCert(who int) *x509.Certificate {
+
+	switch who {
+	case CLIENTCERTIFICATE:
+		return nil
+
+	case SERVERCERTIFICATE:
+		return x.data.serverCert
+	}
+
+	return nil
 }
 
 func (x *xHandhsakeContext) SetCipherSuite(cipherSuite uint16) {
@@ -182,11 +233,19 @@ func (x *xHandhsakeContext) GetCipherSuite() uint16 {
 }
 
 func (x *xHandhsakeContext) GetOptClientAuth() bool {
-	return x.optClientAuth
+	return x.data.optClientAuth
 }
 
 func (x *xHandhsakeContext) SetOptClientAuth(optClientAuth bool) {
-	x.optClientAuth = optClientAuth
+	x.data.optClientAuth = optClientAuth
+}
+
+func (x *xHandhsakeContext) GetTransitionStage() int {
+	return x.data.transitionStage
+}
+
+func (x *xHandhsakeContext) SetTransitionStage(stage int) {
+	x.data.transitionStage = stage
 }
 
 func (x *xHandhsakeContext) PPrint(op int) string {
@@ -194,9 +253,6 @@ func (x *xHandhsakeContext) PPrint(op int) string {
 	var buff []byte
 
 	switch op {
-	case CERTIFICATE:
-		buff = x.data.certificate
-
 	case CERTIFICATEREQUEST:
 		buff = x.data.certificateRequest
 
@@ -208,6 +264,9 @@ func (x *xHandhsakeContext) PPrint(op int) string {
 
 	case CLIENTKEYEXCHANGE:
 		buff = x.data.clientKeyExchange
+
+	case SERVERCERTIFICATE:
+		buff = x.data.serverCertificate
 
 	case SERVERHELLO:
 		buff = x.data.serverHello

@@ -3,7 +3,6 @@ package server
 import (
 	"fmt"
 	"net"
-	"reflect"
 	"tlesio/systema"
 	"tlesio/tlssl"
 	"tlesio/tlssl/handshake"
@@ -11,6 +10,12 @@ import (
 	evilmac "github.com/julinox/statemaquina"
 	"github.com/sirupsen/logrus"
 )
+
+// All possible handhsake messages + all change cipher spec + all transitions
+// transitions are not messages but are part of the handshake flow. Example
+// after the server hello done its the turn of the client to send whatever
+// it needs to send.
+const _MAX_STATES_COUNT_ = 15
 
 type xHandle struct {
 	lg        *logrus.Logger
@@ -34,7 +39,8 @@ func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
 	}
 
 	handshakeCtx.SetOptClientAuth(ctx.OptClientAuth)
-	newHandle.handhsake, err = handshake.NewHandshake(handshakeCtx)
+	handshakeCtx.SetTransitionStage(handshake.STAGE_SERVERHELLODONE)
+	newHandle.handhsake, err = handshake.NewHandshake(ctx.Lg, handshakeCtx)
 	if err != nil {
 		ctx.Lg.Error(err)
 		return nil, err
@@ -49,11 +55,10 @@ func (x *xHandle) LetsTalk(cliHello []byte) {
 
 	var err error
 
-	fieldsLen := reflect.TypeOf(x.handhsake).Elem().NumField()
 	b166er, err := evilmac.NewStateMaquina(
 		&evilmac.StateMacCfg{
 			StopOnError: true,
-			StopOnCount: fieldsLen,
+			StopOnCount: _MAX_STATES_COUNT_,
 			Lg:          x.lg,
 		},
 	)
@@ -69,7 +74,10 @@ func (x *xHandle) LetsTalk(cliHello []byte) {
 	}
 
 	b166er.Post(handshake.CLIENTHELLO)
-	b166er.Start()
+	err = b166er.Start()
+	if err != nil {
+		x.lg.Error("err Handshake flow: ", err)
+	}
 }
 
 func (x *xHandle) registryStates(mac evilmac.StateMac) error {
@@ -81,7 +89,8 @@ func (x *xHandle) registryStates(mac evilmac.StateMac) error {
 		id    int
 	}{
 		{x.handhsake.Cert, handshake.CERTIFICATE},
-		{x.handhsake.CertRequest, handshake.CERTIFICATEREQUEST},
+		{x.handhsake.CertificateReq, handshake.CERTIFICATEREQUEST},
+		{x.handhsake.CertificateVerf, handshake.CERTIFICATEVERIFY},
 		{x.handhsake.ChgCph, handshake.CHANGECIPHERSPEC},
 		{x.handhsake.ClientHelo, handshake.CLIENTHELLO},
 		{x.handhsake.ClientKeyExch, handshake.CLIENTKEYEXCHANGE},
@@ -89,6 +98,7 @@ func (x *xHandle) registryStates(mac evilmac.StateMac) error {
 		{x.handhsake.ServerHelo, handshake.SERVERHELLO},
 		{x.handhsake.ServerHeloDone, handshake.SERVERHELLODONE},
 		{x.handhsake.ServerKeyExch, handshake.SERVERKEYEXCHANGE},
+		{x.handhsake.Transit, handshake.TRANSITION},
 	}
 
 	for _, s := range states {

@@ -23,6 +23,7 @@ func (x *xChangeCipherSpec) Name() string {
 }
 
 func (x *xChangeCipherSpec) Next() (int, error) {
+
 	x.Handle(nil)
 	return x.nextState, x.nextError
 }

@@ -23,12 +23,14 @@ func (x *xServerHello) Name() string {
 }
 
 func (x *xServerHello) Next() (int, error) {
+
 	x.Handle(nil)
 	return x.nextState, x.nextError
 }
 
 func (x *xServerHello) Handle(data []byte) error {
-	fmt.Println("I AM: ", x.Name())
+
 	x.nextState = CERTIFICATE
+	fmt.Println("I AM: ", x.Name())
 	return nil
 }
