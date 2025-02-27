@@ -23,12 +23,10 @@ func (x *xChangeCipherSpec) Name() string {
 }
 
 func (x *xChangeCipherSpec) Next() (int, error) {
-
-	x.Handle(nil)
-	return x.nextState, x.nextError
+	return x.nextState, x.Handle()
 }
 
-func (x *xChangeCipherSpec) Handle(data []byte) error {
+func (x *xChangeCipherSpec) Handle() error {
 	fmt.Println("I AM: ", x.Name())
 	return nil
 }

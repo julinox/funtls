@@ -28,47 +28,47 @@ type Certificate interface {
 
 type CertificateRequest interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type CertificateVerify interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type ChangeCipherSpec interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type ClientHello interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type ClientKeyExchange interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type Finished interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type ServerHello interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type ServerHelloDone interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type ServerKeyExchange interface {
 	evilmac.State
-	Handle([]byte) error
+	Handle() error
 }
 
 type Transition interface {
@@ -96,8 +96,8 @@ type Handshake struct {
 
 type stateBasicInfo struct {
 	nextState int
-	nextError error
-	ctx       HandShakeContext
+	//nextError error
+	ctx HandShakeContext
 }
 
 func NewHandshake(lg *logrus.Logger, ctx HandShakeContext) (*Handshake, error) {

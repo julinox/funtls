@@ -1,6 +1,8 @@
 package handshake
 
 import (
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,9 +35,7 @@ func (x *xTransition) Name() string {
 }
 
 func (x *xTransition) Next() (int, error) {
-
-	x.Handle()
-	return x.nextState, x.nextError
+	return x.nextState, x.Handle()
 }
 
 func (x *xTransition) Handle() error {
@@ -43,6 +43,9 @@ func (x *xTransition) Handle() error {
 	switch x.ctx.GetTransitionStage() {
 	case STAGE_SERVERHELLODONE:
 		x.transitServerHelloDone()
+
+	default:
+		fmt.Println("????")
 	}
 
 	return nil
@@ -50,10 +53,12 @@ func (x *xTransition) Handle() error {
 
 func (x *xTransition) transitServerHelloDone() {
 
-	x.lg.Debug("Transitioning to SERVERHELLODONE")
+	x.lg.Info("Transitioning to SERVERHELLODONE")
 	if x.ctx.GetOptClientAuth() {
 		x.nextState = CERTIFICATE
 	} else {
-		x.nextState = STAGE_SERVERHELLODONE
+		x.nextState = CLIENTKEYEXCHANGE
 	}
+
+	x.ctx.SetTransitionStage(STAGE_FINISHED_CLIENT)
 }

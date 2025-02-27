@@ -23,12 +23,24 @@ func (x *xCertificate) Name() string {
 }
 
 func (x *xCertificate) Next() (int, error) {
-
-	x.Handle()
-	return x.nextState, x.nextError
+	return x.nextState, x.Handle()
 }
 
 func (x *xCertificate) Handle() error {
+
+	switch x.ctx.GetTransitionStage() {
+	case STAGE_SERVERHELLODONE:
+		return x.certificateServer()
+
+	case STAGE_FINISHED_CLIENT:
+		return x.certificateClient()
+
+	default:
+		return fmt.Errorf("%v invalid transition stage", x.Name())
+	}
+}
+
+func (x *xCertificate) certificateServer() error {
 
 	dh := true
 	if dh {
@@ -39,9 +51,15 @@ func (x *xCertificate) Handle() error {
 
 	} else {
 		x.nextState = SERVERHELLODONE
-
 	}
 
-	fmt.Println("I AM: ", x.Name())
+	fmt.Printf("I AM: %v(SERVER)\n", x.Name())
+	return nil
+}
+
+func (x *xCertificate) certificateClient() error {
+
+	fmt.Printf("I AM: %v(CLIENT)\n", x.Name())
+	x.nextState = CLIENTKEYEXCHANGE
 	return nil
 }

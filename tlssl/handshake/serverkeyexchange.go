@@ -23,12 +23,10 @@ func (x *xServerKeyExchange) Name() string {
 }
 
 func (x *xServerKeyExchange) Next() (int, error) {
-
-	x.Handle(nil)
-	return x.nextState, x.nextError
+	return x.nextState, x.Handle()
 }
 
-func (x *xServerKeyExchange) Handle([]byte) error {
+func (x *xServerKeyExchange) Handle() error {
 
 	if x.ctx.GetOptClientAuth() {
 		x.nextState = CERTIFICATEREQUEST

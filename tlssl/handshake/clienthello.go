@@ -31,12 +31,10 @@ func (x *xClientHello) Name() string {
 }
 
 func (x *xClientHello) Next() (int, error) {
-
-	x.Handle(nil)
-	return x.nextState, x.nextError
+	return x.nextState, x.Handle()
 }
 
-func (x *xClientHello) Handle(data []byte) error {
+func (x *xClientHello) Handle() error {
 
 	fmt.Println("I AM: ", x.Name())
 	x.nextState = SERVERHELLO
