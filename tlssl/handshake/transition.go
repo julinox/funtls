@@ -42,18 +42,24 @@ func (x *xTransition) Handle() error {
 
 	switch x.ctx.GetTransitionStage() {
 	case STAGE_SERVERHELLODONE:
-		x.transitServerHelloDone()
+		return x.transitServerHelloDone()
+
+	case STAGE_FINISHED_CLIENT:
+		return x.transitFinishedClient()
+
+	case STAGE_FINISHED_SERVER:
+		x.nextState = COMPLETEHANDSHAKE
+		x.lg.Info("Complete Handshake")
+		return nil
 
 	default:
-		fmt.Println("????")
+		return fmt.Errorf("Invalid transition stage")
 	}
-
-	return nil
 }
 
-func (x *xTransition) transitServerHelloDone() {
+func (x *xTransition) transitServerHelloDone() error {
 
-	x.lg.Info("Transitioning to SERVERHELLODONE")
+	x.lg.Info("Transitioning from SERVERHELLODONE")
 	if x.ctx.GetOptClientAuth() {
 		x.nextState = CERTIFICATE
 	} else {
@@ -61,4 +67,13 @@ func (x *xTransition) transitServerHelloDone() {
 	}
 
 	x.ctx.SetTransitionStage(STAGE_FINISHED_CLIENT)
+	return nil
+}
+
+func (x *xTransition) transitFinishedClient() error {
+
+	x.lg.Info("Transitioning from FINISHED_CLIENT")
+	x.nextState = CHANGECIPHERSPEC
+	x.ctx.SetTransitionStage(STAGE_FINISHED_SERVER)
+	return nil
 }

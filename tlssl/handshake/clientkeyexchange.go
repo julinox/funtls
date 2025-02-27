@@ -28,6 +28,12 @@ func (x *xClientKeyExchange) Next() (int, error) {
 
 func (x *xClientKeyExchange) Handle() error {
 
+	if x.ctx.GetOptClientAuth() {
+		x.nextState = CERTIFICATEVERIFY
+	} else {
+		x.nextState = CHANGECIPHERSPEC
+	}
+
 	fmt.Println("I AM: ", x.Name())
 	return nil
 }

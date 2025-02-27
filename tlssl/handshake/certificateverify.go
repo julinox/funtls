@@ -28,6 +28,7 @@ func (x *xCertificateVerify) Next() (int, error) {
 
 func (x *xCertificateVerify) Handle() error {
 
+	x.nextState = CHANGECIPHERSPEC
 	fmt.Println("I AM: ", x.Name())
 	return nil
 }

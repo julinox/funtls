@@ -27,6 +27,8 @@ func (x *xChangeCipherSpec) Next() (int, error) {
 }
 
 func (x *xChangeCipherSpec) Handle() error {
+
+	x.nextState = FINISHED
 	fmt.Println("I AM: ", x.Name())
 	return nil
 }

@@ -11,11 +11,9 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// All possible handhsake messages + all change cipher spec + all transitions
-// transitions are not messages but are part of the handshake flow. Example
-// after the server hello done its the turn of the client to send whatever
-// it needs to send.
-const _MAX_STATES_COUNT_ = 15
+// All possible handhsake messages + all change cipher spec + all transitions.
+// Transitions are not messages but are part of the handshake flow.
+const _MAX_STATES_COUNT_ = 1 << 4
 
 type xHandle struct {
 	lg        *logrus.Logger

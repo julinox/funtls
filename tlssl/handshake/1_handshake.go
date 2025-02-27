@@ -8,6 +8,7 @@ import (
 )
 
 const (
+	COMPLETEHANDSHAKE  = 0
 	CERTIFICATE        = 1 << 0
 	CERTIFICATEREQUEST = 1 << 1
 	CERTIFICATEVERIFY  = 1 << 2

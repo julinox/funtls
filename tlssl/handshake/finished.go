@@ -28,6 +28,28 @@ func (x *xFinished) Next() (int, error) {
 
 func (x *xFinished) Handle() error {
 
-	fmt.Println("I AM: ", x.Name())
+	switch x.ctx.GetTransitionStage() {
+	case STAGE_FINISHED_CLIENT:
+		return x.finishedClient()
+
+	case STAGE_FINISHED_SERVER:
+		return x.finishedServer()
+
+	default:
+		return fmt.Errorf("%v invalid transition stage", x.Name())
+	}
+}
+
+func (x *xFinished) finishedClient() error {
+
+	x.nextState = TRANSITION
+	fmt.Printf("I AM: %v(CLIENT)\n", x.Name())
+	return nil
+}
+
+func (x *xFinished) finishedServer() error {
+
+	x.nextState = TRANSITION
+	fmt.Printf("I AM: %v(SERVER)\n", x.Name())
 	return nil
 }

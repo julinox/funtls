@@ -42,7 +42,7 @@ func (x *xCertificate) Handle() error {
 
 func (x *xCertificate) certificateServer() error {
 
-	dh := true
+	dh := false
 	if dh {
 		x.nextState = SERVERKEYEXCHANGE
 
