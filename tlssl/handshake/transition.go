@@ -2,8 +2,7 @@ package handshake
 
 import (
 	"fmt"
-
-	"github.com/sirupsen/logrus"
+	"tlesio/tlssl"
 )
 
 const (
@@ -14,19 +13,19 @@ const (
 
 type xTransition struct {
 	stateBasicInfo
-	lg *logrus.Logger
+	tCtx *tlssl.TLSContext
 }
 
-func NewTransition(lg *logrus.Logger, ctx HandShakeContext) Transition {
+func NewTransition(actx *AllContexts) Transition {
 
 	var newX xTransition
 
-	if lg == nil || ctx == nil {
+	if actx == nil || actx.Tctx == nil || actx.Hctx == nil {
 		return nil
 	}
 
-	newX.lg = lg
-	newX.ctx = ctx
+	newX.ctx = actx.Hctx
+	newX.tCtx = actx.Tctx
 	return &newX
 }
 
@@ -49,18 +48,18 @@ func (x *xTransition) Handle() error {
 
 	case STAGE_FINISHED_SERVER:
 		x.nextState = COMPLETEHANDSHAKE
-		x.lg.Info("Complete Handshake")
+		x.tCtx.Lg.Info("Complete Handshake")
 		return nil
 
 	default:
-		return fmt.Errorf("Invalid transition stage")
+		return fmt.Errorf("%v: invalid transition stage", x.Name())
 	}
 }
 
 func (x *xTransition) transitServerHelloDone() error {
 
-	x.lg.Info("Transitioning from SERVERHELLODONE")
-	if x.ctx.GetOptClientAuth() {
+	x.tCtx.Lg.Info("Transitioning from SERVERHELLODONE")
+	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATE
 	} else {
 		x.nextState = CLIENTKEYEXCHANGE
@@ -72,7 +71,7 @@ func (x *xTransition) transitServerHelloDone() error {
 
 func (x *xTransition) transitFinishedClient() error {
 
-	x.lg.Info("Transitioning from FINISHED_CLIENT")
+	x.tCtx.Lg.Info("Transitioning from FINISHED_CLIENT")
 	x.nextState = CHANGECIPHERSPEC
 	x.ctx.SetTransitionStage(STAGE_FINISHED_SERVER)
 	return nil

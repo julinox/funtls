@@ -36,7 +36,7 @@ func (x *xFinished) Handle() error {
 		return x.finishedServer()
 
 	default:
-		return fmt.Errorf("%v invalid transition stage", x.Name())
+		return fmt.Errorf("%v: invalid transition stage", x.Name())
 	}
 }
 

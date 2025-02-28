@@ -1,20 +1,26 @@
 package handshake
 
-import "fmt"
+import (
+	"fmt"
+	"tlesio/tlssl"
+	"tlesio/tlssl/suites"
+)
 
 type xCertificate struct {
 	stateBasicInfo
+	tCtx *tlssl.TLSContext
 }
 
-func NewCertificate(ctx HandShakeContext) Certificate {
+func NewCertificate(actx *AllContexts) Certificate {
 
 	var newX xCertificate
 
-	if ctx == nil {
+	if actx == nil || actx.Tctx == nil || actx.Hctx == nil {
 		return nil
 	}
 
-	newX.ctx = ctx
+	newX.ctx = actx.Hctx
+	newX.tCtx = actx.Tctx
 	return &newX
 }
 
@@ -36,17 +42,21 @@ func (x *xCertificate) Handle() error {
 		return x.certificateClient()
 
 	default:
-		return fmt.Errorf("%v invalid transition stage", x.Name())
+		return fmt.Errorf("%v: invalid transition stage", x.Name())
 	}
 }
 
 func (x *xCertificate) certificateServer() error {
 
-	dh := false
-	if dh {
+	cs := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	if cs == nil {
+		return fmt.Errorf("%v: invalid cipher suite", x.Name())
+	}
+
+	if cs.Info().KeyExchange == suites.DHE {
 		x.nextState = SERVERKEYEXCHANGE
 
-	} else if x.ctx.GetOptClientAuth() {
+	} else if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 
 	} else {

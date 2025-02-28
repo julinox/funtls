@@ -1,20 +1,25 @@
 package handshake
 
-import "fmt"
+import (
+	"fmt"
+	"tlesio/tlssl"
+)
 
 type xServerKeyExchange struct {
 	stateBasicInfo
+	tCtx *tlssl.TLSContext
 }
 
-func NewServerKeyExchange(ctx HandShakeContext) ServerKeyExchange {
+func NewServerKeyExchange(actx *AllContexts) ServerKeyExchange {
 
 	var newX xServerKeyExchange
 
-	if ctx == nil {
+	if actx == nil || actx.Tctx == nil || actx.Hctx == nil {
 		return nil
 	}
 
-	newX.ctx = ctx
+	newX.ctx = actx.Hctx
+	newX.tCtx = actx.Tctx
 	return &newX
 }
 
@@ -28,7 +33,7 @@ func (x *xServerKeyExchange) Next() (int, error) {
 
 func (x *xServerKeyExchange) Handle() error {
 
-	if x.ctx.GetOptClientAuth() {
+	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 	} else {
 		x.nextState = SERVERHELLODONE

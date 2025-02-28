@@ -36,9 +36,11 @@ func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
 		return nil, systema.ErrNilParams
 	}
 
-	handshakeCtx.SetOptClientAuth(ctx.OptClientAuth)
 	handshakeCtx.SetTransitionStage(handshake.STAGE_SERVERHELLODONE)
-	newHandle.handhsake, err = handshake.NewHandshake(ctx.Lg, handshakeCtx)
+	newHandle.handhsake, err = handshake.NewHandshake(&handshake.AllContexts{
+		Hctx: handshakeCtx,
+		Tctx: ctx})
+
 	if err != nil {
 		ctx.Lg.Error(err)
 		return nil, err
@@ -72,7 +74,13 @@ func (x *xHandle) LetsTalk(cliHello []byte) {
 	}
 
 	b166er.Post(handshake.CLIENTHELLO)
+
+	// Debug
+	x.handhsake.Contexto.SetCipherSuite(0x003D)
+	// DEBUG
+
 	err = b166er.Start()
+
 	if err != nil {
 		x.lg.Error("err Handshake flow: ", err)
 	}

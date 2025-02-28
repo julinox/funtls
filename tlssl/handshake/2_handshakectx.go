@@ -49,8 +49,6 @@ type HandShakeContext interface {
 	GetBuffer(int) []byte
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
-	GetOptClientAuth() bool
-	SetOptClientAuth(bool)
 	GetTransitionStage() int
 	SetTransitionStage(int)
 	Send(int) error

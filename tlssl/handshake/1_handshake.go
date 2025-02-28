@@ -2,9 +2,9 @@ package handshake
 
 import (
 	"fmt"
+	"tlesio/tlssl"
 
 	evilmac "github.com/julinox/statemaquina"
-	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -95,33 +95,37 @@ type Handshake struct {
 	Transit         Transition
 }
 
-type stateBasicInfo struct {
-	nextState int
-	//nextError error
-	ctx HandShakeContext
+type AllContexts struct {
+	Hctx HandShakeContext
+	Tctx *tlssl.TLSContext
 }
 
-func NewHandshake(lg *logrus.Logger, ctx HandShakeContext) (*Handshake, error) {
+type stateBasicInfo struct {
+	nextState int
+	ctx       HandShakeContext
+}
+
+func NewHandshake(actx *AllContexts) (*Handshake, error) {
 
 	var newHandshake Handshake
 
-	if ctx == nil {
+	if actx == nil || actx.Tctx == nil || actx.Hctx == nil {
 		return nil, fmt.Errorf("nil HandshakeContext object")
 	}
 
-	newHandshake.Contexto = ctx
+	newHandshake.Contexto = actx.Hctx
 	newHandshake.TLSHeader = NewHeader()
-	newHandshake.Cert = NewCertificate(ctx)
-	newHandshake.CertificateReq = NewCertificateRequest(ctx)
-	newHandshake.CertificateVerf = NewCertificateVerify(ctx)
-	newHandshake.ChgCph = NewChangeCipherSpec(ctx)
-	newHandshake.ClientHelo = NewClientHello(ctx)
-	newHandshake.ClientKeyExch = NewClientKeyExchange(ctx)
-	newHandshake.Finish = NewFinished(ctx)
-	newHandshake.ServerHelo = NewServerHello(ctx)
-	newHandshake.ServerHeloDone = NewServerHelloDone(ctx)
-	newHandshake.ServerKeyExch = NewServerKeyExchange(ctx)
-	newHandshake.Transit = NewTransition(lg, ctx)
+	newHandshake.Cert = NewCertificate(actx)
+	newHandshake.CertificateReq = NewCertificateRequest(actx.Hctx)
+	newHandshake.CertificateVerf = NewCertificateVerify(actx.Hctx)
+	newHandshake.ChgCph = NewChangeCipherSpec(actx.Hctx)
+	newHandshake.ClientHelo = NewClientHello(actx.Hctx)
+	newHandshake.ClientKeyExch = NewClientKeyExchange(actx)
+	newHandshake.Finish = NewFinished(actx.Hctx)
+	newHandshake.ServerHelo = NewServerHello(actx.Hctx)
+	newHandshake.ServerHeloDone = NewServerHelloDone(actx.Hctx)
+	newHandshake.ServerKeyExch = NewServerKeyExchange(actx)
+	newHandshake.Transit = NewTransition(actx)
 	if err := checkHandshakeInit(&newHandshake); err != nil {
 		return nil, fmt.Errorf("handshake object creation: %v", err)
 	}
