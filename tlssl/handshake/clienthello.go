@@ -77,7 +77,7 @@ func (x *xClientHello) Handle() error {
 		return fmt.Errorf("nil ClientHello buffer")
 	}
 
-	cliHelloBuf := buff[TLS_HEADER_SIZE+TLS_HANDSHAKE_SIZE:]
+	cliHelloBuf := buff[tlssl.TLS_HEADER_SIZE+tlssl.TLS_HANDSHAKE_SIZE:]
 	if len(cliHelloBuf) < 38 {
 		return fmt.Errorf("ClientHello buffer is too small")
 	}
@@ -110,6 +110,7 @@ func (x *xClientHello) Handle() error {
 		return fmt.Errorf("ClientHello message parse doesnt match offset")
 	}
 
+	x.ctx.AppendOrder(CLIENTHELLO)
 	x.ctx.SetMsgHello(&newMsg)
 	x.nextState = SERVERHELLO
 	return nil

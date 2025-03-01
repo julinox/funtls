@@ -78,10 +78,7 @@ type Transition interface {
 }
 
 type Handshake struct {
-	Contexto  HandShakeContext
-	TLSHeader Header
-
-	// Handshake states
+	Contexto        HandShakeContext
 	Cert            Certificate
 	CertificateReq  CertificateRequest
 	CertificateVerf CertificateVerify
@@ -114,7 +111,6 @@ func NewHandshake(actx *AllContexts) (*Handshake, error) {
 	}
 
 	newHandshake.Contexto = actx.Hctx
-	newHandshake.TLSHeader = NewHeader()
 	newHandshake.Cert = NewCertificate(actx)
 	newHandshake.CertificateReq = NewCertificateRequest(actx.Hctx)
 	newHandshake.CertificateVerf = NewCertificateVerify(actx.Hctx)
@@ -141,10 +137,6 @@ func checkHandshakeInit(hsk *Handshake) error {
 
 	if hsk.Contexto == nil {
 		return fmt.Errorf("nil HandShakeContext object")
-	}
-
-	if hsk.TLSHeader == nil {
-		return fmt.Errorf("nil Header object")
 	}
 
 	if hsk.Cert == nil {

@@ -58,7 +58,7 @@ func (x *xTransition) Handle() error {
 
 func (x *xTransition) transitServerHelloDone() error {
 
-	x.tCtx.Lg.Info("Transitioning from SERVERHELLODONE")
+	x.tCtx.Lg.Debug("Transitioning from SERVERHELLODONE")
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATE
 	} else {
@@ -71,7 +71,7 @@ func (x *xTransition) transitServerHelloDone() error {
 
 func (x *xTransition) transitFinishedClient() error {
 
-	x.tCtx.Lg.Info("Transitioning from FINISHED_CLIENT")
+	x.tCtx.Lg.Debug("Transitioning from FINISHED_CLIENT")
 	x.nextState = CHANGECIPHERSPEC
 	x.ctx.SetTransitionStage(STAGE_FINISHED_SERVER)
 	return nil

@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"tlesio/systema"
 	"tlesio/tlssl"
 	ex "tlesio/tlssl/extensions"
 )
@@ -64,16 +63,25 @@ func (x *xServerHello) Handle() error {
 
 	// Cipher Suite
 	serverHelloBuf = append(serverHelloBuf, x.cipherSuites(msgHello)...)
-	fmt.Println(systema.PrettyPrintBytes(serverHelloBuf))
 
 	// "Compression methods"
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
 	// Extensions
 	serverHelloBuf = append(serverHelloBuf, x.extensions(msgHello)...)
-	fmt.Println(systema.PrettyPrintBytes(serverHelloBuf))
-	x.ctx.SetBuffer(SERVERHELLO, serverHelloBuf)
+
+	// Headers
+	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerHelo,
+		len(serverHelloBuf))
+
+	x.ctx.SetBuffer(SERVERHELLO, append(header, serverHelloBuf...))
+	x.ctx.AppendOrder(SERVERHELLO)
 	x.nextState = CERTIFICATE
+
+	// DEBUG
+	x.ctx.Send(SERVERHELLO)
+	x.nextState = COMPLETEHANDSHAKE
+	// DEBUG
 	return nil
 }
 

@@ -1,4 +1,4 @@
-package handshake
+package tlssl
 
 // -------------------------------------------
 // | Field       | Size   | Description       |
@@ -50,6 +50,7 @@ type HandshakeTypeType uint8
 const (
 	TLS_HEADER_SIZE    = 5
 	TLS_HANDSHAKE_SIZE = 4
+	TLS_VERSION        = 0x0303
 )
 
 const (
@@ -68,34 +69,18 @@ const (
 	HandshakeTypeFinished          HandshakeTypeType = 20
 )
 
-// Procesar Header
 type TLSHeader struct {
 	ContentType ContentTypeType
 	Version     uint16
 	Len         int
 }
 
-type TLSHandshake struct {
+type TLSHeaderHandshake struct {
 	Len           int
 	HandshakeType HandshakeTypeType
 }
 
-type Header interface {
-	Name() string
-	Header([]byte) *TLSHeader
-	HandShake([]byte) *TLSHandshake
-	HeaderPacket(*TLSHeader) []byte
-	HandShakePacket(*TLSHandshake) []byte
-}
-
-type tlsHead struct {
-}
-
-func NewHeader() Header {
-	return &tlsHead{}
-}
-
-func (h *tlsHead) Header(buffer []byte) *TLSHeader {
+func TLSHead(buffer []byte) *TLSHeader {
 
 	var header TLSHeader
 
@@ -109,9 +94,9 @@ func (h *tlsHead) Header(buffer []byte) *TLSHeader {
 	return &header
 }
 
-func (h *tlsHead) HandShake(buffer []byte) *TLSHandshake {
+func TLSHeadHandShake(buffer []byte) *TLSHeaderHandshake {
 
-	var handshake TLSHandshake
+	var handshake TLSHeaderHandshake
 
 	if len(buffer) < 4 {
 		return nil
@@ -122,28 +107,15 @@ func (h *tlsHead) HandShake(buffer []byte) *TLSHandshake {
 	return &handshake
 }
 
-func (h *tlsHead) Name() string {
-	return "Header"
-}
-
-func (h *tlsHead) HeaderPacket(hh *TLSHeader) []byte {
+func TLSHeadPacket(hh *TLSHeader) []byte {
 
 	var newBuffer []byte
 
-	switch hh.ContentType {
-	case ContentTypeChangeCipherSpec:
-		fallthrough
-	case ContentTypeAlert:
-		fallthrough
-	case ContentTypeHandshake:
-		fallthrough
-	case ContentTypeApplicationData:
-		newBuffer = append(newBuffer, byte(hh.ContentType))
-
-	default:
+	if hh == nil {
 		return nil
 	}
 
+	newBuffer = append(newBuffer, byte(hh.ContentType))
 	if hh.Version != 0 {
 		newBuffer = append(newBuffer, byte(hh.Version>>8), byte(hh.Version))
 	} else {
@@ -154,12 +126,35 @@ func (h *tlsHead) HeaderPacket(hh *TLSHeader) []byte {
 	return newBuffer
 }
 
-func (h *tlsHead) HandShakePacket(hs *TLSHandshake) []byte {
+func TLSHeadHandShakePacket(hs *TLSHeaderHandshake) []byte {
 
 	var newBuffer []byte
+
+	if hs == nil {
+		return nil
+	}
 
 	newBuffer = append(newBuffer, byte(hs.HandshakeType))
 	newBuffer = append(newBuffer, byte(hs.Len>>16), byte(hs.Len>>8),
 		byte(hs.Len))
 	return newBuffer
 }
+
+func TLSHeadsHandShakePacket(ht HandshakeTypeType, buffLen int) []byte {
+
+	newBuffer := TLSHeadPacket(&TLSHeader{
+		ContentType: ContentTypeHandshake,
+		Version:     TLS_VERSION,
+		Len:         buffLen + TLS_HANDSHAKE_SIZE})
+
+	newBuffer = append(newBuffer, TLSHeadHandShakePacket(&TLSHeaderHandshake{
+		Len:           buffLen,
+		HandshakeType: ht})...)
+	return newBuffer
+}
+
+/*outputBuffer = x.ifz.header.HeaderPacket(&ifs.TLSHeader{
+	ContentType: ifs.ContentTypeHandshake,
+	Version:     0x0303,
+	Len:         len(buffer),
+})*/

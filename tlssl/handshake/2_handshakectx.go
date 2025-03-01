@@ -34,6 +34,7 @@ type xHandhsakeContextData struct {
 	msgHello           *MsgHello
 	cipherSuite        uint16
 	transitionStage    int
+	order              []int
 }
 
 type xHandhsakeContext struct {
@@ -53,6 +54,9 @@ type HandShakeContext interface {
 	GetCipherSuite() uint16
 	SetTransitionStage(int)
 	GetTransitionStage() int
+	Order() []int
+	AppendOrder(int) error
+	PrintOrder() string
 	Send(int) error
 	PPrint(int) string
 }
@@ -185,6 +189,88 @@ func (x *xHandhsakeContext) GetTransitionStage() int {
 	return x.data.transitionStage
 }
 
+func (x *xHandhsakeContext) Order() []int {
+	return x.data.order
+}
+
+func (x *xHandhsakeContext) AppendOrder(op int) error {
+
+	switch op {
+	case CERTIFICATE:
+		fallthrough
+	case CERTIFICATEREQUEST:
+		fallthrough
+	case CERTIFICATEVERIFY:
+		fallthrough
+	case CHANGECIPHERSPEC:
+		fallthrough
+	case CLIENTHELLO:
+		fallthrough
+	case CLIENTKEYEXCHANGE:
+		fallthrough
+	case FINISHED:
+		fallthrough
+	case SERVERHELLO:
+		fallthrough
+	case SERVERHELLODONE:
+		fallthrough
+	case SERVERKEYEXCHANGE:
+		break
+	default:
+		return fmt.Errorf("invalid order append operation")
+	}
+
+	x.data.order = append(x.data.order, op)
+	return nil
+}
+
+func (x *xHandhsakeContext) PrintOrder() string {
+
+	out := "["
+	for i, v := range x.data.order {
+		switch v {
+		case CERTIFICATE:
+			out += "CERTIFICATE"
+
+		case CERTIFICATEREQUEST:
+			out += "CERTIFICATEREQUEST"
+
+		case CERTIFICATEVERIFY:
+			out += "CERTIFICATEVERIFY"
+
+		case CHANGECIPHERSPEC:
+			out += "CHANGECIPHERSPEC"
+
+		case CLIENTHELLO:
+			out += "CLIENTHELLO"
+
+		case CLIENTKEYEXCHANGE:
+			out += "CLIENTKEYEXCHANGE"
+
+		case FINISHED:
+			out += "FINISHED"
+
+		case SERVERHELLO:
+			out += "SERVERHELLO"
+
+		case SERVERHELLODONE:
+			out += "SERVERHELLODONE"
+
+		case SERVERKEYEXCHANGE:
+			out += "SERVERKEYEXCHANGE"
+
+		default:
+			out += "UNKNOWN"
+		}
+
+		if i < len(x.data.order)-1 {
+			out += ", "
+		}
+	}
+
+	return out + "]"
+}
+
 func (x *xHandhsakeContext) Send(op int) error {
 
 	var outBuff []byte
@@ -284,13 +370,6 @@ func (x *xHandhsakeContext) pts(buffer []byte) []byte {
 	if buffer == nil {
 		return nil
 	}
-
-	// Add TLS header to buffer
-	/*outputBuffer = x.ifz.header.HeaderPacket(&ifs.TLSHeader{
-		ContentType: ifs.ContentTypeHandshake,
-		Version:     0x0303,
-		Len:         len(buffer),
-	})*/
 
 	return append(outputBuffer, buffer...)
 }
