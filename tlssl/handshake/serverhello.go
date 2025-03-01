@@ -77,11 +77,6 @@ func (x *xServerHello) Handle() error {
 	x.ctx.SetBuffer(SERVERHELLO, append(header, serverHelloBuf...))
 	x.ctx.AppendOrder(SERVERHELLO)
 	x.nextState = CERTIFICATE
-
-	// DEBUG
-	x.ctx.Send(SERVERHELLO)
-	x.nextState = COMPLETEHANDSHAKE
-	// DEBUG
 	return nil
 }
 

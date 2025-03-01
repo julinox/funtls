@@ -19,6 +19,7 @@ const (
 )
 
 type xHandhsakeContextData struct {
+	certificate        []byte
 	certificateRequest []byte
 	certificateverify  []byte
 	changeCipherSpec   []byte
@@ -26,7 +27,6 @@ type xHandhsakeContextData struct {
 	clientHello        []byte
 	clientKeyExchange  []byte
 	finished           []byte
-	serverCertificate  []byte
 	serverHello        []byte
 	serverHelloDone    []byte
 	serverKeyExchange  []byte
@@ -57,7 +57,7 @@ type HandShakeContext interface {
 	Order() []int
 	AppendOrder(int) error
 	PrintOrder() string
-	Send(int) error
+	Send([]int) error
 	PPrint(int) string
 }
 
@@ -82,6 +82,9 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 	}
 
 	switch op {
+	case CERTIFICATE:
+		x.data.certificate = buff
+
 	case CERTIFICATEREQUEST:
 		x.data.certificateRequest = buff
 
@@ -103,9 +106,6 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 	case FINISHED:
 		x.data.finished = buff
 
-	case SERVERCERTIFICATE:
-		x.data.serverCertificate = buff
-
 	case SERVERHELLO:
 		x.data.serverHello = buff
 
@@ -120,6 +120,9 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	switch op {
+	case CERTIFICATE:
+		return x.data.certificate
+
 	case CERTIFICATEREQUEST:
 		return x.data.certificateRequest
 
@@ -140,9 +143,6 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	case FINISHED:
 		return x.data.finished
-
-	case SERVERCERTIFICATE:
-		return x.data.serverCertificate
 
 	case SERVERHELLO:
 		return x.data.serverHello
@@ -271,54 +271,51 @@ func (x *xHandhsakeContext) PrintOrder() string {
 	return out + "]"
 }
 
-func (x *xHandhsakeContext) Send(op int) error {
+func (x *xHandhsakeContext) Send(ids []int) error {
 
 	var outBuff []byte
 
-	for i := 0; i < _BuffersMap; i++ {
-		aux := 1 << i
-		if op&aux != 0 {
-			switch aux {
-			case CERTIFICATEREQUEST:
-				outBuff = append(outBuff, x.pts(x.data.certificateRequest)...)
-				x.lg.Debug("Sending CERTIFICATEREQUEST")
+	for _, id := range ids {
+		switch id {
+		case CERTIFICATE:
+			outBuff = append(outBuff, x.data.certificate...)
+			x.lg.Debug("Sending CERTIFICATE")
 
-			case CERTIFICATEVERIFY:
-				outBuff = append(outBuff, x.pts(x.data.certificateverify)...)
-				x.lg.Debug("Sending CERTIFICATEVERIFY")
+		case CERTIFICATEREQUEST:
+			outBuff = append(outBuff, x.data.certificateRequest...)
+			x.lg.Debug("Sending CERTIFICATEREQUEST")
 
-			case CHANGECIPHERSPEC:
-				outBuff = append(outBuff, x.pts(x.data.changeCipherSpec)...)
-				x.lg.Debug("Sending CHANGECIPHERSPEC")
+		case CERTIFICATEVERIFY:
+			outBuff = append(outBuff, x.data.certificateverify...)
+			x.lg.Debug("Sending CERTIFICATEVERIFY")
 
-			case CLIENTHELLO:
-				outBuff = append(outBuff, x.pts(x.data.clientHello)...)
-				x.lg.Debug("Sending CLIENTHELLO")
+		case CHANGECIPHERSPEC:
+			outBuff = append(outBuff, x.data.changeCipherSpec...)
+			x.lg.Debug("Sending CHANGECIPHERSPEC")
 
-			case CLIENTKEYEXCHANGE:
-				outBuff = append(outBuff, x.pts(x.data.clientKeyExchange)...)
-				x.lg.Debug("Sending CLIENTKEYEXCHANGE")
+		case CLIENTHELLO:
+			//outBuff = append(outBuff, x.pts(x.data.clientHello)...)
+			x.lg.Warn("What do you mean by 'Send ClientHello'?")
 
-			case FINISHED:
-				outBuff = append(outBuff, x.pts(x.data.finished)...)
-				x.lg.Debug("Sending FINISHED")
+		case CLIENTKEYEXCHANGE:
+			outBuff = append(outBuff, x.data.clientKeyExchange...)
+			x.lg.Debug("Sending CLIENTKEYEXCHANGE")
 
-			case SERVERCERTIFICATE:
-				outBuff = append(outBuff, x.pts(x.data.serverCertificate)...)
-				x.lg.Debug("Sending Server CERTIFICATE")
+		case FINISHED:
+			outBuff = append(outBuff, x.data.finished...)
+			x.lg.Debug("Sending FINISHED")
 
-			case SERVERHELLO:
-				outBuff = append(outBuff, x.pts(x.data.serverHello)...)
-				x.lg.Debug("Sending SERVERHELLO")
+		case SERVERHELLO:
+			outBuff = append(outBuff, x.data.serverHello...)
+			x.lg.Debug("Sending SERVERHELLO")
 
-			case SERVERHELLODONE:
-				outBuff = append(outBuff, x.pts(x.data.serverHelloDone)...)
-				x.lg.Debug("Sending SERVERHELLODONE")
+		case SERVERHELLODONE:
+			outBuff = append(outBuff, x.data.serverHelloDone...)
+			x.lg.Debug("Sending SERVERHELLODONE")
 
-			case SERVERKEYEXCHANGE:
-				outBuff = append(outBuff, x.pts(x.data.serverKeyExchange)...)
-				x.lg.Debug("Sending SERVERKEYEXCHANGE")
-			}
+		case SERVERKEYEXCHANGE:
+			outBuff = append(outBuff, x.data.serverKeyExchange...)
+			x.lg.Debug("Sending SERVERKEYEXCHANGE")
 		}
 	}
 
@@ -330,6 +327,9 @@ func (x *xHandhsakeContext) PPrint(op int) string {
 	var buff []byte
 
 	switch op {
+	case CERTIFICATE:
+		buff = x.data.certificate
+
 	case CERTIFICATEREQUEST:
 		buff = x.data.certificateRequest
 
@@ -341,9 +341,6 @@ func (x *xHandhsakeContext) PPrint(op int) string {
 
 	case CLIENTKEYEXCHANGE:
 		buff = x.data.clientKeyExchange
-
-	case SERVERCERTIFICATE:
-		buff = x.data.serverCertificate
 
 	case SERVERHELLO:
 		buff = x.data.serverHello
@@ -360,18 +357,6 @@ func (x *xHandhsakeContext) PPrint(op int) string {
 
 	return fmt.Sprintf("*********-  %v  -*********\n%v", len(buff),
 		systema.PrettyPrintBytes(buff))
-}
-
-// Prepare buffer to be sent
-func (x *xHandhsakeContext) pts(buffer []byte) []byte {
-
-	var outputBuffer []byte
-
-	if buffer == nil {
-		return nil
-	}
-
-	return append(outputBuffer, buffer...)
 }
 
 func (x *xHandhsakeContext) sendData(buffer []byte) error {

@@ -59,6 +59,10 @@ func (x *xTransition) Handle() error {
 func (x *xTransition) transitServerHelloDone() error {
 
 	x.tCtx.Lg.Debug("Transitioning from SERVERHELLODONE")
+	// Send all packets
+	x.ctx.Send(x.ctx.Order())
+	// Read client response packets
+
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATE
 	} else {

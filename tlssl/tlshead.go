@@ -150,11 +150,6 @@ func TLSHeadsHandShakePacket(ht HandshakeTypeType, buffLen int) []byte {
 	newBuffer = append(newBuffer, TLSHeadHandShakePacket(&TLSHeaderHandshake{
 		Len:           buffLen,
 		HandshakeType: ht})...)
+
 	return newBuffer
 }
-
-/*outputBuffer = x.ifz.header.HeaderPacket(&ifs.TLSHeader{
-	ContentType: ifs.ContentTypeHandshake,
-	Version:     0x0303,
-	Len:         len(buffer),
-})*/
