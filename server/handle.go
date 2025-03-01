@@ -47,7 +47,6 @@ func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
 	}
 
 	newHandle.lg = ctx.Lg
-	// Save client hello message
 	return &newHandle, nil
 }
 
@@ -73,15 +72,9 @@ func (x *xHandle) LetsTalk(cliHello []byte) {
 		return
 	}
 
+	x.handhsake.Contexto.SetBuffer(handshake.CLIENTHELLO, cliHello)
 	b166er.Post(handshake.CLIENTHELLO)
-
-	// Debug
-	x.handhsake.Contexto.SetCipherSuite(0x003D)
-	// DEBUG
-
-	err = b166er.Start()
-
-	if err != nil {
+	if err = b166er.Start(); err != nil {
 		x.lg.Error("err Handshake flow: ", err)
 	}
 }

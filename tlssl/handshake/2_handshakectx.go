@@ -31,8 +31,8 @@ type xHandhsakeContextData struct {
 	serverHelloDone    []byte
 	serverKeyExchange  []byte
 	serverCert         *x509.Certificate
+	msgHello           *MsgHello
 	cipherSuite        uint16
-	optClientAuth      bool
 	transitionStage    int
 }
 
@@ -43,14 +43,16 @@ type xHandhsakeContext struct {
 }
 
 type HandShakeContext interface {
-	SetCert(*x509.Certificate)
-	GetCert(int) *x509.Certificate
 	SetBuffer(int, []byte)
 	GetBuffer(int) []byte
+	SetCert(*x509.Certificate)
+	GetCert() *x509.Certificate
+	SetMsgHello(*MsgHello)
+	GetMsgHello() *MsgHello
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
-	GetTransitionStage() int
 	SetTransitionStage(int)
+	GetTransitionStage() int
 	Send(int) error
 	PPrint(int) string
 }
@@ -151,6 +153,38 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 	return nil
 }
 
+func (x *xHandhsakeContext) SetCert(cert *x509.Certificate) {
+	x.data.serverCert = cert
+}
+
+func (x *xHandhsakeContext) GetCert() *x509.Certificate {
+	return x.data.serverCert
+}
+
+func (x *xHandhsakeContext) SetMsgHello(msg *MsgHello) {
+	x.data.msgHello = msg
+}
+
+func (x *xHandhsakeContext) GetMsgHello() *MsgHello {
+	return x.data.msgHello
+}
+
+func (x *xHandhsakeContext) SetCipherSuite(cipherSuite uint16) {
+	x.data.cipherSuite = cipherSuite
+}
+
+func (x *xHandhsakeContext) GetCipherSuite() uint16 {
+	return x.data.cipherSuite
+}
+
+func (x *xHandhsakeContext) SetTransitionStage(stage int) {
+	x.data.transitionStage = stage
+}
+
+func (x *xHandhsakeContext) GetTransitionStage() int {
+	return x.data.transitionStage
+}
+
 func (x *xHandhsakeContext) Send(op int) error {
 
 	var outBuff []byte
@@ -203,47 +237,6 @@ func (x *xHandhsakeContext) Send(op int) error {
 	}
 
 	return x.sendData(outBuff)
-}
-
-func (x *xHandhsakeContext) SetCert(cert *x509.Certificate) {
-	x.data.serverCert = cert
-}
-
-func (x *xHandhsakeContext) GetCert(who int) *x509.Certificate {
-
-	switch who {
-	case CLIENTCERTIFICATE:
-		return nil
-
-	case SERVERCERTIFICATE:
-		return x.data.serverCert
-	}
-
-	return nil
-}
-
-func (x *xHandhsakeContext) SetCipherSuite(cipherSuite uint16) {
-	x.data.cipherSuite = cipherSuite
-}
-
-func (x *xHandhsakeContext) GetCipherSuite() uint16 {
-	return x.data.cipherSuite
-}
-
-func (x *xHandhsakeContext) GetOptClientAuth() bool {
-	return x.data.optClientAuth
-}
-
-func (x *xHandhsakeContext) SetOptClientAuth(optClientAuth bool) {
-	x.data.optClientAuth = optClientAuth
-}
-
-func (x *xHandhsakeContext) GetTransitionStage() int {
-	return x.data.transitionStage
-}
-
-func (x *xHandhsakeContext) SetTransitionStage(stage int) {
-	x.data.transitionStage = stage
 }
 
 func (x *xHandhsakeContext) PPrint(op int) string {
