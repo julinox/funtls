@@ -6,16 +6,12 @@ import (
 	"net"
 	"tlesio/systema"
 
-	//ifs "tlesio/tlssl/interfaces"
-
 	"github.com/sirupsen/logrus"
 )
 
-var _BuffersMap = 9
-
 const (
 	CLIENTCERTIFICATE = 3
-	SERVERCERTIFICATE = 5
+	SERVERCERTIFICATE = 7
 )
 
 type xHandhsakeContextData struct {
@@ -35,6 +31,7 @@ type xHandhsakeContextData struct {
 	cipherSuite        uint16
 	transitionStage    int
 	order              []int
+	expected           int
 }
 
 type xHandhsakeContext struct {
@@ -57,6 +54,10 @@ type HandShakeContext interface {
 	Order() []int
 	AppendOrder(int) error
 	PrintOrder() string
+	Expected() int
+	FlagExpected(int)
+	UnflagExpected(int)
+	PrintExpected() string
 	Send([]int) error
 	PPrint(int) string
 }
@@ -72,6 +73,9 @@ func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
 	newContext.lg = lg
 	newContext.coms = coms
 	newContext.data = &xHandhsakeContextData{}
+	newContext.data.expected |= CLIENTKEYEXCHANGE
+	newContext.data.expected |= CHANGECIPHERSPEC
+	newContext.data.expected |= FINISHED
 	return &newContext
 }
 
@@ -225,50 +229,75 @@ func (x *xHandhsakeContext) AppendOrder(op int) error {
 }
 
 func (x *xHandhsakeContext) PrintOrder() string {
+	return _X_(x.data.order)
+}
 
-	out := "["
-	for i, v := range x.data.order {
-		switch v {
-		case CERTIFICATE:
-			out += "CERTIFICATE"
+// All posible handshake messages from client
+// CERTIFICATE, CLIENTKEYEXCHANGE, CERTIFICATEVERIFY,
+// CHANGECIPHERSPEC, FINISHED
+func (x *xHandhsakeContext) Expected() int {
+	return x.data.expected
+}
 
-		case CERTIFICATEREQUEST:
-			out += "CERTIFICATEREQUEST"
+func (x *xHandhsakeContext) FlagExpected(op int) {
 
-		case CERTIFICATEVERIFY:
-			out += "CERTIFICATEVERIFY"
+	switch op {
+	case CERTIFICATE:
+		fallthrough
+	case CLIENTKEYEXCHANGE:
+		fallthrough
+	case CERTIFICATEVERIFY:
+		fallthrough
+	case CHANGECIPHERSPEC:
+		fallthrough
+	case FINISHED:
+		break
+	default:
+		return
+	}
 
-		case CHANGECIPHERSPEC:
-			out += "CHANGECIPHERSPEC"
+	x.data.expected |= op
+}
 
-		case CLIENTHELLO:
-			out += "CLIENTHELLO"
+func (x *xHandhsakeContext) UnflagExpected(op int) {
 
-		case CLIENTKEYEXCHANGE:
-			out += "CLIENTKEYEXCHANGE"
+	switch op {
+	case CERTIFICATE:
+		fallthrough
+	case CLIENTKEYEXCHANGE:
+		fallthrough
+	case CERTIFICATEVERIFY:
+		fallthrough
+	case CHANGECIPHERSPEC:
+		fallthrough
+	case FINISHED:
+		break
+	default:
+		return
+	}
 
-		case FINISHED:
-			out += "FINISHED"
+	x.data.expected &= ^op
+}
 
-		case SERVERHELLO:
-			out += "SERVERHELLO"
+func (x *xHandhsakeContext) PrintExpected() string {
 
-		case SERVERHELLODONE:
-			out += "SERVERHELLODONE"
+	var expected []int
 
-		case SERVERKEYEXCHANGE:
-			out += "SERVERKEYEXCHANGE"
+	allExpected := []int{
+		CERTIFICATE,
+		CLIENTKEYEXCHANGE,
+		CERTIFICATEVERIFY,
+		CHANGECIPHERSPEC,
+		FINISHED,
+	}
 
-		default:
-			out += "UNKNOWN"
-		}
-
-		if i < len(x.data.order)-1 {
-			out += ", "
+	for _, v := range allExpected {
+		if x.data.expected&v != 0 {
+			expected = append(expected, v)
 		}
 	}
 
-	return out + "]"
+	return _X_(expected)
 }
 
 func (x *xHandhsakeContext) Send(ids []int) error {
@@ -294,7 +323,6 @@ func (x *xHandhsakeContext) Send(ids []int) error {
 			x.lg.Debug("Sending CHANGECIPHERSPEC")
 
 		case CLIENTHELLO:
-			//outBuff = append(outBuff, x.pts(x.data.clientHello)...)
 			x.lg.Warn("What do you mean by 'Send ClientHello'?")
 
 		case CLIENTKEYEXCHANGE:
@@ -371,4 +399,52 @@ func (x *xHandhsakeContext) sendData(buffer []byte) error {
 	}
 
 	return nil
+}
+
+func _X_(l []int) string {
+
+	out := "["
+
+	for i, v := range l {
+		switch v {
+		case CERTIFICATE:
+			out += "CERTIFICATE"
+
+		case CERTIFICATEREQUEST:
+			out += "CERTIFICATEREQUEST"
+
+		case CERTIFICATEVERIFY:
+			out += "CERTIFICATEVERIFY"
+
+		case CHANGECIPHERSPEC:
+			out += "CHANGECIPHERSPEC"
+
+		case CLIENTHELLO:
+			out += "CLIENTHELLO"
+
+		case CLIENTKEYEXCHANGE:
+			out += "CLIENTKEYEXCHANGE"
+
+		case FINISHED:
+			out += "FINISHED"
+
+		case SERVERHELLO:
+			out += "SERVERHELLO"
+
+		case SERVERHELLODONE:
+			out += "SERVERHELLODONE"
+
+		case SERVERKEYEXCHANGE:
+			out += "SERVERKEYEXCHANGE"
+
+		default:
+			out += "UNKNOWN"
+		}
+
+		if i < len(l)-1 {
+			out += ", "
+		}
+	}
+
+	return out + "]"
 }

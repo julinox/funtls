@@ -62,6 +62,11 @@ func (x *xTransition) transitServerHelloDone() error {
 	// Send all packets
 	x.ctx.Send(x.ctx.Order())
 	// Read client response packets
+	fmt.Println("EXPECTED")
+	fmt.Println(x.ctx.PrintExpected())
+	fmt.Printf("%b\n", x.ctx.Expected())
+	fmt.Println("ORDER")
+	fmt.Println(x.ctx.PrintOrder())
 
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATE
