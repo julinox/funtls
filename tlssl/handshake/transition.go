@@ -5,6 +5,7 @@ import (
 	"tlesio/tlssl"
 )
 
+const _BUFFER_SIZE_ = 2048
 const (
 	STAGE_SERVERHELLODONE = iota + 1
 	STAGE_FINISHED_CLIENT
@@ -54,28 +55,6 @@ func (x *xTransition) Handle() error {
 	default:
 		return fmt.Errorf("%v: invalid transition stage", x.Name())
 	}
-}
-
-func (x *xTransition) transitServerHelloDone() error {
-
-	x.tCtx.Lg.Debug("Transitioning from SERVERHELLODONE")
-	// Send all packets
-	x.ctx.Send(x.ctx.Order())
-	// Read client response packets
-	fmt.Println("EXPECTED")
-	fmt.Println(x.ctx.PrintExpected())
-	fmt.Printf("%b\n", x.ctx.Expected())
-	fmt.Println("ORDER")
-	fmt.Println(x.ctx.PrintOrder())
-
-	if x.tCtx.OptClientAuth {
-		x.nextState = CERTIFICATE
-	} else {
-		x.nextState = CLIENTKEYEXCHANGE
-	}
-
-	x.ctx.SetTransitionStage(STAGE_FINISHED_CLIENT)
-	return nil
 }
 
 func (x *xTransition) transitFinishedClient() error {

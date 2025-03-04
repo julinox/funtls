@@ -51,15 +51,15 @@ type HandShakeContext interface {
 	GetCipherSuite() uint16
 	SetTransitionStage(int)
 	GetTransitionStage() int
+	GetComms() net.Conn
 	Order() []int
 	AppendOrder(int) error
 	PrintOrder() string
 	Expected() int
-	FlagExpected(int)
-	UnflagExpected(int)
+	AppendExpected(int)
+	UnAppendExpected(int)
 	PrintExpected() string
 	Send([]int) error
-	PPrint(int) string
 }
 
 func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
@@ -193,6 +193,10 @@ func (x *xHandhsakeContext) GetTransitionStage() int {
 	return x.data.transitionStage
 }
 
+func (x *xHandhsakeContext) GetComms() net.Conn {
+	return x.coms
+}
+
 func (x *xHandhsakeContext) Order() []int {
 	return x.data.order
 }
@@ -229,7 +233,7 @@ func (x *xHandhsakeContext) AppendOrder(op int) error {
 }
 
 func (x *xHandhsakeContext) PrintOrder() string {
-	return _X_(x.data.order)
+	return HandshakeNameList(x.data.order)
 }
 
 // All posible handshake messages from client
@@ -239,7 +243,7 @@ func (x *xHandhsakeContext) Expected() int {
 	return x.data.expected
 }
 
-func (x *xHandhsakeContext) FlagExpected(op int) {
+func (x *xHandhsakeContext) AppendExpected(op int) {
 
 	switch op {
 	case CERTIFICATE:
@@ -259,7 +263,7 @@ func (x *xHandhsakeContext) FlagExpected(op int) {
 	x.data.expected |= op
 }
 
-func (x *xHandhsakeContext) UnflagExpected(op int) {
+func (x *xHandhsakeContext) UnAppendExpected(op int) {
 
 	switch op {
 	case CERTIFICATE:
@@ -297,7 +301,7 @@ func (x *xHandhsakeContext) PrintExpected() string {
 		}
 	}
 
-	return _X_(expected)
+	return HandshakeNameList(expected)
 }
 
 func (x *xHandhsakeContext) Send(ids []int) error {
@@ -350,43 +354,6 @@ func (x *xHandhsakeContext) Send(ids []int) error {
 	return x.sendData(outBuff)
 }
 
-func (x *xHandhsakeContext) PPrint(op int) string {
-
-	var buff []byte
-
-	switch op {
-	case CERTIFICATE:
-		buff = x.data.certificate
-
-	case CERTIFICATEREQUEST:
-		buff = x.data.certificateRequest
-
-	case CHANGECIPHERSPEC:
-		buff = x.data.changeCipherSpec
-
-	case CLIENTHELLO:
-		buff = x.data.clientHello
-
-	case CLIENTKEYEXCHANGE:
-		buff = x.data.clientKeyExchange
-
-	case SERVERHELLO:
-		buff = x.data.serverHello
-
-	case FINISHED:
-		buff = x.data.finished
-
-	case SERVERHELLODONE:
-		buff = x.data.serverHelloDone
-
-	case SERVERKEYEXCHANGE:
-		buff = x.data.serverKeyExchange
-	}
-
-	return fmt.Sprintf("*********-  %v  -*********\n%v", len(buff),
-		systema.PrettyPrintBytes(buff))
-}
-
 func (x *xHandhsakeContext) sendData(buffer []byte) error {
 
 	if buffer == nil {
@@ -399,52 +366,4 @@ func (x *xHandhsakeContext) sendData(buffer []byte) error {
 	}
 
 	return nil
-}
-
-func _X_(l []int) string {
-
-	out := "["
-
-	for i, v := range l {
-		switch v {
-		case CERTIFICATE:
-			out += "CERTIFICATE"
-
-		case CERTIFICATEREQUEST:
-			out += "CERTIFICATEREQUEST"
-
-		case CERTIFICATEVERIFY:
-			out += "CERTIFICATEVERIFY"
-
-		case CHANGECIPHERSPEC:
-			out += "CHANGECIPHERSPEC"
-
-		case CLIENTHELLO:
-			out += "CLIENTHELLO"
-
-		case CLIENTKEYEXCHANGE:
-			out += "CLIENTKEYEXCHANGE"
-
-		case FINISHED:
-			out += "FINISHED"
-
-		case SERVERHELLO:
-			out += "SERVERHELLO"
-
-		case SERVERHELLODONE:
-			out += "SERVERHELLODONE"
-
-		case SERVERKEYEXCHANGE:
-			out += "SERVERKEYEXCHANGE"
-
-		default:
-			out += "UNKNOWN"
-		}
-
-		if i < len(l)-1 {
-			out += ", "
-		}
-	}
-
-	return out + "]"
 }

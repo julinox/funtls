@@ -119,7 +119,7 @@ func NewHandshake(actx *AllContexts) (*Handshake, error) {
 	newHandshake.ClientKeyExch = NewClientKeyExchange(actx)
 	newHandshake.Finish = NewFinished(actx.Hctx)
 	newHandshake.ServerHelo = NewServerHello(actx)
-	newHandshake.ServerHeloDone = NewServerHelloDone(actx.Hctx)
+	newHandshake.ServerHeloDone = NewServerHelloDone(actx)
 	newHandshake.ServerKeyExch = NewServerKeyExchange(actx)
 	newHandshake.Transit = NewTransition(actx)
 	if err := checkHandshakeInit(&newHandshake); err != nil {
@@ -184,4 +184,47 @@ func checkHandshakeInit(hsk *Handshake) error {
 	}
 
 	return nil
+}
+
+func HandshakeName(h int) string {
+
+	switch h {
+	case CERTIFICATE:
+		return "CERTIFICATE"
+	case CERTIFICATEREQUEST:
+		return "CERTIFICATEREQUEST"
+	case CERTIFICATEVERIFY:
+		return "CERTIFICATEVERIFY"
+	case CHANGECIPHERSPEC:
+		return "CHANGECIPHERSPEC"
+	case CLIENTHELLO:
+		return "CLIENTHELLO"
+	case CLIENTKEYEXCHANGE:
+		return "CLIENTKEYEXCHANGE"
+	case FINISHED:
+		return "FINISHED"
+	case SERVERHELLO:
+		return "SERVERHELLO"
+	case SERVERHELLODONE:
+		return "SERVERHELLODONE"
+	case SERVERKEYEXCHANGE:
+		return "SERVERKEYEXCHANGE"
+	}
+
+	return "UNKNOWN"
+}
+
+func HandshakeNameList(l []int) string {
+
+	out := "["
+
+	for i, v := range l {
+		out += HandshakeName(v)
+
+		if i < len(l)-1 {
+			out += ", "
+		}
+	}
+
+	return out + "]"
 }

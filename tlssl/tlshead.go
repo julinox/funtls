@@ -1,5 +1,7 @@
 package tlssl
 
+import "fmt"
+
 // -------------------------------------------
 // | Field       | Size   | Description       |
 // |-------------|--------|-------------------|
@@ -50,7 +52,9 @@ type HandshakeTypeType uint8
 const (
 	TLS_HEADER_SIZE    = 5
 	TLS_HANDSHAKE_SIZE = 4
-	TLS_VERSION        = 0x0303
+	TLS_VERSION1_0     = 0x0301
+	TLS_VERSION1_1     = 0x0302
+	TLS_VERSION1_2     = 0x0303
 )
 
 const (
@@ -144,7 +148,7 @@ func TLSHeadsHandShakePacket(ht HandshakeTypeType, buffLen int) []byte {
 
 	newBuffer := TLSHeadPacket(&TLSHeader{
 		ContentType: ContentTypeHandshake,
-		Version:     TLS_VERSION,
+		Version:     TLS_VERSION1_2,
 		Len:         buffLen + TLS_HANDSHAKE_SIZE})
 
 	newBuffer = append(newBuffer, TLSHeadHandShakePacket(&TLSHeaderHandshake{
@@ -152,4 +156,32 @@ func TLSHeadsHandShakePacket(ht HandshakeTypeType, buffLen int) []byte {
 		HandshakeType: ht})...)
 
 	return newBuffer
+}
+
+func TLSHeadCheck(head *TLSHeader) error {
+
+	if head == nil {
+		return fmt.Errorf("nil TLSHeader object")
+	}
+
+	if head.Version != TLS_VERSION1_0 &&
+		head.Version != TLS_VERSION1_1 &&
+		head.Version != TLS_VERSION1_2 {
+		return fmt.Errorf("invalid TLS version")
+	}
+
+	switch head.ContentType {
+	case ContentTypeChangeCipherSpec:
+		fallthrough
+	case ContentTypeAlert:
+		fallthrough
+	case ContentTypeHandshake:
+		fallthrough
+	case ContentTypeApplicationData:
+		break
+	default:
+		return fmt.Errorf("invalid ContentType")
+	}
+
+	return nil
 }
