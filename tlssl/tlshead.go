@@ -1,6 +1,8 @@
 package tlssl
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // -------------------------------------------
 // | Field       | Size   | Description       |
@@ -86,6 +88,12 @@ type TLSHeader struct {
 type TLSHeaderHandshake struct {
 	Len           int
 	HandshakeType HandshakeTypeType
+}
+
+type TLSRecord struct {
+	Header    *TLSHeader
+	HandShake *TLSHeaderHandshake
+	Msg       []byte //Whole message
 }
 
 func TLSHead(buffer []byte) *TLSHeader {
@@ -188,4 +196,117 @@ func TLSHeadCheck(head *TLSHeader) error {
 	}
 
 	return nil
+}
+
+// Decode TLS records from a buffer
+// The buffer is a concatenation of TLS records
+// If any "record" is invalid, the function returns error
+func TLSDecodeRecords(buff []byte) ([]*TLSRecord, error) {
+
+	var offset int
+	var records []*TLSRecord
+
+	// offset always points to the start of the next record
+	for offset < len(buff) {
+		record := TLSRecord{}
+		head := TLSHead(buff[offset : offset+TLS_HEADER_SIZE])
+		if head == nil {
+			return nil, fmt.Errorf("nil TLSHeader object")
+		}
+
+		record.Header = head
+		if head.Len > len(buff[offset:]) {
+			return nil, fmt.Errorf("invalid record len. Is this an attack?")
+		}
+
+		// TLSRecord.Msg is the whole message
+		record.Msg = buff[offset : offset+head.Len]
+		if head.ContentType == ContentTypeHandshake {
+			handshake := TLSHeadHandShake(buff[offset+TLS_HEADER_SIZE:])
+			if handshake == nil {
+				return nil, fmt.Errorf("nil TLSHeaderHandshake object")
+			}
+
+			record.HandShake = handshake
+		}
+
+		records = append(records, &record)
+		offset += TLS_HEADER_SIZE + head.Len
+		if head.ContentType == ContentTypeHandshake {
+			fmt.Printf("APENDADO RECORD: %v | Tipo: %v\n", head.ContentType,
+				record.HandShake.HandshakeType)
+		} else {
+			fmt.Printf("APENDADO RECORD: %v\n", head.ContentType)
+		}
+	}
+
+	return records, nil
+}
+
+func (x *TLSHeader) String() string {
+
+	return fmt.Sprintf("ContentType: %v, Version: %v, Len: %d",
+		x.ContentType, version(x.Version), x.Len)
+}
+
+func (x *TLSHeaderHandshake) String() string {
+
+	return fmt.Sprintf("HandshakeType: %d, Len: %d",
+		x.HandshakeType, x.Len)
+}
+
+func (x ContentTypeType) String() string {
+
+	switch x {
+	case ContentTypeChangeCipherSpec:
+		return "ChangeCipherSpec"
+	case ContentTypeAlert:
+		return "Alert"
+	case ContentTypeHandshake:
+		return "Handshake"
+	case ContentTypeApplicationData:
+		return "ApplicationData"
+	}
+
+	return "Unknown"
+}
+
+func (x HandshakeTypeType) String() string {
+
+	switch x {
+	case HandshakeTypeClientHello:
+		return "ClientHello"
+	case HandshakeTypeServerHello:
+		return "ServerHello"
+	case HandshakeTypeCertificate:
+		return "Certificate"
+	case HandshakeTypeServerKeyExchange:
+		return "ServerKeyExchange"
+	case HandshakeTypeCertificateRequest:
+		return "CertificateRequest"
+	case HandshakeTypeServerHelloDone:
+		return "ServerHelloDone"
+	case HandshakeTypeCertificateVerify:
+		return "CertificateVerify"
+	case HandshakeTypeClientKeyExchange:
+		return "ClientKeyExchange"
+	case HandshakeTypeFinished:
+		return "Finished"
+	}
+
+	return "Unknown"
+}
+
+func version(v uint16) string {
+
+	switch v {
+	case TLS_VERSION1_0:
+		return "TLS 1.0(0x0301)"
+	case TLS_VERSION1_1:
+		return "TLS 1.1(0x0302)"
+	case TLS_VERSION1_2:
+		return "TLS 1.2(0x0303)"
+	}
+
+	return "Unknown"
 }

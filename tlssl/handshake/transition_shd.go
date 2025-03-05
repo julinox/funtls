@@ -33,6 +33,8 @@ func (x *xTransition) transitServerHelloDone() error {
 			return fmt.Errorf("expected packets readerror: nodata")
 		}
 
+		//fmt.Println(systema.PrettyPrintBytes(buff[:n]))
+		//return nil
 		who := tlssl.TLSHead(buff[:tlssl.TLS_HEADER_SIZE])
 		err = tlssl.TLSHeadCheck(who)
 		if err != nil {
