@@ -71,7 +71,7 @@ func (x *xServerHello) Handle() error {
 	serverHelloBuf = append(serverHelloBuf, x.extensions(msgHello)...)
 
 	// Headers
-	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerHelo,
+	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerHello,
 		len(serverHelloBuf))
 
 	x.ctx.SetBuffer(SERVERHELLO, append(header, serverHelloBuf...))

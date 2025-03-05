@@ -14,37 +14,38 @@ import "fmt"
 
 // Content Types:
 // ------------------
-// ChangeCipherSpec
-// Alert
-// Handshake
-// Application Data
+// ChangeCipherSpec: 0x14
+// Alert: 0x15
+// Handshake: 0x16
+// Application Data: 0x17
 // ------------------
 
 // Versions:
 // ------------------
-// 0x0301: TLS 1.0
-// 0x0302: TLS 1.1
-// 0x0303: TLS 1.2
-// 0x0304: TLS 1.3a
+// TLS 1.0: 0x0301
+// TLS 1.1: 0x0302
+// TLS 1.2: 0x0303
+// TLS 1.3: 0x0303 (is determined by the extension "supported_versions" field)
 // ------------------
 
 // Each handshake message has the following structure:
 //
-// | Field             | Size (bytes) | Description                                              |
-// |-------------------|--------------|----------------------------------------------------------|
-// | HandshakeType     | 1 byte       | Type of handshake message. Example:                      |
-// |                   |              | - 1: ClientHello                                         |
-// |                   |              | - 2: ServerHello                                         |
-// |                   |              | - 11: Certificate                                        |
-// |                   |              | - 14: ServerHelloDone                                    |
-// |                   |              | - 16: ClientKeyExchange                                  |
-// |                   |              | - 20: Finished                                           |
-// |-------------------|--------------|----------------------------------------------------------|
-// | Length            | 3 bytes      | Len of the message (in bytes), excluding the type field. |
-// |-------------------|--------------|----------------------------------------------------------|
-// | Handshake Message | Variable     | The body of the message (varies according to the         |
-// |                                  | handshake type).                                         |
-// |---------------------------------------------------------------------------------------------|
+// | Field             | Size (bytes) | Description|
+// |-------------------|--------------|--------------------------|
+// | HandshakeType     | 1 byte       | ClientHello: 0x01        |
+// |                   |              | ServerHello: 0x02        |
+// |                   |              | Certificate: 0x0B        |
+// |                   |              | ServerKeyExchange: 0x0C  |
+// |                   |              | CertificateRequest: 0x0D |
+// |                   |              | ServerHelloDone: 0x0E    |
+// |                   |              | CertificateVerify: 0x0F  |
+// |                   |              | ClientKeyExchange: 0x10  |
+// |                   |              | Finished: 0x14           |
+// |-------------------|--------------|--------------------------|
+// | Length            | 3 bytes      | Len of the message   ... |
+// |-------------------|--------------|------------------------ -|
+// | Handshake Message | Variable     | .                        |
+// |-------------------------------------------------------------|
 
 type ContentTypeType uint8
 type HandshakeTypeType uint8
@@ -58,19 +59,22 @@ const (
 )
 
 const (
-	ContentTypeChangeCipherSpec ContentTypeType = 20
-	ContentTypeAlert            ContentTypeType = 21
-	ContentTypeHandshake        ContentTypeType = 22
-	ContentTypeApplicationData  ContentTypeType = 23
+	ContentTypeChangeCipherSpec ContentTypeType = 0x14
+	ContentTypeAlert            ContentTypeType = 0x15
+	ContentTypeHandshake        ContentTypeType = 0x16
+	ContentTypeApplicationData  ContentTypeType = 0x17
 )
 
 const (
-	HandshakeTypeClientHelo        HandshakeTypeType = 1
-	HandshakeTypeServerHelo        HandshakeTypeType = 2
-	HandshakeTypeCertificate       HandshakeTypeType = 11
-	HandshakeTypeServerHeloDone    HandshakeTypeType = 14
-	HandshakeTypeClientKeyExchange HandshakeTypeType = 16
-	HandshakeTypeFinished          HandshakeTypeType = 20
+	HandshakeTypeClientHello        HandshakeTypeType = 0x01
+	HandshakeTypeServerHello        HandshakeTypeType = 0x02
+	HandshakeTypeCertificate        HandshakeTypeType = 0x0B
+	HandshakeTypeServerKeyExchange  HandshakeTypeType = 0x0C
+	HandshakeTypeCertificateRequest HandshakeTypeType = 0x0D
+	HandshakeTypeServerHelloDone    HandshakeTypeType = 0x0E
+	HandshakeTypeCertificateVerify  HandshakeTypeType = 0x0F
+	HandshakeTypeClientKeyExchange  HandshakeTypeType = 0x10
+	HandshakeTypeFinished           HandshakeTypeType = 0x14
 )
 
 type TLSHeader struct {

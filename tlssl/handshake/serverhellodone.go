@@ -34,7 +34,7 @@ func (x *xServerHelloDone) Handle() error {
 	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
 
 	// Header
-	buff := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerHeloDone, 0)
+	buff := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerHelloDone, 0)
 	x.ctx.SetBuffer(SERVERHELLODONE, buff)
 	x.ctx.AppendOrder(SERVERHELLODONE)
 	x.nextState = TRANSITION

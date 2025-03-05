@@ -6,6 +6,7 @@ import (
 )
 
 const _BUFFER_SIZE_ = 2048
+const _READ_TIMEOUT_ = 2
 const (
 	STAGE_SERVERHELLODONE = iota + 1
 	STAGE_FINISHED_CLIENT

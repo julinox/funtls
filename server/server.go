@@ -82,7 +82,7 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 	}
 
 	tHeaderHS := tlssl.TLSHeadHandShake(buffer[tlssl.TLS_HEADER_SIZE:])
-	if tHeaderHS.HandshakeType != tlssl.HandshakeTypeClientHelo {
+	if tHeaderHS.HandshakeType != tlssl.HandshakeTypeClientHello {
 		server.lg.Warning("Pretty rude from you not to say helo first")
 		return
 	}
