@@ -33,20 +33,21 @@ func (x *xTransition) transitServerHelloDone() error {
 			return fmt.Errorf("expected packets readerror: nodata")
 		}
 
-		//fmt.Println(systema.PrettyPrintBytes(buff[:n]))
-		//return nil
-		who := tlssl.TLSHead(buff[:tlssl.TLS_HEADER_SIZE])
-		err = tlssl.TLSHeadCheck(who)
+		whoIsIt, err := tlssl.TLSRecordsDecode(buff[:n])
 		if err != nil {
-			return fmt.Errorf("no TLS response from client: %v", err.Error())
+			return fmt.Errorf("decoding client records: %v", err.Error())
 		}
 
-		switch who.ContentType {
-		case tlssl.ContentTypeChangeCipherSpec:
-			x.isExpected(CHANGECIPHERSPEC, "ChangeCipherSpec")
+		for _, who := range whoIsIt {
+			switch who.Header.ContentType {
+			case tlssl.ContentTypeChangeCipherSpec:
+				if x.isExpected(CHANGECIPHERSPEC, "ChangeCipherSpec") {
+					x.tCtx.Lg.Debug("Setea CipherSec en el contexto")
+				}
 
-		case tlssl.ContentTypeHandshake:
-			x.parseClientHandshakePacket(buff[:n])
+			case tlssl.ContentTypeHandshake:
+				x.parseClientHandshakePacket(who)
+			}
 		}
 
 		if x.ctx.Expected() == 0 {
@@ -64,15 +65,21 @@ func (x *xTransition) transitServerHelloDone() error {
 	return nil
 }
 
-func (x *xTransition) parseClientHandshakePacket(buff []byte) {
+func (x *xTransition) isExpected(hsM int, name string) bool {
 
-	hs := tlssl.TLSHeadHandShake(buff[tlssl.TLS_HEADER_SIZE:])
-	if hs == nil {
-		x.tCtx.Lg.Warn("Invalid handshake packet")
-		return
+	if x.ctx.Expected()&hsM == 0 {
+		x.tCtx.Lg.Warnf("Unexpected '%v' client message", name)
+		return false
 	}
 
-	switch hs.HandshakeType {
+	x.tCtx.Lg.Debugf("Received '%v'", name)
+	x.ctx.UnAppendExpected(hsM)
+	return true
+}
+
+func (x *xTransition) parseClientHandshakePacket(record *tlssl.TLSRecord) {
+
+	switch record.HandShake.HandshakeType {
 	case tlssl.HandshakeTypeCertificate:
 		if x.isExpected(CERTIFICATE, "Certificate") {
 			x.tCtx.Lg.Debug("Save client certificate")
@@ -94,19 +101,7 @@ func (x *xTransition) parseClientHandshakePacket(buff []byte) {
 		}
 
 	default:
-		x.tCtx.Lg.Warnf("Unexpected '%v' client message", hs.HandshakeType)
+		x.tCtx.Lg.Warnf("Unexpected '%v' client message",
+			record.HandShake.HandshakeType)
 	}
-
-}
-
-func (x *xTransition) isExpected(hsM int, name string) bool {
-
-	if x.ctx.Expected()&hsM == 0 {
-		x.tCtx.Lg.Warnf("Unexpected '%v' client message", name)
-		return false
-	}
-
-	x.tCtx.Lg.Debugf("Received '%v'", name)
-	x.ctx.UnAppendExpected(hsM)
-	return true
 }

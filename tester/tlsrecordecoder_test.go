@@ -11,7 +11,7 @@ func TestTlsRecordDecoder(t *testing.T) {
 	buff = append(buff, clientKeyExchange()...)
 	buff = append(buff, certificateVerify()...)
 	buff = append(buff, finished()...)
-	_, err := tlssl.TLSDecodeRecords(buff)
+	_, err := tlssl.TLSRecordsDecode(buff)
 	if err != nil {
 		t.Error(err)
 	}

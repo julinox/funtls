@@ -201,7 +201,7 @@ func TLSHeadCheck(head *TLSHeader) error {
 // Decode TLS records from a buffer
 // The buffer is a concatenation of TLS records
 // If any "record" is invalid, the function returns error
-func TLSDecodeRecords(buff []byte) ([]*TLSRecord, error) {
+func TLSRecordsDecode(buff []byte) ([]*TLSRecord, error) {
 
 	var offset int
 	var records []*TLSRecord
@@ -232,12 +232,6 @@ func TLSDecodeRecords(buff []byte) ([]*TLSRecord, error) {
 
 		records = append(records, &record)
 		offset += TLS_HEADER_SIZE + head.Len
-		if head.ContentType == ContentTypeHandshake {
-			fmt.Printf("APENDADO RECORD: %v | Tipo: %v\n", head.ContentType,
-				record.HandShake.HandshakeType)
-		} else {
-			fmt.Printf("APENDADO RECORD: %v\n", head.ContentType)
-		}
 	}
 
 	return records, nil

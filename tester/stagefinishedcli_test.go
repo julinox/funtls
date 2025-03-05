@@ -1,7 +1,6 @@
 package tester
 
 import (
-	"fmt"
 	"math"
 	"net"
 	"testing"
@@ -27,8 +26,8 @@ func TestStageFinishedClient(t *testing.T) {
 
 	lg := testLogger()
 	newCtx.Hctx = testCtxHandshake(&testHandshakeCtxData{
-		//comms: &xFakeConn{msgs: msgsToSend()},
-		comms:    &xFakeConn{msgs: msgsToSend(), modo: 1, sleepp: 400},
+		comms: &xFakeConn{msgs: msgsToSend()},
+		//comms:    &xFakeConn{msgs: msgsToSend(), modo: 1, sleepp: 400},
 		stage:    handshake.STAGE_SERVERHELLODONE,
 		expected: handshake.CLIENTKEYEXCHANGE | handshake.CHANGECIPHERSPEC,
 	})
@@ -61,19 +60,18 @@ func (x *xFakeConn) Read(b []byte) (int, error) {
 		switch m {
 		case handshake.CHANGECIPHERSPEC:
 			all = append(all, changeCipherSpec()...)
-			fmt.Println("Appended ChangeCipherSpec")
 
 		case handshake.CERTIFICATE:
 			all = append(all, certificate()...)
-			fmt.Println("Appended Certificate")
 
 		case handshake.CLIENTKEYEXCHANGE:
 			all = append(all, clientKeyExchange()...)
-			fmt.Println("Appended ClientKeyExchange")
 
 		case handshake.CERTIFICATEVERIFY:
 			all = append(all, certificateVerify()...)
-			fmt.Println("Appended CertificateVerify")
+
+		case handshake.FINISHED:
+			all = append(all, finished()...)
 		}
 
 		if x.modo == 1 {
@@ -96,7 +94,8 @@ func msgsToSend() []int {
 	return []int{
 		handshake.CERTIFICATE,
 		handshake.CLIENTKEYEXCHANGE,
-		//handshake.CERTIFICATEVERIFY,
+		handshake.FINISHED,
+		handshake.CERTIFICATEVERIFY,
 		handshake.CHANGECIPHERSPEC,
 	}
 }
