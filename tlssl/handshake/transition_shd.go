@@ -11,14 +11,13 @@ func (x *xTransition) transitServerHelloDone() error {
 	x.tCtx.Lg.Info("Transitioning from SERVERHELLODONE")
 	// Send all packets
 	x.ctx.Send(x.ctx.Order())
-	x.tCtx.Lg.Debug("Sent packets: ", x.ctx.PrintOrder())
 
 	// Read 'Expected()' client response packets
 	// Wait for '_READ_TIMEOUT_' seconds then return error
 	for {
 
 		x.tCtx.Lg.Info("Waiting for client response...")
-		fmt.Println("EXPECTED: ", x.ctx.PrintExpected())
+		x.tCtx.Lg.Debug("Expect TLS Records: ", x.ctx.PrintExpected())
 		coms := x.ctx.GetComms()
 		if coms == nil {
 			return fmt.Errorf("nil net.Conn object")
@@ -38,15 +37,22 @@ func (x *xTransition) transitServerHelloDone() error {
 			return fmt.Errorf("decoding client records: %v", err.Error())
 		}
 
-		for _, who := range whoIsIt {
+		for i, who := range whoIsIt {
 			switch who.Header.ContentType {
 			case tlssl.ContentTypeChangeCipherSpec:
-				if x.isExpected(CHANGECIPHERSPEC, "ChangeCipherSpec") {
-					x.tCtx.Lg.Debug("Setea CipherSec en el contexto")
+				x.tCtx.Lg.Debug("Received change cipher spec")
+				x.ctx.UnAppendExpected(CHANGECIPHERSPEC)
+				if i >= len(whoIsIt)-1 {
+					x.tCtx.Lg.Warn("No more packets after change cipher spec")
+					break
 				}
 
+				x.tCtx.Lg.Debug("Received finished???")
+				x.ctx.SetBuffer(FINISHED, whoIsIt[i+1].Msg)
+				x.ctx.UnAppendExpected(FINISHED)
+
 			case tlssl.ContentTypeHandshake:
-				x.parseClientHandshakePacket(who)
+				x.isExpected(who)
 			}
 		}
 
@@ -65,39 +71,28 @@ func (x *xTransition) transitServerHelloDone() error {
 	return nil
 }
 
-func (x *xTransition) isExpected(hsM int, name string) bool {
-
-	if x.ctx.Expected()&hsM == 0 {
-		x.tCtx.Lg.Warnf("Unexpected '%v' client message", name)
-		return false
-	}
-
-	x.tCtx.Lg.Debugf("Received '%v'", name)
-	x.ctx.UnAppendExpected(hsM)
-	return true
-}
-
-func (x *xTransition) parseClientHandshakePacket(record *tlssl.TLSRecord) {
+func (x *xTransition) isExpected(record *tlssl.TLSRecord) {
 
 	switch record.HandShake.HandshakeType {
 	case tlssl.HandshakeTypeCertificate:
-		if x.isExpected(CERTIFICATE, "Certificate") {
-			x.tCtx.Lg.Debug("Save client certificate")
+		if x.ctx.Expected()&CERTIFICATE != 0 {
+			x.tCtx.Lg.Debug("Received client certificate")
+			x.ctx.SetBuffer(CERTIFICATE, record.Msg)
+			x.ctx.UnAppendExpected(CERTIFICATE)
 		}
 
 	case tlssl.HandshakeTypeClientKeyExchange:
-		if x.isExpected(CLIENTKEYEXCHANGE, "ClientKeyExchange") {
-			x.tCtx.Lg.Debug("Save client key Exchange")
+		if x.ctx.Expected()&CLIENTKEYEXCHANGE != 0 {
+			x.tCtx.Lg.Debug("Received client key Exchange")
+			x.ctx.SetBuffer(CLIENTKEYEXCHANGE, record.Msg)
+			x.ctx.UnAppendExpected(CLIENTKEYEXCHANGE)
 		}
 
 	case tlssl.HandshakeTypeCertificateVerify:
-		if x.isExpected(CERTIFICATEVERIFY, "CertificateVerify") {
-			x.tCtx.Lg.Debug("Save client certificate verify")
-		}
-
-	case tlssl.HandshakeTypeFinished:
-		if x.isExpected(FINISHED, "Finished") {
-			x.tCtx.Lg.Debug("Save client finished")
+		if x.ctx.Expected()&CERTIFICATEVERIFY != 0 {
+			x.tCtx.Lg.Debug("Received client certificate verify")
+			x.ctx.SetBuffer(CERTIFICATEVERIFY, record.Msg)
+			x.ctx.UnAppendExpected(CERTIFICATEVERIFY)
 		}
 
 	default:

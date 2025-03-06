@@ -220,7 +220,7 @@ func TLSRecordsDecode(buff []byte) ([]*TLSRecord, error) {
 		}
 
 		// TLSRecord.Msg is the whole message
-		record.Msg = buff[offset : offset+head.Len]
+		record.Msg = buff[offset : offset+head.Len+TLS_HEADER_SIZE]
 		if head.ContentType == ContentTypeHandshake {
 			handshake := TLSHeadHandShake(buff[offset+TLS_HEADER_SIZE:])
 			if handshake == nil {

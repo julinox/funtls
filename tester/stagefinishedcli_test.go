@@ -3,6 +3,7 @@ package tester
 import (
 	"math"
 	"net"
+	"os"
 	"testing"
 	"time"
 	"tlesio/tlssl"
@@ -72,6 +73,10 @@ func (x *xFakeConn) Read(b []byte) (int, error) {
 
 		case handshake.FINISHED:
 			all = append(all, finished()...)
+
+		case _HANDSHAKE_TIMEOUT_:
+			time.Sleep(time.Duration(_HANDSHAKE_TIMEOUT_) * time.Second)
+			return 0, os.ErrDeadlineExceeded
 		}
 
 		if x.modo == 1 {
@@ -106,13 +111,13 @@ func certificate() []byte {
 		0x16,
 		// Version (TLS 1.2)
 		0x03, 0x03,
-		// Length (1 byte Handshake Type + 3 bytes Handshake Length + 32 bytes Certificado)
+		// Length (1 + 3 + 32 bytes)
 		0x00, 0x24,
 		// Handshake Type (Certificate)
 		0x0B,
 		// Handshake Length (32 bytes)
 		0x00, 0x00, 0x20,
-		// Certificado (32 bytes, ejemplo de valores)
+		// Certificado (32 bytes)
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
 		0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
 		0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18,
@@ -132,7 +137,7 @@ func clientKeyExchange() []byte {
 		0x16,
 		// Version (TLS 1.2)
 		0x03, 0x03,
-		// Length (1 byte Handshake Type + 3 bytes Handshake Length + 24 bytes PreMasterSecret)
+		// Length (1 + 3 + 24)
 		0x00, 0x1C,
 		// Handshake Type (ClientKeyExchange)
 		0x10,
@@ -151,13 +156,13 @@ func certificateVerify() []byte {
 		0x16,
 		// Version (TLS 1.2)
 		0x03, 0x03,
-		// Length (1 byte Handshake Type + 3 bytes Handshake Length + 16 bytes Firma)
+		// Length (1 + 3 + 16)
 		0x00, 0x14,
 		// Handshake Type (CertificateVerify)
 		0x0F,
 		// Handshake Length (16 bytes)
 		0x00, 0x00, 0x10,
-		// Firma (16 bytes, ejemplo de valores)
+		// Firma (16 bytes)
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
 		0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10,
 	}
@@ -170,21 +175,14 @@ func finished() []byte {
 		0x16,
 		// Version (TLS 1.2)
 		0x03, 0x03,
-		// Length (1 byte Handshake Type + 3 bytes Handshake Length + 12 bytes Hash)
+		// Length (1 + 3 + 12)
 		0x00, 0x10,
 		// Handshake Type (Finished)
 		0x14,
 		// Handshake Length (12 bytes)
 		0x00, 0x00, 0x0C,
-		// Hash (12 bytes, ejemplo de valores)
+		// Hash (12 bytes)
 		0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
 		0x09, 0x0A, 0x0B, 0x0C,
 	}
-}
-
-func copia(buff []byte, fn func() []byte) int {
-
-	pkt := fn()
-	copy(buff, pkt)
-	return len(pkt)
 }
