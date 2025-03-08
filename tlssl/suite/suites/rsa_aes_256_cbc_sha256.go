@@ -12,7 +12,8 @@ import (
 )
 
 type x0x003D struct {
-	lg *logrus.Logger
+	lg      *logrus.Logger
+	keyMake suite.TheKeyMaker
 }
 
 func NewAES_256_CBC_SHA256(lg *logrus.Logger) suite.Suite {
@@ -20,7 +21,10 @@ func NewAES_256_CBC_SHA256(lg *logrus.Logger) suite.Suite {
 		return nil
 	}
 
-	return &x0x003D{lg}
+	return &x0x003D{
+		lg:      lg,
+		keyMake: nil,
+	}
 }
 
 func (x *x0x003D) ID() uint16 {
@@ -147,7 +151,9 @@ func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 	return nil
 }
 
-func (x *x0x003D) MasterSecret([]byte, []byte, []byte) []byte {
+func (x *x0x003D) PRF(secret, seed []byte, blockLen int) []byte {
+
+	fmt.Println("PRF DE RSA_AES256CBC_SHA256")
 	return nil
 }
 
