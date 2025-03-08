@@ -1,4 +1,4 @@
-package suites
+package suite
 
 var CipherSuiteNames = map[uint16]string{
 	0x0000: "TLS_NULL_WITH_NULL_NULL",

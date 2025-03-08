@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"tlesio/systema"
+	"tlesio/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 )
@@ -14,7 +15,7 @@ type x0x003D struct {
 	lg *logrus.Logger
 }
 
-func NewAES_256_CBC_SHA256(lg *logrus.Logger) Suite {
+func NewAES_256_CBC_SHA256(lg *logrus.Logger) suite.Suite {
 	if lg == nil {
 		return nil
 	}
@@ -30,20 +31,20 @@ func (x *x0x003D) Name() string {
 	return "TLS_RSA_WITH_AES_256_CBC_SHA256"
 }
 
-func (x *x0x003D) Info() *SuiteInfo {
-	return &SuiteInfo{
-		Mac:         HMAC,
-		Mode:        CBC,
-		Hash:        SHA256,
-		Cipher:      AES,
+func (x *x0x003D) Info() *suite.SuiteInfo {
+	return &suite.SuiteInfo{
+		Mac:         suite.HMAC,
+		Mode:        suite.CBC,
+		Hash:        suite.SHA256,
+		Cipher:      suite.AES,
 		KeySize:     32,
-		Auth:        RSA,
-		KeyExchange: RSA,
+		Auth:        suite.RSA,
+		KeyExchange: suite.RSA,
 	}
 }
 
 // Cipher and MAC
-func (x *x0x003D) Cipher(sc *SuiteContext) ([]byte, error) {
+func (x *x0x003D) Cipher(sc *suite.SuiteContext) ([]byte, error) {
 
 	var err error
 	var cipherText []byte
@@ -54,10 +55,10 @@ func (x *x0x003D) Cipher(sc *SuiteContext) ([]byte, error) {
 	}
 
 	switch sc.MacMode {
-	case ETM:
+	case suite.ETM:
 		fmt.Println("ETM")
 
-	case MTE: // MTE
+	case suite.MTE: // MTE
 		// 1 MAC = HMAC(Plaintext, HKey).
 		// 2 Ciphertext = AESCBC(ClearText || MAC || Padding)
 		// 3 Final = IV ∣∣ C
@@ -78,7 +79,7 @@ func (x *x0x003D) Cipher(sc *SuiteContext) ([]byte, error) {
 	return append(sc.IV, cipherText...), nil
 }
 
-func (x *x0x003D) CipherNot(sc *SuiteContext) ([]byte, error) {
+func (x *x0x003D) CipherNot(sc *suite.SuiteContext) ([]byte, error) {
 
 	// Data = IV ∣∣ CipherText
 
@@ -94,10 +95,10 @@ func (x *x0x003D) CipherNot(sc *SuiteContext) ([]byte, error) {
 
 	sc.Data = cipherText
 	switch sc.MacMode {
-	case ETM:
+	case suite.ETM:
 		fmt.Println("DECIPHER ETM")
 
-	case MTE:
+	case suite.MTE:
 		// AESCBC^-1(CiphertText) = Plaintext || HMAC
 		plainTextHmac, err := aesCBC(sc.Data, sc.Key, sc.IV, false)
 		if err != nil {
@@ -118,7 +119,7 @@ func (x *x0x003D) CipherNot(sc *SuiteContext) ([]byte, error) {
 	return nil, nil
 }
 
-func (x *x0x003D) MacMe(cc *SuiteContext) ([]byte, error) {
+func (x *x0x003D) MacMe(cc *suite.SuiteContext) ([]byte, error) {
 
 	if len(cc.HKey) == 0 {
 		return nil, fmt.Errorf("nil/empty MAC Key")
@@ -129,7 +130,7 @@ func (x *x0x003D) MacMe(cc *SuiteContext) ([]byte, error) {
 	return hmacHash.Sum(nil), nil
 }
 
-func (x *x0x003D) basicCheck(cc *SuiteContext) error {
+func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 
 	if cc == nil || len(cc.Data) == 0 {
 		return systema.ErrNilParams
@@ -146,6 +147,10 @@ func (x *x0x003D) basicCheck(cc *SuiteContext) error {
 	return nil
 }
 
+func (x *x0x003D) MasterSecret([]byte, []byte, []byte) []byte {
+	return nil
+}
+
 // Check if given text is authenticated
 func (x *x0x003D) isAuthenticated(data, hkey []byte) error {
 
@@ -155,7 +160,7 @@ func (x *x0x003D) isAuthenticated(data, hkey []byte) error {
 
 	given := data[len(data)-sha256.Size:]
 	clearText := data[:len(data)-sha256.Size]
-	expected, err := x.MacMe(&SuiteContext{Data: clearText, HKey: hkey})
+	expected, err := x.MacMe(&suite.SuiteContext{Data: clearText, HKey: hkey})
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,7 @@ package modulos
 import (
 	"fmt"
 
-	sts "tlesio/tlssl/suites"
+	sts "tlesio/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 )

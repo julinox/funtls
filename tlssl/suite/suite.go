@@ -1,4 +1,4 @@
-package suites
+package suite
 
 import "fmt"
 
@@ -51,8 +51,7 @@ type Suite interface {
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
 	MacMe(*SuiteContext) ([]byte, error)
-	//PrintInfo() string
-	//PrintInfoRaw() string
+	TheKeyMaker
 }
 
 func (sc *SuiteContext) Print() string {

@@ -1,0 +1,43 @@
+package modulos
+
+type Keys struct {
+	MAC []byte
+	Key []byte
+	IV  []byte
+}
+
+type SessionKeys struct {
+	ClientKeys Keys
+	ServerKeys Keys
+}
+type TheKeyMaker interface {
+	Keys([]byte, []byte, []byte) *SessionKeys
+	PRF([]byte, []byte, []byte, string) []byte
+	MasterSecret([]byte, []byte, []byte) []byte
+}
+
+/*
+type xKMake struct {
+	masterSecretSz int
+	hashAlgorythm  string
+}
+
+func NewModKeyMaker() TheKeyMaker {
+	return &xKMake{}
+}
+
+func (x *xKMake) PRF(secret, seed1, seed2 []byte, label string) []byte {
+
+	return nil
+}
+
+func (x *xKMake) Keys(masterSecret, client, server []byte) *SessionKeys {
+	return nil
+}
+
+func (x *xKMake) MasterSecret(preMasterSecret, client, server []byte) []byte {
+	return nil
+}
+*/
+//master_secret = PRF(pre_master_secret, "master secret",ClientHello.random + ServerHello.random)
+//The master secret is always exactly 48 bytes in length

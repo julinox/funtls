@@ -6,7 +6,8 @@ import (
 	"strings"
 	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
-	sts "tlesio/tlssl/suites"
+	"tlesio/tlssl/suite"
+	sts "tlesio/tlssl/suite/suites"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -70,7 +71,7 @@ func (x *serverOp) initTLSContextModz() {
 		{PathCert: "./certs/server2.crt", PathKey: "./certs/server.key"},
 	}
 
-	suites := []sts.Suite{
+	suites := []suite.Suite{
 		sts.NewAES_256_CBC_SHA256(x.tlsCtx.Lg),
 	}
 

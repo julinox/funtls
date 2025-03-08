@@ -6,7 +6,7 @@ import (
 	"tlesio/systema"
 	"tlesio/tlssl"
 	ex "tlesio/tlssl/extensions"
-	"tlesio/tlssl/suites"
+	"tlesio/tlssl/suite"
 )
 
 type xCertificate struct {
@@ -92,7 +92,7 @@ func (x *xCertificate) certificateServer() error {
 	x.ctx.SetBuffer(CERTIFICATE, append(header, certificateBuff...))
 	x.ctx.AppendOrder(CERTIFICATE)
 
-	if cs.Info().KeyExchange == suites.DHE {
+	if cs.Info().KeyExchange == suite.DHE {
 		x.nextState = SERVERKEYEXCHANGE
 
 	} else if x.tCtx.OptClientAuth {

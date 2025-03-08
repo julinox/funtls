@@ -19,7 +19,7 @@ import (
 	"tlesio/systema"
 	"tlesio/tlssl"
 	ex "tlesio/tlssl/extensions"
-	"tlesio/tlssl/suites"
+	"tlesio/tlssl/suite"
 )
 
 var (
@@ -219,7 +219,7 @@ func algoToName(varr, algo uint16) string {
 
 	switch varr {
 	case 0xFFFF:
-		return fmt.Sprintf("%s(0x%04X)", suites.CipherSuiteNames[algo], algo)
+		return fmt.Sprintf("%s(0x%04X)", suite.CipherSuiteNames[algo], algo)
 
 	case 0x000D:
 		return fmt.Sprintf("%s(0x%04X)", ex.SignHashAlgorithms[algo], algo)

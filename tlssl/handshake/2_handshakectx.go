@@ -327,7 +327,7 @@ func (x *xHandhsakeContext) Send(ids []int) error {
 			x.lg.Debug("Sending CHANGECIPHERSPEC")
 
 		case CLIENTHELLO:
-			x.lg.Warn("What do you mean by 'Send ClientHello'?")
+			continue
 
 		case CLIENTKEYEXCHANGE:
 			outBuff = append(outBuff, x.data.clientKeyExchange...)

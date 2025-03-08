@@ -96,7 +96,9 @@ func (x *xTransition) isExpected(record *tlssl.TLSRecord) {
 		}
 
 	default:
-		x.tCtx.Lg.Warnf("Unexpected '%v' client message",
-			record.HandShake.HandshakeType)
+		if x.ctx.Expected()&CHANGECIPHERSPEC != 0 {
+			x.tCtx.Lg.Warnf("Unexpected '%v' client message",
+				record.HandShake.HandshakeType)
+		}
 	}
 }

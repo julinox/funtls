@@ -3,7 +3,7 @@ package modulos
 import (
 	"fmt"
 	"tlesio/systema"
-	css "tlesio/tlssl/suites"
+	css "tlesio/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 )
