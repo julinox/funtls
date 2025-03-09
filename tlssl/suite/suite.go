@@ -51,7 +51,6 @@ type Suite interface {
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
 	MacMe(*SuiteContext) ([]byte, error)
-	TheKeyMaker
 }
 
 func (sc *SuiteContext) Print() string {

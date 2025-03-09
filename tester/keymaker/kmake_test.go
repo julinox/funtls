@@ -1,28 +1,41 @@
 package keymaker
 
 import (
+	"fmt"
 	"testing"
-	"tlesio/tlssl/suite/suites"
 
-	clog "github.com/julinox/consolelogrus"
-	"github.com/sirupsen/logrus"
+	"tlesio/tlssl/handshake"
+	"tlesio/tlssl/suite"
 )
 
-func TestKeyMake(t *testing.T) {
+func TestPRFSha2(t *testing.T) {
 
-	st := suites.NewAES_256_CBC_SHA256(ogLoc())
-
-	// AES-CBC
-	// sha256 = 32 bytes
-	// KeyLen = 32 bytes
-	// IV aes = 16 bytes
+	// AES256-CBC | sha256 = 32, KeyLen = 32, IV = 16 bytes
 	// SessionKeys = 2 * (32 + 32 + 16) = 160 bytes
 
-	st.PRF(nil, nil, 0)
-}
+	pf, err := handshake.NewKeymaker(suite.SHA256, 160)
+	if err != nil {
+		t.Error(err)
+	}
 
-func ogLoc() *logrus.Logger {
-	lg := clog.InitNewLogger(&clog.CustomFormatter{Tag: "KEYMAKETEST"})
-	lg.SetLevel(logrus.DebugLevel)
-	return lg
+	secret := []byte("secreto")
+	seed := []byte("semilla")
+	pp := pf.PRF(secret, seed)
+	fmt.Printf("%x\nMaterial Len: %v\n", pp, len(pp))
+
+}
+func TestPRFSha3(t *testing.T) {
+
+	// AES256-CBC | sha384 = 48, KeyLen = 32, IV = 16 bytes
+	// SessionKeys = 2 * (48 + 32 + 16) = 192 bytes
+
+	pf, err := handshake.NewKeymaker(suite.SHA384, 192)
+	if err != nil {
+		t.Error(err)
+	}
+
+	secret := []byte("secreto")
+	seed := []byte("semilla")
+	pp := pf.PRF(secret, seed)
+	fmt.Printf("%x\nMaterial Len: %v\n", pp, len(pp))
 }

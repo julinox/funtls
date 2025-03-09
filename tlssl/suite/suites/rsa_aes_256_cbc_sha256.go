@@ -12,8 +12,7 @@ import (
 )
 
 type x0x003D struct {
-	lg      *logrus.Logger
-	keyMake suite.TheKeyMaker
+	lg *logrus.Logger
 }
 
 func NewAES_256_CBC_SHA256(lg *logrus.Logger) suite.Suite {
@@ -22,8 +21,7 @@ func NewAES_256_CBC_SHA256(lg *logrus.Logger) suite.Suite {
 	}
 
 	return &x0x003D{
-		lg:      lg,
-		keyMake: nil,
+		lg: lg,
 	}
 }
 
@@ -148,12 +146,6 @@ func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 		return systema.ErrInvalidIVSize
 	}
 
-	return nil
-}
-
-func (x *x0x003D) PRF(secret, seed []byte, blockLen int) []byte {
-
-	fmt.Println("PRF DE RSA_AES256CBC_SHA256")
 	return nil
 }
 
