@@ -70,8 +70,7 @@ func NewKeymaker(hashingAlgorithm, blockLen int) (TheKeyMaker, error) {
 // A(0) = seed
 // A(i) = HMAC_hash(secret, A(i-1))
 // P_hash(secret, seed) = 	HMAC_hash(secret, A(1) + seed) +
-//							HMAC_hash(secret, A(2) + seed) + ...
-
+// HMAC_hash(secret, A(2) + seed) + HMAC_hash(secret, A(3) + seed) + ...
 func (x *xKeyMake) PRF(secret, seed []byte) []byte {
 
 	if secret == nil || seed == nil {

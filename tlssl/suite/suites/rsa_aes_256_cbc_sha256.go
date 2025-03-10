@@ -40,6 +40,8 @@ func (x *x0x003D) Info() *suite.SuiteInfo {
 		Hash:        suite.SHA256,
 		Cipher:      suite.AES,
 		KeySize:     32,
+		KeySizeHMAC: 32,
+		IVSize:      aes.BlockSize,
 		Auth:        suite.RSA,
 		KeyExchange: suite.RSA,
 	}

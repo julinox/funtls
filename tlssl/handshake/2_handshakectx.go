@@ -41,6 +41,7 @@ type xHandhsakeContextData struct {
 	transitionStage    int
 	order              []int
 	expected           int
+	keys               *SessionKeys
 }
 
 type xHandhsakeContext struct {
@@ -58,6 +59,8 @@ type HandShakeContext interface {
 	GetMsgHello() *MsgHello
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
+	SetKeys(*SessionKeys)
+	GetKeys() *SessionKeys
 	SetTransitionStage(int)
 	GetTransitionStage() int
 	GetComms() net.Conn
@@ -214,6 +217,14 @@ func (x *xHandhsakeContext) GetCipherSuite() uint16 {
 
 func (x *xHandhsakeContext) SetTransitionStage(stage int) {
 	x.data.transitionStage = stage
+}
+
+func (x *xHandhsakeContext) SetKeys(keys *SessionKeys) {
+	x.data.keys = keys
+}
+
+func (x *xHandhsakeContext) GetKeys() *SessionKeys {
+	return x.data.keys
 }
 
 func (x *xHandhsakeContext) GetTransitionStage() int {

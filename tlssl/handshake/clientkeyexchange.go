@@ -41,9 +41,11 @@ func (x *xClientKeyExchange) Handle() error {
 
 	var err error
 
+	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
+	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
 	kBuff := x.ctx.GetBuffer(CLIENTKEYEXCHANGE)
 	if kBuff == nil {
-		return fmt.Errorf("nil ClientKeyExchange buffer")
+		return fmt.Errorf("nil ClientKeyExchange buffer(%v)", x.Name())
 	}
 
 	// Remove TLS Header
@@ -60,95 +62,94 @@ func (x *xClientKeyExchange) Handle() error {
 		return fmt.Errorf("invalid HandshakeLen(%v)", x.Name())
 	}
 
+	// Parse the coded pre master secret from the client key exchange message
 	aux := tlssl.TLS_HEADER_SIZE + tlssl.TLS_HANDSHAKE_SIZE
-	pms, err := x.parsePMS(kBuff[aux:])
+	if len(kBuff[aux:]) < 2 {
+		return fmt.Errorf("PreMasterSecreto no content(%v)", x.Name())
+	}
+
+	kBuff = kBuff[aux:]
+	pmsLen := uint16(kBuff[0])<<8 | uint16(kBuff[1])
+	if int(pmsLen) != len(kBuff[2:]) {
+		return fmt.Errorf("PreMasterSecreto len unmatched(%v)", x.Name())
+	}
+
+	// Decode the pre master secret
+	pmsCoded := kBuff[2:]
+	x.tCtx.Lg.Tracef("Received PreMasterSecreto: %x", pmsCoded)
+	pms, err := x.preMasterSecret(pmsCoded)
 	if err != nil {
 		return err
 	}
 
-	x.tCtx.Lg.Tracef("Received pre master secret: %x", pms)
-	err = x.pmsMe(pms)
+	// Calculate the session keys
+	x.tCtx.Lg.Tracef("Decrypted PreMasterSecreto: %x", pms)
+	sessionKeys, err := x.genSessionKeys(pms)
 	if err != nil {
-		return err
+		return fmt.Errorf("sesh keys generate(%v): %v", x.Name(), err.Error())
 	}
 
+	x.ctx.SetKeys(sessionKeys)
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEVERIFY
 	} else {
 		x.nextState = CHANGECIPHERSPEC
 	}
 
-	fmt.Println("I AM: ", x.Name())
 	return nil
 }
 
-// Parse the pre master secret from the client key exchange message
-func (x xClientKeyExchange) parsePMS(buffer []byte) ([]byte, error) {
-
-	if len(buffer) < 2 {
-		return nil, fmt.Errorf("buffer too small")
-	}
-
-	pmsLen := uint16(buffer[0])<<8 | uint16(buffer[1])
-	if int(pmsLen) != len(buffer[2:]) {
-		return nil, fmt.Errorf("pre master secret len does not match content")
-	}
-
-	return buffer[2:], nil
-}
-
 // Calculate the pre master secret
-func (x *xClientKeyExchange) pmsMe(buff []byte) error {
+func (x *xClientKeyExchange) preMasterSecret(cPms []byte) ([]byte, error) {
 
 	cs := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if cs == nil {
-		return fmt.Errorf("cipher suite get err(%v)", x.Name())
+		return nil, fmt.Errorf("cipher suite get err(%v)", x.Name())
 	}
 
 	switch cs.Info().KeyExchange {
 	case suite.RSA:
-		return x.pmsRSA(buff)
+		return x.preMasterSecretRSA(cPms)
 
 	case suite.DHE:
-		return x.pmsDHE(buff)
+		return x.preMasterSecretDHE(cPms)
 	}
 
-	return fmt.Errorf("key exchange not implemented yet(%v)", x.Name())
+	return nil, fmt.Errorf("key exchange not implemented yet(%v)", x.Name())
 }
 
-func (x *xClientKeyExchange) pmsRSA(buff []byte) error {
+func (x *xClientKeyExchange) preMasterSecretRSA(cPms []byte) ([]byte, error) {
 
 	ctxCert := x.ctx.GetCert()
 	if ctxCert == nil {
-		return fmt.Errorf("handshakectx nil certificate(%v)", x.Name())
+		return nil, fmt.Errorf("handshakectx nil certificate(%v)", x.Name())
 	}
 
 	privateKey := x.tCtx.Modz.Certs.GetCertKey(ctxCert)
 	if privateKey == nil {
-		return fmt.Errorf("cert's private key not found(%v)", x.Name())
+		return nil, fmt.Errorf("cert's private key not found(%v)", x.Name())
 	}
 
-	pms, err := decodeThisRSA(buff, privateKey)
+	pms, err := decodeRSA(cPms, privateKey)
 	if err != nil {
-		return fmt.Errorf("%v(%v)", err.Error(), x.Name())
+		return nil, fmt.Errorf("%v(%v)", err.Error(), x.Name())
 	}
 
 	if len(pms) != _PMS_SIZE_ {
-		return fmt.Errorf("invalid pre master secret len(%v)", x.Name())
+		return nil, fmt.Errorf("invalid pre master secret len(%v)", x.Name())
 	}
 
-	x.tCtx.Lg.Tracef("Decrypted pre master secret: %x", pms)
-	return nil
+	return pms, nil
 }
 
-func (x *xClientKeyExchange) pmsDHE(buff []byte) error {
-	return fmt.Errorf("key exchange DHE not implemented yet")
+func (x *xClientKeyExchange) preMasterSecretDHE(buff []byte) ([]byte, error) {
+	return nil, fmt.Errorf("key exchange DHE not implemented yet")
 }
 
-func decodeThisRSA(data []byte, pkey crypto.PrivateKey) ([]byte, error) {
+func decodeRSA(data []byte, key crypto.PrivateKey) ([]byte, error) {
 
 	// Decode the data
-	rsaPkey, ok := pkey.(*rsa.PrivateKey)
+	rsaPkey, ok := key.(*rsa.PrivateKey)
 	if !ok {
 		return nil, fmt.Errorf("invalid private key")
 	}
@@ -159,4 +160,18 @@ func decodeThisRSA(data []byte, pkey crypto.PrivateKey) ([]byte, error) {
 	}
 
 	return decrypted, nil
+}
+
+func (x *xClientKeyExchange) genSessionKeys(pms []byte) (*SessionKeys, error) {
+
+	var newKeys SessionKeys
+
+	cs := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	if cs == nil {
+		return nil, fmt.Errorf("cipher suite get err(%v)", x.Name())
+	}
+
+	// Generate the master secret
+	//ms := NewKeymaker()
+	return &newKeys, nil
 }

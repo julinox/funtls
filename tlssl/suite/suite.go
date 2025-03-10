@@ -40,6 +40,8 @@ type SuiteInfo struct {
 	Hash        int
 	Cipher      int
 	KeySize     int
+	KeySizeHMAC int
+	IVSize      int
 	KeyExchange int
 	Auth        int
 }
@@ -74,6 +76,8 @@ func (info *SuiteInfo) Print() string {
 	str += fmt.Sprintf("Hash: %s\n", hashToString(info.Hash))
 	str += fmt.Sprintf("Cipher: %s\n", cipherToString(info.Cipher))
 	str += fmt.Sprintf("KeySize: %d\n", info.KeySize)
+	str += fmt.Sprintf("KeySizeHMAC: %d\n", info.KeySizeHMAC)
+	str += fmt.Sprintf("IVSize: %d\n", info.IVSize)
 	str += fmt.Sprintf("KeyExchange: %s",
 		keyExchangeToString(info.KeyExchange))
 	return str

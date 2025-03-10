@@ -38,15 +38,14 @@ func (x *xServerHello) Handle() error {
 
 	var serverHelloBuf []byte
 
+	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
+	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
 	msgHello := x.ctx.GetMsgHello()
 	if msgHello == nil {
 		return fmt.Errorf("nil MsgHello object")
 	}
 
 	serverHelloBuf = make([]byte, 0)
-	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
-	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
-
 	// Version
 	serverHelloBuf = append(serverHelloBuf, x.setVersion()...)
 
@@ -74,6 +73,8 @@ func (x *xServerHello) Handle() error {
 	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerHello,
 		len(serverHelloBuf))
 
+	// Set server hello buffer and client and server random (which are
+	// needed for the session keys generation)
 	x.ctx.SetBuffer(SERVERHELLO, append(header, serverHelloBuf...))
 	x.ctx.SetBuffer(SERVERRANDOM, random)
 	x.ctx.AppendOrder(SERVERHELLO)
