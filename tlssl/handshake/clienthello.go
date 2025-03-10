@@ -112,6 +112,7 @@ func (x *xClientHello) Handle() error {
 
 	x.ctx.AppendOrder(CLIENTHELLO)
 	x.ctx.SetMsgHello(&newMsg)
+	x.ctx.SetBuffer(CLIENTRANDOM, newMsg.Random[:])
 	x.nextState = SERVERHELLO
 	return nil
 }

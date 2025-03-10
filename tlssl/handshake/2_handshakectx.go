@@ -12,8 +12,16 @@ import (
 const (
 	CLIENTCERTIFICATE = 3
 	SERVERCERTIFICATE = 7
+	CLIENTRANDOM      = 31
+	SERVERRANDOM      = 35
+	PREMASTERSECRET   = 37
 )
 
+type prfData struct {
+	clientRandom    []byte
+	serverRandom    []byte
+	preMasterSecret []byte
+}
 type xHandhsakeContextData struct {
 	certificate        []byte
 	certificateRequest []byte
@@ -26,6 +34,7 @@ type xHandhsakeContextData struct {
 	serverHello        []byte
 	serverHelloDone    []byte
 	serverKeyExchange  []byte
+	prf                prfData
 	serverCert         *x509.Certificate
 	msgHello           *MsgHello
 	cipherSuite        uint16
@@ -118,6 +127,15 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 
 	case SERVERKEYEXCHANGE:
 		x.data.serverKeyExchange = buff
+
+	case CLIENTRANDOM:
+		x.data.prf.clientRandom = buff
+
+	case SERVERRANDOM:
+		x.data.prf.serverRandom = buff
+
+	case PREMASTERSECRET:
+		x.data.prf.preMasterSecret = buff
 	}
 }
 
@@ -156,6 +174,15 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	case SERVERKEYEXCHANGE:
 		return x.data.serverKeyExchange
+
+	case CLIENTRANDOM:
+		return x.data.prf.clientRandom
+
+	case SERVERRANDOM:
+		return x.data.prf.serverRandom
+
+	case PREMASTERSECRET:
+		return x.data.prf.preMasterSecret
 	}
 
 	return nil

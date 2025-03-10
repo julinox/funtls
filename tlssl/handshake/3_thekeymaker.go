@@ -27,12 +27,6 @@ type SessionKeys struct {
 	ServerKeys Keys
 }
 
-type PRFSeed struct {
-	ClientRandom []byte
-	ServerRandom []byte
-	Label        string
-}
-
 type TheKeyMaker interface {
 	PRF([]byte, []byte) []byte
 }

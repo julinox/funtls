@@ -28,6 +28,8 @@ type ModCerts interface {
 	Load(*CertPaths) (*pki, error)
 	Get(string) *x509.Certificate
 	GetByCriteria(uint16, string) *x509.Certificate
+	GetCertKey(*x509.Certificate) crypto.PrivateKey
+	GetCertChain(*x509.Certificate) []*x509.Certificate
 }
 
 type CertPaths struct {
@@ -155,6 +157,21 @@ func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
 	}
 
 	return nil
+}
+
+func (m *_xModCerts) GetCertKey(cert *x509.Certificate) crypto.PrivateKey {
+
+	for _, pki := range m.pkInfo {
+		if pki.cert.Equal(cert) {
+			return pki.key
+		}
+	}
+
+	return nil
+}
+
+func (m *_xModCerts) GetCertChain(cert *x509.Certificate) []*x509.Certificate {
+	return []*x509.Certificate{cert}
 }
 
 // Print certs info

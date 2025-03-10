@@ -75,6 +75,7 @@ func (x *xServerHello) Handle() error {
 		len(serverHelloBuf))
 
 	x.ctx.SetBuffer(SERVERHELLO, append(header, serverHelloBuf...))
+	x.ctx.SetBuffer(SERVERRANDOM, random)
 	x.ctx.AppendOrder(SERVERHELLO)
 	x.nextState = CERTIFICATE
 	return nil

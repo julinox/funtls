@@ -51,7 +51,11 @@ func (x *xCertificate) Handle() error {
 
 // Choose certifcate list to send. Extensions ServerName and
 // SignatureAlgorithms are used to select one
-// First certificate in the list is the chosen one
+// The first certificate in the list is the end-entity certificate used in the
+// handshake. This is followed by any intermediate certificates that form the
+// chain. Typically, the root certificate is omitted because the client should
+// already have it, but can be included if the client does not have it, which
+// is not recommended for the client to do so.
 func (x *xCertificate) certificateServer() error {
 
 	//var certificatesBuff []byte
@@ -69,6 +73,7 @@ func (x *xCertificate) certificateServer() error {
 	saAlgos := getClientSaAlgos(helloMsg.Extensions[0x000D])
 
 	// Brute force. Why ???
+	// Might return multiples choices? Dont remember why
 	for _, cn := range dnsNames {
 		for _, sa := range saAlgos {
 			if cert := x.tCtx.Modz.Certs.GetByCriteria(sa, cn); cert != nil {
@@ -83,7 +88,8 @@ func (x *xCertificate) certificateServer() error {
 	}
 
 	// Certs
-	certificateBuff := packetCerts(certs)
+	x.ctx.SetCert(certs[0])
+	certificateBuff := packetCerts(x.tCtx.Modz.Certs.GetCertChain(certs[0]))
 
 	// Headers
 	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeCertificate,
