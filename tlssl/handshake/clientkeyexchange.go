@@ -84,12 +84,7 @@ func (x *xClientKeyExchange) Handle() error {
 
 	// Calculate the session keys
 	x.tCtx.Lg.Tracef("Decrypted PreMasterSecreto: %x", pms)
-	sessionKeys, err := x.genSessionKeys(pms)
-	if err != nil {
-		return fmt.Errorf("sesh keys generate(%v): %v", x.Name(), err.Error())
-	}
-
-	x.ctx.SetKeys(sessionKeys)
+	x.ctx.SetBuffer(PREMASTERSECRET, pms)
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEVERIFY
 	} else {
@@ -160,18 +155,4 @@ func decodeRSA(data []byte, key crypto.PrivateKey) ([]byte, error) {
 	}
 
 	return decrypted, nil
-}
-
-func (x *xClientKeyExchange) genSessionKeys(pms []byte) (*SessionKeys, error) {
-
-	var newKeys SessionKeys
-
-	cs := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
-	if cs == nil {
-		return nil, fmt.Errorf("cipher suite get err(%v)", x.Name())
-	}
-
-	// Generate the master secret
-	//ms := NewKeymaker()
-	return &newKeys, nil
 }

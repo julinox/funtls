@@ -20,10 +20,13 @@ func TestPRFSha2(t *testing.T) {
 
 	secret := []byte("secreto")
 	seed := []byte("semilla")
-	pp := pf.PRF(secret, seed)
-	fmt.Printf("%x\nMaterial Len: %v\n", pp, len(pp))
+	prf := pf.PRF(secret, "", seed)
+	//phash := pf.PHash(secret, seed)
+	fmt.Printf("%x\nPRF LEN: %v\n", prf, len(prf))
+	//fmt.Printf("%x\nPHASH Len: %v\n", phash, len(phash))
 
 }
+
 func TestPRFSha3(t *testing.T) {
 
 	// AES256-CBC | sha384 = 48, KeyLen = 32, IV = 16 bytes
@@ -36,6 +39,6 @@ func TestPRFSha3(t *testing.T) {
 
 	secret := []byte("secreto")
 	seed := []byte("semilla")
-	pp := pf.PRF(secret, seed)
+	pp := pf.PRF(secret, "", seed)
 	fmt.Printf("%x\nMaterial Len: %v\n", pp, len(pp))
 }

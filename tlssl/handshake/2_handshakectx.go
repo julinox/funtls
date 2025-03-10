@@ -15,13 +15,16 @@ const (
 	CLIENTRANDOM      = 31
 	SERVERRANDOM      = 35
 	PREMASTERSECRET   = 37
+	MASTERSECRET      = 39
 )
 
 type prfData struct {
 	clientRandom    []byte
 	serverRandom    []byte
 	preMasterSecret []byte
+	masterSecret    []byte
 }
+
 type xHandhsakeContextData struct {
 	certificate        []byte
 	certificateRequest []byte
@@ -139,6 +142,9 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 
 	case PREMASTERSECRET:
 		x.data.prf.preMasterSecret = buff
+
+	case MASTERSECRET:
+		x.data.prf.masterSecret = buff
 	}
 }
 
@@ -186,6 +192,9 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	case PREMASTERSECRET:
 		return x.data.prf.preMasterSecret
+
+	case MASTERSECRET:
+		return x.data.prf.masterSecret
 	}
 
 	return nil

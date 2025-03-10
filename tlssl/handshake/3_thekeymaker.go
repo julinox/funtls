@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"hash"
-	"math"
 	"tlesio/tlssl/suite"
 
 	"golang.org/x/crypto/sha3"
@@ -28,7 +27,8 @@ type SessionKeys struct {
 }
 
 type TheKeyMaker interface {
-	PRF([]byte, []byte) []byte
+	PRF([]byte, string, []byte) []byte
+	//PHash([]byte, []byte) []byte
 }
 
 type xKeyMake struct {
@@ -37,8 +37,8 @@ type xKeyMake struct {
 }
 
 type shaCfg struct {
-	shaLen int
-	fn     func() hash.Hash
+	//shaLen int
+	fn func() hash.Hash
 }
 
 // All lens in bytes
@@ -67,11 +67,18 @@ func NewKeymaker(hashingAlgorithm, blockLen int) (TheKeyMaker, error) {
 	return &km, nil
 }
 
+// PRF(secret, label, seed) = P_hash(secret, label || seed)
+func (x *xKeyMake) PRF(secret []byte, label string, seed []byte) []byte {
+
+	seed = append([]byte(label), seed...)
+	return x.pHash(secret, seed)
+}
+
 // A(0) = seed
 // A(i) = HMAC_hash(secret, A(i-1))
 // P_hash(secret, seed) = 	HMAC_hash(secret, A(1) + seed) +
 // HMAC_hash(secret, A(2) + seed) + HMAC_hash(secret, A(3) + seed) + ...
-func (x *xKeyMake) PRF(secret, seed []byte) []byte {
+func (x *xKeyMake) pHash(secret, seed []byte) []byte {
 
 	if secret == nil || seed == nil {
 		return nil
@@ -79,35 +86,24 @@ func (x *xKeyMake) PRF(secret, seed []byte) []byte {
 
 	switch x.hashAlgo {
 	case suite.SHA256:
-		return x.shamir(secret, seed, &shaCfg{
-			shaLen: _SHA256_LEN_BYTES,
-			fn:     sha256.New,
-		})
+		return x.shamir(secret, seed, sha256.New)
 
 	case suite.SHA384:
-		return x.shamir(secret, seed, &shaCfg{
-			shaLen: _SHA384_LEN_BYTES,
-			fn:     sha3.New384,
-		})
+		return x.shamir(secret, seed, sha3.New384)
 	}
 
 	return nil
 }
 
-func (x *xKeyMake) shamir(secret, seed []byte, cfg *shaCfg) []byte {
+func (x *xKeyMake) shamir(secret, seed []byte, fn func() hash.Hash) []byte {
 
 	var blockKey []byte
 
-	if cfg == nil {
-		return nil
-	}
-
-	hmacHash := hmac.New(cfg.fn, secret)
+	hmacHash := hmac.New(fn, secret)
 	hmacHash.Write(seed)
 	ai := hmacHash.Sum(nil)
-	rounds := int(math.Ceil(float64(x.blockLen) / float64(cfg.shaLen)))
 
-	for i := 0; i < rounds; i++ {
+	for len(blockKey) < x.blockLen {
 		hmacHash.Reset()
 		hmacHash.Write(ai)
 		hmacHash.Write(seed)

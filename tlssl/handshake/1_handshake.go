@@ -114,7 +114,7 @@ func NewHandshake(actx *AllContexts) (*Handshake, error) {
 	newHandshake.Cert = NewCertificate(actx)
 	newHandshake.CertificateReq = NewCertificateRequest(actx.Hctx)
 	newHandshake.CertificateVerf = NewCertificateVerify(actx.Hctx)
-	newHandshake.ChgCph = NewChangeCipherSpec(actx.Hctx)
+	newHandshake.ChgCph = NewChangeCipherSpec(actx)
 	newHandshake.ClientHelo = NewClientHello(actx)
 	newHandshake.ClientKeyExch = NewClientKeyExchange(actx)
 	newHandshake.Finish = NewFinished(actx.Hctx)
