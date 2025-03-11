@@ -26,6 +26,7 @@ type ModCerts interface {
 	Name() string
 	Print() string
 	Load(*CertPaths) (*pki, error)
+	CNs() []string
 	Get(string) *x509.Certificate
 	GetByCriteria(uint16, string) *x509.Certificate
 	GetCertKey(*x509.Certificate) crypto.PrivateKey
@@ -45,7 +46,7 @@ type MsgCertificate struct {
 type pki struct {
 	cn        string
 	saSupport map[uint16]bool
-	san       map[string]bool
+	san       map[string]bool // Subject Alternative Names
 	key       crypto.PrivateKey
 	cert      *x509.Certificate
 }
@@ -119,6 +120,16 @@ func (m *_xModCerts) Load(ptr *CertPaths) (*pki, error) {
 	}
 
 	return &newPki, nil
+}
+
+func (m *_xModCerts) CNs() []string {
+
+	cns := make([]string, 0)
+	for _, pki := range m.pkInfo {
+		cns = append(cns, pki.cn)
+	}
+
+	return cns
 }
 
 func (m *_xModCerts) Get(cn string) *x509.Certificate {

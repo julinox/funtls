@@ -58,7 +58,6 @@ func (x *xCertificate) Handle() error {
 // is not recommended for the client to do so.
 func (x *xCertificate) certificateServer() error {
 
-	//var certificatesBuff []byte
 	var certs []*x509.Certificate
 
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
@@ -69,12 +68,13 @@ func (x *xCertificate) certificateServer() error {
 	}
 
 	helloMsg := x.ctx.GetMsgHello()
-	dnsNames := getClientCnames(helloMsg.Extensions[0x0000])
-	saAlgos := getClientSaAlgos(helloMsg.Extensions[0x000D])
+	cNames := x.tCtx.Modz.Certs.CNs()
+	cNames = append(cNames, getClientSAN(helloMsg.Extensions[0x0000])...)
+	saAlgos := getClientSuppAlgos(helloMsg.Extensions[0x000D])
 
 	// Brute force. Why ???
 	// Might return multiples choices? Dont remember why
-	for _, cn := range dnsNames {
+	for _, cn := range cNames {
 		for _, sa := range saAlgos {
 			if cert := x.tCtx.Modz.Certs.GetByCriteria(sa, cn); cert != nil {
 				certs = append(certs, cert)
@@ -136,7 +136,8 @@ func packetCerts(certs []*x509.Certificate) []byte {
 	return append(finalBuff, certsBuffer...)
 }
 
-func getClientCnames(data interface{}) []string {
+// Get Subject alternative names from SNI extension
+func getClientSAN(data interface{}) []string {
 
 	var dnsNames []string
 
@@ -157,7 +158,8 @@ func getClientCnames(data interface{}) []string {
 	return dnsNames
 }
 
-func getClientSaAlgos(data interface{}) []uint16 {
+// Get supported algorithms from SignatureAlgorithms extension
+func getClientSuppAlgos(data interface{}) []uint16 {
 
 	if data == nil {
 		return nil
