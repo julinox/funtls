@@ -3,10 +3,12 @@ package handshake
 import (
 	"fmt"
 	"tlesio/tlssl"
+	"tlesio/tlssl/suite"
 )
 
 const _MASTER_SECRET_SIZE_ = 48
 const _MASTER_SECRET_LABEL_ = "master secret"
+const _KEY_EXPANSION_LABEL_ = "key expansion"
 
 type xChangeCipherSpec struct {
 	stateBasicInfo
@@ -57,6 +59,10 @@ func (x *xChangeCipherSpec) ccsClient() error {
 		return err
 	}
 
+	if err := x.sessionKeys(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -103,10 +109,92 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 		return fmt.Errorf("invalid MasterSecret size(%v)", x.Name())
 	}
 
-	fmt.Println("------------------------ MASTER SECRET ------------------------")
-	fmt.Printf("%x\n", masterSecret)
-	fmt.Println("------------------------ MASTER SECRET ------------------------")
+	x.ctx.SetBuffer(MASTERSECRET, masterSecret)
+	x.tCtx.Lg.Tracef("MasterSecret: %x", masterSecret)
+	x.tCtx.Lg.Info("MasterSecret generated")
 	return nil
 }
 
-// blockLen := 2 * (stInfo.KeySize + stInfo.IVSize + stInfo.KeySizeHMAC)
+func (x *xChangeCipherSpec) sessionKeys() error {
+
+	var seed []byte
+	var seshKeys SessionKeys
+
+	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	if st == nil {
+		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
+	}
+
+	stInfo := st.Info()
+	if stInfo == nil {
+		return fmt.Errorf("nil SuiteInfo object(%v)", x.Name())
+	}
+
+	blockLen := 2 * (stInfo.KeySizeHMAC + stInfo.KeySize + stInfo.IVSize)
+	kMake, err := NewKeymaker(stInfo.Hash, blockLen)
+	if err != nil {
+		return fmt.Errorf("nil Keymaker object(%v)", x.Name())
+	}
+
+	masterSecret := x.ctx.GetBuffer(MASTERSECRET)
+	if masterSecret == nil {
+		return fmt.Errorf("nil MasterSecret buffer(%v)", x.Name())
+	}
+
+	seed = append(seed, x.ctx.GetBuffer(SERVERRANDOM)...)
+	seed = append(seed, x.ctx.GetBuffer(CLIENTRANDOM)...)
+	keys := kMake.PRF(masterSecret, _KEY_EXPANSION_LABEL_, seed)
+	if keys == nil {
+		return fmt.Errorf("nil SessionKeys generation(%v)", x.Name())
+	}
+
+	if len(keys) != blockLen {
+		return fmt.Errorf("invalid SessionKeys size(%v)", x.Name())
+	}
+
+	off := 0 // Offset (Called 'off' for space reasons)
+	// MAC Client/Server
+	seshKeys.ClientKeys.MAC = keys[0:stInfo.KeySizeHMAC]
+	seshKeys.ServerKeys.MAC = keys[stInfo.KeySizeHMAC : 2*stInfo.KeySizeHMAC]
+	off += 2 * stInfo.KeySizeHMAC
+
+	// Key Client/Server
+	seshKeys.ClientKeys.Key = keys[off : off+stInfo.KeySize]
+	seshKeys.ServerKeys.Key = keys[off+stInfo.KeySize : off+2*stInfo.KeySize]
+	off += 2 * stInfo.KeySize
+
+	// IV Client/Server
+	seshKeys.ClientKeys.IV = keys[off : off+stInfo.IVSize]
+	seshKeys.ServerKeys.IV = keys[off+stInfo.IVSize : off+2*stInfo.IVSize]
+	if err := checkKeys(&seshKeys, stInfo, x.Name()); err != nil {
+		return err
+	}
+
+	x.ctx.SetKeys(&seshKeys)
+	x.tCtx.Lg.Info("SessionKeys generated")
+	return nil
+}
+
+func checkKeys(keys *SessionKeys, info *suite.SuiteInfo, tag string) error {
+
+	if keys == nil {
+		return fmt.Errorf("nil SessionKeys object(%v)", tag)
+	}
+
+	if len(keys.ClientKeys.MAC) != info.KeySizeHMAC ||
+		len(keys.ServerKeys.MAC) != info.KeySizeHMAC {
+		return fmt.Errorf("invalid _Keys.MAC size(%v)", tag)
+	}
+
+	if len(keys.ClientKeys.Key) != info.KeySize ||
+		len(keys.ServerKeys.Key) != info.KeySize {
+		return fmt.Errorf("invalid _Keys.Key size(%v)", tag)
+	}
+
+	if len(keys.ClientKeys.IV) != info.IVSize ||
+		len(keys.ServerKeys.IV) != info.IVSize {
+		return fmt.Errorf("invalid _Keys.IV size(%v)", tag)
+	}
+
+	return nil
+}
