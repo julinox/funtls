@@ -56,6 +56,7 @@ func (x *xServerHello) Handle() error {
 	}
 
 	serverHelloBuf = append(serverHelloBuf, random[:]...)
+	x.tCtx.Lg.Tracef("Field[Random(server)]: %x", random)
 
 	// Session ID
 	serverHelloBuf = append(serverHelloBuf, x.sessionID(msgHello)...)

@@ -171,6 +171,7 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 	}
 
 	x.ctx.SetKeys(&seshKeys)
+	x.tCtx.Lg.Tracef("Keys Block/Material: %x", keys)
 	x.tCtx.Lg.Info("SessionKeys generated")
 	return nil
 }

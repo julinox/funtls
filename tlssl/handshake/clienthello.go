@@ -128,8 +128,7 @@ func (x *xClientHello) version(buff []byte, msg *MsgHello) uint32 {
 func (x *xClientHello) random(buff []byte, msg *MsgHello) uint32 {
 
 	copy(msg.Random[:], buff)
-	x.tCtx.Lg.Trace("Field[Random]: ",
-		systema.PrettyPrintBytes(msg.Random[:]))
+	x.tCtx.Lg.Tracef("Field[Random]: %x", msg.Random)
 	return offsetRandom
 }
 
@@ -146,8 +145,7 @@ func (x *xClientHello) sessionId(buff []byte, msg *MsgHello) (uint32, error) {
 
 	msg.SessionId = make([]byte, sessionIdLen)
 	copy(msg.SessionId, buff[1:sessionIdLen+1])
-	x.tCtx.Lg.Trace("Field[SessionID]: ",
-		systema.PrettyPrintBytes(msg.SessionId))
+	x.tCtx.Lg.Tracef("Field[SessionID]: %x", msg.SessionId)
 	return offsetSessionIdLen + sessionIdLen, nil
 }
 
