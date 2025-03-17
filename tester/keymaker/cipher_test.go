@@ -34,11 +34,10 @@ func TestSuite0x003D(t *testing.T) {
 	}
 
 	ctx := &suite.SuiteContext{
-		IV:      iv,
-		Key:     encKey,
-		HKey:    macKey,
-		Data:    ciphertext,
-		MacMode: suite.MTE,
+		IV:   iv,
+		Key:  encKey,
+		HKey: macKey,
+		Data: ciphertext,
 	}
 
 	plaintext, err := traje.CipherNot(ctx)
@@ -75,11 +74,10 @@ func _TestSuite0x003DETM(t *testing.T) {
 		0x1F, 0x20, 0x21,
 	}
 	ctx := &suite.SuiteContext{
-		IV:      iv,
-		Key:     encKey,
-		HKey:    macKey,
-		Data:    data,
-		MacMode: suite.ETM,
+		IV:   iv,
+		Key:  encKey,
+		HKey: macKey,
+		Data: data,
 	}
 
 	plaintext, err := traje.CipherNot(ctx)

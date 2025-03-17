@@ -21,7 +21,10 @@ func TestEameEste(t *testing.T) {
 	}
 
 	ct := cipherText()
-	spec.Decode(ct)
+	_, err := spec.Decode(ct)
+	if err != nil {
+		lg.Error(err)
+	}
 }
 
 func testLogger() *logrus.Logger {
@@ -36,10 +39,14 @@ func traje() suite.Suite {
 
 func keys() *tlssl.Keys {
 
+	key, _ := hex.DecodeString("067d3b3db13874dcd6bf1a6019ca32c0e99a205c60f9dca021db75199b3602c6")
+	mac, _ := hex.DecodeString("067d3b3db13874dcd6bf1a6019ca32c0e99a205c60f9dca021db75199b3602c6")
+	iv, _ := hex.DecodeString("9b70dafc614106000ee77947193f3cd2")
+
 	return &tlssl.Keys{
-		MAC: []byte("MAC"),
-		Key: []byte("KEY"),
-		IV:  []byte("IV"),
+		MAC: mac,
+		Key: key,
+		IV:  iv,
 	}
 }
 

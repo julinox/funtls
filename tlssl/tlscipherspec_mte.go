@@ -7,7 +7,6 @@ import (
 
 func (x *xTLSCipherSpec) cbc(data []byte) (*TLSCipherText, error) {
 
-	// This must be the 'Finished' message
 	switch x.cipherMode {
 	case suite.ETM:
 		return nil, fmt.Errorf("no ETM yet")
@@ -22,6 +21,32 @@ func (x *xTLSCipherSpec) cbc(data []byte) (*TLSCipherText, error) {
 // AESCBC^-1(CiphertText) = Plaintext || HMAC
 func (x *xTLSCipherSpec) cbcMTE(data []byte) (*TLSCipherText, error) {
 
-	fmt.Println("MODIFICADO")
+	if x.seqNum == 0 {
+		return x.cbcFinished(data)
+	}
+
+	fmt.Println("ENCONDE NON FINISHED")
+	return nil, nil
+}
+
+func (x *xTLSCipherSpec) cbcFinished(data []byte) (*TLSCipherText, error) {
+
+	// IV(Fake) | Finished | MAC | Padding | PaddingLen
+
+	ctx := &suite.SuiteContext{
+		Key:  x.keys.Key,
+		IV:   x.keys.IV,
+		Data: data,
+	}
+
+	decoded, err := x.cipherSuite.CipherNot(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("CipherNot decode err: %v", err)
+	}
+
+	ivSz := x.cipherSuite.Info().IVSize
+	//if len(decoded) <
+	fmt.Printf("DESCARTA IV: %v\n", x.cipherSuite.Info().IVSize)
+	fmt.Printf("DECODED: %x\n", decoded)
 	return nil, nil
 }

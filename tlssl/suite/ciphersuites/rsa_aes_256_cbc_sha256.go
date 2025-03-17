@@ -41,37 +41,13 @@ func (x *x0x003D) Info() *suite.SuiteInfo {
 // Cipher and MAC
 func (x *x0x003D) Cipher(sc *suite.SuiteContext) ([]byte, error) {
 
-	/*var err error
-	var cipherText []byte
+	var err error
 
 	err = x.basicCheck(sc)
 	if err != nil {
 		return nil, err
 	}
 
-	switch sc.MacMode {
-	case suite.ETM:
-		return nil, fmt.Errorf("no ETM yet")
-
-	case suite.MTE: // MTE
-		// 1 MAC = HMAC(Plaintext, HKey).
-		// 2 Ciphertext = AESCBC(ClearText || MAC || Padding)
-		// 3 Final = IV ∣∣ C
-		mac, err := x.MacMe(sc)
-		if err != nil {
-			return nil, err
-		}
-
-		cipherText, err = aesCBC(append(sc.Data, mac...), sc.Key, sc.IV, true)
-		if err != nil {
-			return nil, err
-		}
-
-	default:
-		return nil, fmt.Errorf("no specific mode to cipher")
-	}
-
-	return append(sc.IV, cipherText...), nil*/
 	return nil, nil
 }
 
@@ -81,7 +57,7 @@ func (x *x0x003D) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
 		return nil, err
 	}
 
-	return nil, fmt.Errorf("no specific mode to cipher")
+	return aesCBCDecrypt(ctx.Data, ctx.Key, ctx.IV)
 }
 
 func (x *x0x003D) MacMe(cc *suite.SuiteContext) ([]byte, error) {
