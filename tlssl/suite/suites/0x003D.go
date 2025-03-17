@@ -5,24 +5,15 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
-	"tlesio/systema"
 	"tlesio/tlssl/suite"
-
-	"github.com/sirupsen/logrus"
 )
 
 type x0x003D struct {
-	lg *logrus.Logger
 }
 
-func NewAES_256_CBC_SHA256(lg *logrus.Logger) suite.Suite {
-	if lg == nil {
-		return nil
-	}
+func NewAES_256_CBC_SHA256() suite.Suite {
 
-	return &x0x003D{
-		lg: lg,
-	}
+	return &x0x003D{}
 }
 
 func (x *x0x003D) ID() uint16 {
@@ -50,7 +41,7 @@ func (x *x0x003D) Info() *suite.SuiteInfo {
 // Cipher and MAC
 func (x *x0x003D) Cipher(sc *suite.SuiteContext) ([]byte, error) {
 
-	var err error
+	/*var err error
 	var cipherText []byte
 
 	err = x.basicCheck(sc)
@@ -60,7 +51,7 @@ func (x *x0x003D) Cipher(sc *suite.SuiteContext) ([]byte, error) {
 
 	switch sc.MacMode {
 	case suite.ETM:
-		fmt.Println("ETM")
+		return nil, fmt.Errorf("no ETM yet")
 
 	case suite.MTE: // MTE
 		// 1 MAC = HMAC(Plaintext, HKey).
@@ -80,47 +71,47 @@ func (x *x0x003D) Cipher(sc *suite.SuiteContext) ([]byte, error) {
 		return nil, fmt.Errorf("no specific mode to cipher")
 	}
 
-	return append(sc.IV, cipherText...), nil
+	return append(sc.IV, cipherText...), nil*/
+	return nil, nil
 }
 
-func (x *x0x003D) CipherNot(sc *suite.SuiteContext) ([]byte, error) {
+// AESCBC^-1(CiphertText) = Plaintext || HMAC
+func (x *x0x003D) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
 
-	// Data = IV ∣∣ CipherText
-
-	if sc == nil || sc.Data == nil {
-		return nil, systema.ErrNilParams
-	}
-
-	sc.IV = sc.Data[:aes.BlockSize]
-	cipherText := sc.Data[aes.BlockSize:]
-	if err := x.basicCheck(sc); err != nil {
+	if err := x.basicCheck(ctx); err != nil {
 		return nil, err
 	}
 
-	sc.Data = cipherText
-	switch sc.MacMode {
-	case suite.ETM:
-		fmt.Println("DECIPHER ETM")
+	return nil, fmt.Errorf("no specific mode to cipher")
+}
 
-	case suite.MTE:
-		// AESCBC^-1(CiphertText) = Plaintext || HMAC
-		plainTextHmac, err := aesCBC(sc.Data, sc.Key, sc.IV, false)
-		if err != nil {
-			return nil, err
-		}
+func (x *x0x003D) modeMTE(ctx *suite.SuiteContext) ([]byte, error) {
 
-		err = x.isAuthenticated(plainTextHmac, sc.HKey)
-		if err != nil {
-			return nil, err
-		}
+	/*var mac []byte
 
-		return plainTextHmac[:len(plainTextHmac)-sha256.Size], nil
-
-	default:
-		return nil, fmt.Errorf("no specific mode to decipher")
+	clearText, err := aesCBCDecrypt(ctx.Data, ctx.Key, ctx.IV)
+	if err != nil {
+		return nil, fmt.Errorf("MTE decrypt(%v): %v", x.Name(), err)
 	}
 
+	mac = clearText[len(clearText)-sha256.Size:]
+
+	// Finished message
+	if x.seqNumber == 0 {
+		clearText = clearText[x.Info().IVSize:]
+	}
+
+	fmt.Printf("MAC? -> %x\n", mac)
+	return clearText, nil*/
+
 	return nil, nil
+}
+
+func (x *x0x003D) modeETM(ctx *suite.SuiteContext) ([]byte, error) {
+
+	//mac = ctx.Data[len(ctx.Data)-sha256.Size : len(ctx.Data)]
+	//ctx.Data = ctx.Data[:len(ctx.Data)-sha256.Size]
+	return nil, fmt.Errorf("no ETM yet")
 }
 
 func (x *x0x003D) MacMe(cc *suite.SuiteContext) ([]byte, error) {
@@ -134,18 +125,29 @@ func (x *x0x003D) MacMe(cc *suite.SuiteContext) ([]byte, error) {
 	return hmacHash.Sum(nil), nil
 }
 
+func (x *x0x003D) HashMe(data []byte) ([]byte, error) {
+
+	if len(data) == 0 {
+		return nil, fmt.Errorf("nil/empty data")
+	}
+
+	hasher := sha256.New()
+	hasher.Write(data)
+	return hasher.Sum(nil), nil
+}
+
 func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 
 	if cc == nil || len(cc.Data) == 0 {
-		return systema.ErrNilParams
+		return fmt.Errorf("nil/empty SuiteContext(%v)", x.Name())
 	}
 
 	if len(cc.Key) != x.Info().KeySize {
-		return systema.ErrInvalidKeySize
+		return fmt.Errorf("invalid key size(%v)", x.Name())
 	}
 
 	if len(cc.IV) != aes.BlockSize {
-		return systema.ErrInvalidIVSize
+		return fmt.Errorf("invalid IV size(%v)", x.Name())
 	}
 
 	return nil

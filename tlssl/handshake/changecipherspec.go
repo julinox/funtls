@@ -41,17 +41,17 @@ func (x *xChangeCipherSpec) Handle() error {
 	x.nextState = FINISHED
 	switch x.ctx.GetTransitionStage() {
 	case STAGE_FINISHED_CLIENT:
-		return x.ccsClient()
+		return x.cipeherSpecClient()
 
 	case STAGE_FINISHED_SERVER:
-		return x.ccsServer()
+		return x.cipeherSpecServer()
 
 	default:
 		return fmt.Errorf("%v: invalid transition stage", x.Name())
 	}
 }
 
-func (x *xChangeCipherSpec) ccsClient() error {
+func (x *xChangeCipherSpec) cipeherSpecClient() error {
 
 	x.tCtx.Lg.Tracef("Running state: %v(CLIENT)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(CLIENT)", x.Name())
@@ -66,7 +66,7 @@ func (x *xChangeCipherSpec) ccsClient() error {
 	return nil
 }
 
-func (x *xChangeCipherSpec) ccsServer() error {
+func (x *xChangeCipherSpec) cipeherSpecServer() error {
 
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
@@ -88,7 +88,7 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 		return fmt.Errorf("nil SuiteInfo object(%v)", x.Name())
 	}
 
-	keyMaker, err := NewKeymaker(stInfo.Hash, _MASTER_SECRET_SIZE_)
+	keyMaker, err := tlssl.NewKeymaker(stInfo.Hash, _MASTER_SECRET_SIZE_)
 	if err != nil {
 		return fmt.Errorf("NewKeymaker error(%v): %v", x.Name(), err)
 	}
@@ -110,7 +110,6 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 	}
 
 	x.ctx.SetBuffer(MASTERSECRET, masterSecret)
-	x.tCtx.Lg.Tracef("MasterSecret: %x", masterSecret)
 	x.tCtx.Lg.Info("MasterSecret generated")
 	return nil
 }
@@ -118,7 +117,7 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 func (x *xChangeCipherSpec) sessionKeys() error {
 
 	var seed []byte
-	var seshKeys SessionKeys
+	var seshKeys tlssl.SessionKeys
 
 	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if st == nil {
@@ -131,7 +130,7 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 	}
 
 	blockLen := 2 * (stInfo.KeySizeHMAC + stInfo.KeySize + stInfo.IVSize)
-	kMake, err := NewKeymaker(stInfo.Hash, blockLen)
+	kMake, err := tlssl.NewKeymaker(suite.SHA256, blockLen)
 	if err != nil {
 		return fmt.Errorf("nil Keymaker object(%v)", x.Name())
 	}
@@ -171,12 +170,11 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 	}
 
 	x.ctx.SetKeys(&seshKeys)
-	x.tCtx.Lg.Tracef("Keys Block/Material: %x", keys)
 	x.tCtx.Lg.Info("SessionKeys generated")
 	return nil
 }
 
-func checkKeys(keys *SessionKeys, info *suite.SuiteInfo, tag string) error {
+func checkKeys(keys *tlssl.SessionKeys, info *suite.SuiteInfo, tag string) error {
 
 	if keys == nil {
 		return fmt.Errorf("nil SessionKeys object(%v)", tag)

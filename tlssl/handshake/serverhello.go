@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"tlesio/tlssl"
 	ex "tlesio/tlssl/extensions"
+	"tlesio/tlssl/suite"
 )
 
 type xServerHello struct {
@@ -58,12 +59,17 @@ func (x *xServerHello) Handle() error {
 	serverHelloBuf = append(serverHelloBuf, random[:]...)
 	x.tCtx.Lg.Tracef("Field[Random(server)]: %x", random)
 
-	// Session ID
-	serverHelloBuf = append(serverHelloBuf, x.sessionID(msgHello)...)
+	// Session ID. No session resumption
+	serverHelloBuf = append(serverHelloBuf, 0x00)
 
 	// Cipher Suite
-	serverHelloBuf = append(serverHelloBuf, x.cipherSuites(msgHello)...)
 
+	cs := x.cipherSuites(msgHello)
+	if len(cs) <= 0 {
+		return fmt.Errorf("no supported cipher suites")
+	}
+
+	serverHelloBuf = append(serverHelloBuf, cs...)
 	// "Compression methods"
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
@@ -100,15 +106,6 @@ func (x *xServerHello) random() ([]byte, error) {
 	return newBuff, nil
 }
 
-func (x *xServerHello) sessionID(cliMsg *MsgHello) []byte {
-
-	var newBuff []byte
-
-	newBuff = append(newBuff, byte(len(cliMsg.SessionId)))
-	newBuff = append(newBuff, cliMsg.SessionId...)
-	return newBuff
-}
-
 func (x *xServerHello) cipherSuites(cliMsg *MsgHello) []byte {
 
 	var cs uint16
@@ -123,6 +120,7 @@ func (x *xServerHello) cipherSuites(cliMsg *MsgHello) []byte {
 	}
 
 	x.ctx.SetCipherSuite(cs)
+	x.tCtx.Lg.Tracef("CipherSuite: %v", suite.CipherSuiteNames[cs])
 	return newBuff
 }
 

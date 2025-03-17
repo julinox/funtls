@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"tlesio/systema"
+	"tlesio/tlssl"
+	"tlesio/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 )
@@ -41,10 +43,11 @@ type xHandhsakeContextData struct {
 	serverCert         *x509.Certificate
 	msgHello           *MsgHello
 	cipherSuite        uint16
+	cipherMode         int
 	transitionStage    int
 	order              []int
 	expected           int
-	keys               *SessionKeys
+	keys               *tlssl.SessionKeys
 }
 
 type xHandhsakeContext struct {
@@ -62,8 +65,10 @@ type HandShakeContext interface {
 	GetMsgHello() *MsgHello
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
-	SetKeys(*SessionKeys)
-	GetKeys() *SessionKeys
+	SetCipherMode(int)
+	GetCipherMode() int
+	SetKeys(*tlssl.SessionKeys)
+	GetKeys() *tlssl.SessionKeys
 	SetTransitionStage(int)
 	GetTransitionStage() int
 	GetComms() net.Conn
@@ -91,6 +96,7 @@ func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
 	newContext.data.expected |= CLIENTKEYEXCHANGE
 	newContext.data.expected |= CHANGECIPHERSPEC
 	newContext.data.expected |= FINISHED
+	newContext.data.cipherMode = suite.MTE
 	return &newContext
 }
 
@@ -224,15 +230,23 @@ func (x *xHandhsakeContext) GetCipherSuite() uint16 {
 	return x.data.cipherSuite
 }
 
+func (x *xHandhsakeContext) SetCipherMode(mode int) {
+	x.data.cipherMode = mode
+}
+
+func (x *xHandhsakeContext) GetCipherMode() int {
+	return x.data.cipherMode
+}
+
 func (x *xHandhsakeContext) SetTransitionStage(stage int) {
 	x.data.transitionStage = stage
 }
 
-func (x *xHandhsakeContext) SetKeys(keys *SessionKeys) {
+func (x *xHandhsakeContext) SetKeys(keys *tlssl.SessionKeys) {
 	x.data.keys = keys
 }
 
-func (x *xHandhsakeContext) GetKeys() *SessionKeys {
+func (x *xHandhsakeContext) GetKeys() *tlssl.SessionKeys {
 	return x.data.keys
 }
 

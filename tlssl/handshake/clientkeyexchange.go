@@ -76,15 +76,14 @@ func (x *xClientKeyExchange) Handle() error {
 
 	// Decode the pre master secret
 	pmsCoded := kBuff[2:]
-	x.tCtx.Lg.Tracef("Received PreMasterSecreto: %x", pmsCoded)
 	pms, err := x.preMasterSecret(pmsCoded)
 	if err != nil {
 		return err
 	}
 
 	// Calculate the session keys
-	x.tCtx.Lg.Tracef("Decrypted PreMasterSecreto: %x", pms)
 	x.ctx.SetBuffer(PREMASTERSECRET, pms)
+	x.ctx.AppendOrder(CLIENTKEYEXCHANGE)
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEVERIFY
 	} else {

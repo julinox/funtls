@@ -117,7 +117,7 @@ func NewHandshake(actx *AllContexts) (*Handshake, error) {
 	newHandshake.ChgCph = NewChangeCipherSpec(actx)
 	newHandshake.ClientHelo = NewClientHello(actx)
 	newHandshake.ClientKeyExch = NewClientKeyExchange(actx)
-	newHandshake.Finish = NewFinished(actx.Hctx)
+	newHandshake.Finish = NewFinished(actx)
 	newHandshake.ServerHelo = NewServerHello(actx)
 	newHandshake.ServerHeloDone = NewServerHelloDone(actx)
 	newHandshake.ServerKeyExch = NewServerKeyExchange(actx)

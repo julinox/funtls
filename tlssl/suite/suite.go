@@ -1,6 +1,8 @@
 package suite
 
-import "fmt"
+import (
+	"fmt"
+)
 
 const (
 	AES = iota + 1
@@ -8,6 +10,7 @@ const (
 
 	CBC
 	GCM
+	STREAM
 
 	HMAC
 	POLY1305
@@ -23,15 +26,13 @@ const (
 const (
 	ETM = iota + 1
 	MTE
-	AEAD
 )
 
 type SuiteContext struct {
-	IV      []byte
-	Key     []byte
-	HKey    []byte
-	Data    []byte
-	MacMode int
+	Key  []byte
+	HKey []byte
+	IV   []byte
+	Data []byte
 }
 
 type SuiteInfo struct {
@@ -53,18 +54,19 @@ type Suite interface {
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
 	MacMe(*SuiteContext) ([]byte, error)
+	HashMe([]byte) ([]byte, error)
 }
 
 func (sc *SuiteContext) Print() string {
 
-	return fmt.Sprintf("IV: %s\nKey: %s\nHKey: %s\nData: %s\nMacMode: %s",
-		sc.IV, sc.Key, sc.HKey, sc.Data, macModeToString(sc.MacMode))
+	return fmt.Sprintf("IV: %s\nKey: %s\nHKey: %s\nData: %s",
+		sc.IV, sc.Key, sc.HKey, sc.Data)
 }
 
 func (sc *SuiteContext) PrintRaw() string {
 
-	return fmt.Sprintf("IV: %x\nKey: %x\nHKey: %x\nData: %x\nMacMode: %s",
-		sc.IV, sc.Key, sc.HKey, sc.Data, macModeToString(sc.MacMode))
+	return fmt.Sprintf("IV: %x\nKey: %x\nHKey: %x\nData: %x",
+		sc.IV, sc.Key, sc.HKey, sc.Data)
 }
 
 func (info *SuiteInfo) Print() string {
@@ -84,14 +86,15 @@ func (info *SuiteInfo) Print() string {
 }
 
 func macModeToString(macMode int) string {
+
 	switch macMode {
 	case MTE:
 		return "MTE"
-	case AEAD:
-		return "AEAD"
+	case ETM:
+		return "ETM"
 	}
 
-	return "ETM"
+	return "UnknownMacMode"
 }
 
 func modeToString(mode int) string {

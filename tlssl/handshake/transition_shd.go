@@ -40,14 +40,15 @@ func (x *xTransition) transitServerHelloDone() error {
 		for i, who := range whoIsIt {
 			switch who.Header.ContentType {
 			case tlssl.ContentTypeChangeCipherSpec:
-				x.tCtx.Lg.Debug("Received change cipher spec")
+				x.tCtx.Lg.Debugf("Received %v",
+					HandshakeName(CHANGECIPHERSPEC))
 				x.ctx.UnAppendExpected(CHANGECIPHERSPEC)
 				if i >= len(whoIsIt)-1 {
 					x.tCtx.Lg.Warn("No more packets after change cipher spec")
 					break
 				}
 
-				x.tCtx.Lg.Debug("Received finished???")
+				x.tCtx.Lg.Debugf("Received %v(?)", HandshakeName(FINISHED))
 				x.ctx.SetBuffer(FINISHED, whoIsIt[i+1].Msg)
 				x.ctx.UnAppendExpected(FINISHED)
 
@@ -76,21 +77,21 @@ func (x *xTransition) isExpected(record *tlssl.TLSRecord) {
 	switch record.HandShake.HandshakeType {
 	case tlssl.HandshakeTypeCertificate:
 		if x.ctx.Expected()&CERTIFICATE != 0 {
-			x.tCtx.Lg.Debug("Received client certificate")
-			x.ctx.SetBuffer(CERTIFICATE, record.Msg)
+			x.tCtx.Lg.Debugf("Received %v(CLIENT)", HandshakeName(CERTIFICATE))
+			x.ctx.SetBuffer(CLIENTCERTIFICATE, record.Msg)
 			x.ctx.UnAppendExpected(CERTIFICATE)
 		}
 
 	case tlssl.HandshakeTypeClientKeyExchange:
 		if x.ctx.Expected()&CLIENTKEYEXCHANGE != 0 {
-			x.tCtx.Lg.Debug("Received client key Exchange")
+			x.tCtx.Lg.Debugf("Received %v", HandshakeName(CLIENTKEYEXCHANGE))
 			x.ctx.SetBuffer(CLIENTKEYEXCHANGE, record.Msg)
 			x.ctx.UnAppendExpected(CLIENTKEYEXCHANGE)
 		}
 
 	case tlssl.HandshakeTypeCertificateVerify:
 		if x.ctx.Expected()&CERTIFICATEVERIFY != 0 {
-			x.tCtx.Lg.Debug("Received client certificate verify")
+			x.tCtx.Lg.Debugf("Received %v", HandshakeName(CERTIFICATEVERIFY))
 			x.ctx.SetBuffer(CERTIFICATEVERIFY, record.Msg)
 			x.ctx.UnAppendExpected(CERTIFICATEVERIFY)
 		}

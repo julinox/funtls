@@ -1,4 +1,4 @@
-package handshake
+package tlssl
 
 import (
 	"crypto/hmac"
@@ -6,11 +6,10 @@ import (
 	"fmt"
 	"hash"
 	"tlesio/tlssl/suite"
-
-	"golang.org/x/crypto/sha3"
 )
 
 const (
+	_SHA1_LEN_BYTES   = 20
 	_SHA256_LEN_BYTES = 32
 	_SHA384_LEN_BYTES = 48
 )
@@ -28,7 +27,6 @@ type SessionKeys struct {
 
 type TheKeyMaker interface {
 	PRF([]byte, string, []byte) []byte
-	//PHash([]byte, []byte) []byte
 }
 
 type xKeyMake struct {
@@ -53,14 +51,8 @@ func NewKeymaker(hashingAlgorithm, blockLen int) (TheKeyMaker, error) {
 			return nil, fmt.Errorf("block len too short for SHA256")
 		}
 
-	case suite.SHA384:
-		km.hashAlgo = suite.SHA384
-		if blockLen < _SHA384_LEN_BYTES {
-			return nil, fmt.Errorf("block len too short for SHA384")
-		}
-
 	default:
-		return nil, fmt.Errorf("unsupported hashing algorithm")
+		return nil, fmt.Errorf("unsupported hash algorithm (maybe in TLS 1.4)")
 	}
 
 	km.blockLen = blockLen
@@ -87,9 +79,6 @@ func (x *xKeyMake) pHash(secret, seed []byte) []byte {
 	switch x.hashAlgo {
 	case suite.SHA256:
 		return x.shamir(secret, seed, sha256.New)
-
-	case suite.SHA384:
-		return x.shamir(secret, seed, sha3.New384)
 	}
 
 	return nil
