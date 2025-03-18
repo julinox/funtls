@@ -7,7 +7,7 @@ import (
 	ex "tlesio/tlssl/extensions"
 	mx "tlesio/tlssl/modulos"
 	"tlesio/tlssl/suite"
-	"tlesio/tlssl/suite/suites"
+	"tlesio/tlssl/suite/ciphersuites"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -72,7 +72,7 @@ func (x *serverOp) initTLSContextModz() {
 	}
 
 	suites := []suite.Suite{
-		suites.NewAES_256_CBC_SHA256(),
+		ciphersuites.NewAES_256_CBC_SHA256(),
 	}
 
 	if x.err != nil {

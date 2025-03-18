@@ -1,6 +1,7 @@
 package tlssl
 
 import (
+	"encoding/binary"
 	"fmt"
 	"tlesio/tlssl/suite"
 )
@@ -23,21 +24,15 @@ type GenericBlockCipher struct {
 	Mac     []byte
 }
 
-type TLSFragment struct {
+type TLSCipherText struct {
+	Header   *TLSHeader
 	Fragment interface{}
 }
 
-type TLSCipherText struct {
-	Header   *TLSHeader
-	Fragment *TLSFragment
-}
-
 type TLSCipherSpec interface {
-	//Header() *TLSHeader
-	//Fragment() *TLSFragment
-	Decode([]byte) (*TLSCipherText, error)
 	CipherType() int
-	//Encode() ([]byte, error)
+	Encode() ([]byte, error)
+	Decode([]byte) (*TLSCipherText, error)
 }
 
 type xTLSCipherSpec struct {
@@ -69,6 +64,14 @@ func NewTLSCipherSpec(cs suite.Suite, keys *Keys, mode int) TLSCipherSpec {
 	return &newTLSCT
 }
 
+func (x *xTLSCipherSpec) CipherType() int {
+	return x.cipherSuite.Info().Mode
+}
+
+func (x *xTLSCipherSpec) Encode() ([]byte, error) {
+	return nil, nil
+}
+
 // Deciper and format
 func (x *xTLSCipherSpec) Decode(data []byte) (*TLSCipherText, error) {
 
@@ -84,6 +87,8 @@ func (x *xTLSCipherSpec) Decode(data []byte) (*TLSCipherText, error) {
 	return nil, fmt.Errorf("unknown cipher type")
 }
 
-func (x *xTLSCipherSpec) CipherType() int {
-	return x.cipherSuite.Info().Mode
+func seqNumToBytes(sn uint64) []byte {
+	seqNumBytes := make([]byte, 8)
+	binary.BigEndian.PutUint64(seqNumBytes, sn)
+	return seqNumBytes
 }

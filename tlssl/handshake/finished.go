@@ -149,7 +149,7 @@ func (x *xFinished) expected(hskMsgs []byte, label string) ([]byte, error) {
 		return nil, fmt.Errorf("expected verify data calc(%v)", x.Name())
 	}
 
-	fmt.Printf("EXPECTED Complete: %x\n", expectedVerify)
+	fmt.Printf("EXPECTED VerifyData: %x\n", expectedVerify[0:12])
 	return expectedVerify[:_VERIFY_DATA_SZ], nil
 }
 

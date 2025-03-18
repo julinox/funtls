@@ -29,6 +29,7 @@ func (x *x0x003D) Info() *suite.SuiteInfo {
 		Mac:         suite.HMAC,
 		Mode:        suite.CBC,
 		Hash:        suite.SHA256,
+		HashSize:    sha256.Size,
 		Cipher:      suite.AES,
 		KeySize:     32,
 		KeySizeHMAC: 32,
@@ -60,14 +61,14 @@ func (x *x0x003D) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
 	return aesCBCDecrypt(ctx.Data, ctx.Key, ctx.IV)
 }
 
-func (x *x0x003D) MacMe(cc *suite.SuiteContext) ([]byte, error) {
+func (x *x0x003D) MacMe(data, hashKey []byte) ([]byte, error) {
 
-	if len(cc.HKey) == 0 {
+	if len(hashKey) != x.Info().KeySizeHMAC {
 		return nil, fmt.Errorf("nil/empty MAC Key")
 	}
 
-	hmacHash := hmac.New(sha256.New, cc.HKey)
-	hmacHash.Write(cc.Data)
+	hmacHash := hmac.New(sha256.New, hashKey)
+	hmacHash.Write(data)
 	return hmacHash.Sum(nil), nil
 }
 

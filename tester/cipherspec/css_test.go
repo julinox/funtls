@@ -12,7 +12,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func TestEameEste(t *testing.T) {
+func TestTLSCipherTextDecode(t *testing.T) {
 	lg := testLogger()
 	spec := cipherSpec()
 	if spec == nil {
@@ -20,11 +20,14 @@ func TestEameEste(t *testing.T) {
 		return
 	}
 
+	// Suite is AES_256_CBC_SHA256 (0x003D)
 	ct := cipherText()
-	_, err := spec.Decode(ct)
+	tct, err := spec.Decode(ct)
 	if err != nil {
 		lg.Error(err)
 	}
+
+	lg.Infof("Content: %x", tct.Fragment.(*tlssl.GenericBlockCipher).Content)
 }
 
 func testLogger() *logrus.Logger {
@@ -33,15 +36,15 @@ func testLogger() *logrus.Logger {
 	return lg
 }
 
-func traje() suite.Suite {
+func cipherSuite() suite.Suite {
 	return ciphersuites.NewAES_256_CBC_SHA256()
 }
 
 func keys() *tlssl.Keys {
 
-	key, _ := hex.DecodeString("067d3b3db13874dcd6bf1a6019ca32c0e99a205c60f9dca021db75199b3602c6")
-	mac, _ := hex.DecodeString("067d3b3db13874dcd6bf1a6019ca32c0e99a205c60f9dca021db75199b3602c6")
-	iv, _ := hex.DecodeString("9b70dafc614106000ee77947193f3cd2")
+	key, _ := hex.DecodeString("b95ec862429f25237f074a090d3e13b2027a58c200e7f74eee95b0d221f87f99")
+	mac, _ := hex.DecodeString("b59b5590829a6513a5ac10da10aef8201d16c8f05ecc6fe517cf5d8024cad207")
+	iv, _ := hex.DecodeString("a18028ef92695cbeac6259248d93f81f")
 
 	return &tlssl.Keys{
 		MAC: mac,
@@ -51,12 +54,13 @@ func keys() *tlssl.Keys {
 }
 
 func cipherSpec() tlssl.TLSCipherSpec {
-	return tlssl.NewTLSCipherSpec(traje(), keys(), suite.MTE)
+	return tlssl.NewTLSCipherSpec(cipherSuite(), keys(), suite.MTE)
 }
 
 func cipherText() []byte {
 
-	cipherText := "842e530316f7f3fd52d0a7fc221ef4c0f88936be8c3e20ad821ca5e746da4f1ec6caf2dbec9792354cd66af48879338758edeca38cfd02fb8e37c3e8a6cdc25e59ea64df4f8d36fc36faf853b782732a"
-	ct, _ := hex.DecodeString(cipherText)
+	// VerifyData: d852d8aaf6be5ce5383678a4
+	message := "160303005005c49737a3d2ec3927ddc423f427d6ae23044a30e5eb8e97d34e268f921c7dd551f9f19c24bf08711073049c03c45b7e85840f3cec3f065eabd31085496d9806081dde85ff583dd7b1cd5034bb2ee721"
+	ct, _ := hex.DecodeString(message)
 	return ct
 }

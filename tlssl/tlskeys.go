@@ -8,6 +8,7 @@ import (
 	"tlesio/tlssl/suite"
 )
 
+const HMAC_SIZE = sha256.Size
 const (
 	_SHA1_LEN_BYTES   = 20
 	_SHA256_LEN_BYTES = 32

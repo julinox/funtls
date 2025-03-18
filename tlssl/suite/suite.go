@@ -39,6 +39,7 @@ type SuiteInfo struct {
 	Mac         int
 	Mode        int
 	Hash        int
+	HashSize    int
 	Cipher      int
 	KeySize     int
 	KeySizeHMAC int
@@ -53,7 +54,7 @@ type Suite interface {
 	Info() *SuiteInfo
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
-	MacMe(*SuiteContext) ([]byte, error)
+	MacMe([]byte, []byte) ([]byte, error)
 	HashMe([]byte) ([]byte, error)
 }
 
