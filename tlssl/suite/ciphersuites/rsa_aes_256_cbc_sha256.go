@@ -27,7 +27,7 @@ func (x *x0x003D) Name() string {
 func (x *x0x003D) Info() *suite.SuiteInfo {
 	return &suite.SuiteInfo{
 		Mac:         suite.HMAC,
-		Mode:        suite.CBC,
+		CipherType:  suite.CIPHER_CBC,
 		Hash:        suite.SHA256,
 		HashSize:    sha256.Size,
 		Cipher:      suite.AES,

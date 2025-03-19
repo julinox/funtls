@@ -44,10 +44,10 @@ func (x *xTLSCipherSpec) cbc(data []byte) (*TLSCipherText, error) {
 
 	// Decode the data
 	myself := systema.MyName()
-	switch x.cipherMode {
-	case suite.ETM:
+	switch x.macMode {
+	case MODE_ETM:
 		tct, err = x.cbcETM(data)
-	case suite.MTE:
+	case MODE_MTE:
 		tct, err = x.cbcMTE(data)
 	default:
 		return nil, fmt.Errorf("no cipher mode(%v)", myself)

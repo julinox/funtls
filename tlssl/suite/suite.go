@@ -4,13 +4,10 @@ import (
 	"fmt"
 )
 
+// Names for ciphers, hash functions, and key exchange algorithms
 const (
 	AES = iota + 1
 	CHACHA20
-
-	CBC
-	GCM
-	STREAM
 
 	HMAC
 	POLY1305
@@ -23,9 +20,11 @@ const (
 	DHE
 )
 
+// Cipher Types
 const (
-	ETM = iota + 1
-	MTE
+	CIPHER_STREAM = iota + 1
+	CIPHER_CBC
+	CIPHER_AEAD
 )
 
 type SuiteContext struct {
@@ -37,7 +36,7 @@ type SuiteContext struct {
 
 type SuiteInfo struct {
 	Mac         int
-	Mode        int
+	CipherType  int
 	Hash        int
 	HashSize    int
 	Cipher      int
@@ -74,10 +73,9 @@ func (info *SuiteInfo) Print() string {
 
 	var str string
 
-	str += fmt.Sprintf("MAC: %s\n", macModeToString(info.Mac))
-	str += fmt.Sprintf("Mode: %s\n", modeToString(info.Mode))
-	str += fmt.Sprintf("Hash: %s\n", hashToString(info.Hash))
-	str += fmt.Sprintf("Cipher: %s\n", cipherToString(info.Cipher))
+	str += fmt.Sprintf("CipherType: %s\n", modeToString(info.CipherType))
+	str += fmt.Sprintf("HashName: %s\n", hashToString(info.Hash))
+	str += fmt.Sprintf("CipherName: %s\n", cipherToString(info.Cipher))
 	str += fmt.Sprintf("KeySize: %d\n", info.KeySize)
 	str += fmt.Sprintf("KeySizeHMAC: %d\n", info.KeySizeHMAC)
 	str += fmt.Sprintf("IVSize: %d\n", info.IVSize)
@@ -86,25 +84,15 @@ func (info *SuiteInfo) Print() string {
 	return str
 }
 
-func macModeToString(macMode int) string {
+func modeToString(cipherType int) string {
 
-	switch macMode {
-	case MTE:
-		return "MTE"
-	case ETM:
-		return "ETM"
-	}
-
-	return "UnknownMacMode"
-}
-
-func modeToString(mode int) string {
-
-	switch mode {
-	case CBC:
+	switch cipherType {
+	case CIPHER_STREAM:
+		return "STREAM"
+	case CIPHER_CBC:
 		return "CBC"
-	case GCM:
-		return "GCM"
+	case CIPHER_AEAD:
+		return "AEAD"
 	}
 
 	return "Unknown"

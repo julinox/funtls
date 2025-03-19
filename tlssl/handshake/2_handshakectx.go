@@ -6,7 +6,6 @@ import (
 	"net"
 	"tlesio/systema"
 	"tlesio/tlssl"
-	"tlesio/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 )
@@ -18,6 +17,8 @@ const (
 	SERVERRANDOM      = 35
 	PREMASTERSECRET   = 37
 	MASTERSECRET      = 39
+	CIPHERSPECCLIENT  = 41
+	CIPHERSPECSERVER  = 43
 )
 
 type prfData struct {
@@ -31,7 +32,6 @@ type xHandhsakeContextData struct {
 	certificate        []byte
 	certificateRequest []byte
 	certificateverify  []byte
-	changeCipherSpec   []byte
 	clientCertificate  []byte
 	clientHello        []byte
 	clientKeyExchange  []byte
@@ -43,11 +43,13 @@ type xHandhsakeContextData struct {
 	serverCert         *x509.Certificate
 	msgHello           *MsgHello
 	cipherSuite        uint16
-	cipherMode         int
+	macMode            int
 	transitionStage    int
 	order              []int
 	expected           int
 	keys               *tlssl.SessionKeys
+	cipherSpecClient   tlssl.TLSCipherSpec
+	cipherSpecServer   tlssl.TLSCipherSpec
 }
 
 type xHandhsakeContext struct {
@@ -65,10 +67,12 @@ type HandShakeContext interface {
 	GetMsgHello() *MsgHello
 	SetCipherSuite(uint16)
 	GetCipherSuite() uint16
-	SetCipherMode(int)
-	GetCipherMode() int
+	SetMacMode(int)
+	GetMacMode() int
 	SetKeys(*tlssl.SessionKeys)
 	GetKeys() *tlssl.SessionKeys
+	SetCipherScpec(int, tlssl.TLSCipherSpec)
+	GetCipherScpec(int) tlssl.TLSCipherSpec
 	SetTransitionStage(int)
 	GetTransitionStage() int
 	GetComms() net.Conn
@@ -96,7 +100,7 @@ func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
 	newContext.data.expected |= CLIENTKEYEXCHANGE
 	newContext.data.expected |= CHANGECIPHERSPEC
 	newContext.data.expected |= FINISHED
-	newContext.data.cipherMode = suite.MTE
+	newContext.data.macMode = tlssl.MODE_MTE
 	return &newContext
 }
 
@@ -115,9 +119,6 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 
 	case CERTIFICATEVERIFY:
 		x.data.certificateverify = buff
-
-	case CHANGECIPHERSPEC:
-		x.data.changeCipherSpec = buff
 
 	case CLIENTCERTIFICATE:
 		x.data.clientCertificate = buff
@@ -165,9 +166,6 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	case CERTIFICATEVERIFY:
 		return x.data.certificateverify
-
-	case CHANGECIPHERSPEC:
-		return x.data.changeCipherSpec
 
 	case CLIENTCERTIFICATE:
 		return x.data.clientCertificate
@@ -230,12 +228,12 @@ func (x *xHandhsakeContext) GetCipherSuite() uint16 {
 	return x.data.cipherSuite
 }
 
-func (x *xHandhsakeContext) SetCipherMode(mode int) {
-	x.data.cipherMode = mode
+func (x *xHandhsakeContext) SetMacMode(mode int) {
+	x.data.macMode = mode
 }
 
-func (x *xHandhsakeContext) GetCipherMode() int {
-	return x.data.cipherMode
+func (x *xHandhsakeContext) GetMacMode() int {
+	return x.data.macMode
 }
 
 func (x *xHandhsakeContext) SetTransitionStage(stage int) {
@@ -248,6 +246,28 @@ func (x *xHandhsakeContext) SetKeys(keys *tlssl.SessionKeys) {
 
 func (x *xHandhsakeContext) GetKeys() *tlssl.SessionKeys {
 	return x.data.keys
+}
+
+func (x *xHandhsakeContext) SetCipherScpec(who int, cs tlssl.TLSCipherSpec) {
+
+	switch who {
+	case CIPHERSPECCLIENT:
+		x.data.cipherSpecClient = cs
+	case CIPHERSPECSERVER:
+		x.data.cipherSpecServer = cs
+	}
+}
+
+func (x *xHandhsakeContext) GetCipherScpec(who int) tlssl.TLSCipherSpec {
+
+	switch who {
+	case CIPHERSPECCLIENT:
+		return x.data.cipherSpecClient
+	case CIPHERSPECSERVER:
+		return x.data.cipherSpecServer
+	}
+
+	return nil
 }
 
 func (x *xHandhsakeContext) GetTransitionStage() int {
@@ -382,10 +402,6 @@ func (x *xHandhsakeContext) Send(ids []int) error {
 		case CERTIFICATEVERIFY:
 			outBuff = append(outBuff, x.data.certificateverify...)
 			x.lg.Debug("Sending CERTIFICATEVERIFY")
-
-		case CHANGECIPHERSPEC:
-			outBuff = append(outBuff, x.data.changeCipherSpec...)
-			x.lg.Debug("Sending CHANGECIPHERSPEC")
 
 		case CLIENTHELLO:
 			continue

@@ -58,18 +58,35 @@ func (x *xFinished) finishedClient() error {
 	x.tCtx.Lg.Debugf("Running state: %v(CLIENT)", x.Name())
 
 	// Get the handshake messages (in order) to hash them
-	hskMsgs := x.handshakeMessages()
+	hskMsgs := x.handshakeMessagesOrder()
 	if hskMsgs == nil {
 		return fmt.Errorf("nil handshake messages buffer(%v)", x.Name())
 	}
 
-	expected, err := x.expected(hskMsgs, _VERIFY_DATA_LABEL_CLIENT)
+	// computed verify data
+	calcVerify, err := x.expectedVD(hskMsgs, _VERIFY_DATA_LABEL_CLIENT)
 	if err != nil {
 		return err
 	}
 
-	x.decodeVerifyData()
-	x.tCtx.Lg.Tracef("Expected verify data: %x", expected)
+	// Get the verify data from the client
+	cs := x.ctx.GetCipherScpec(CIPHERSPECCLIENT)
+	if cs == nil {
+		return fmt.Errorf("nil cipher spec client(%v)", x.Name())
+	}
+
+	tct, err := cs.Decode(x.ctx.GetBuffer(FINISHED))
+	if err != nil {
+		return err
+	}
+
+	content := cs.Content(tct)
+	if content == nil {
+		return fmt.Errorf("nil content buffer(%v)", x.Name())
+	}
+
+	fmt.Printf("CONTENIDO: %x\n", content)
+	x.tCtx.Lg.Tracef("Expected verify data: %x", calcVerify)
 	x.nextState = TRANSITION
 	return nil
 }
@@ -83,7 +100,7 @@ func (x *xFinished) finishedServer() error {
 }
 
 // Get the handshake messages in order (TLS Header is not included)
-func (x *xFinished) handshakeMessages() []byte {
+func (x *xFinished) handshakeMessagesOrder() []byte {
 
 	var hashMe []byte
 
@@ -117,8 +134,7 @@ func (x *xFinished) handshakeMessages() []byte {
 	return hashMe
 }
 
-// Calculate PRF
-func (x *xFinished) expected(hskMsgs []byte, label string) ([]byte, error) {
+func (x *xFinished) expectedVD(hskMsgs []byte, label string) ([]byte, error) {
 
 	var err error
 
@@ -149,33 +165,5 @@ func (x *xFinished) expected(hskMsgs []byte, label string) ([]byte, error) {
 		return nil, fmt.Errorf("expected verify data calc(%v)", x.Name())
 	}
 
-	fmt.Printf("EXPECTED VerifyData: %x\n", expectedVerify[0:12])
 	return expectedVerify[:_VERIFY_DATA_SZ], nil
-}
-
-func (x *xFinished) decodeVerifyData() ([]byte, error) {
-
-	msg := x.ctx.GetBuffer(FINISHED)
-	if len(msg) <= 5 {
-		return nil, fmt.Errorf("invalid buffer size(%v)", x.Name())
-	}
-
-	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
-	if st == nil {
-		return nil, fmt.Errorf("error getting TLS Suite(%v)", x.Name())
-	}
-
-	keys := x.ctx.GetKeys().ClientKeys
-	fmt.Printf("MAC KEY: %x\n", keys.MAC)
-	fmt.Printf("KEY: %x\n", keys.Key)
-	fmt.Printf("IV: %x\n", keys.IV)
-	st.CipherNot(&suite.SuiteContext{
-		Key:  keys.Key,
-		HKey: keys.MAC,
-		IV:   keys.IV,
-		Data: msg[tlssl.TLS_HEADER_SIZE:],
-	})
-
-	x.tCtx.Lg.Warn("Finished message decoded")
-	return nil, nil
 }

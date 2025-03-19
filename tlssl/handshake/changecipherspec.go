@@ -63,6 +63,20 @@ func (x *xChangeCipherSpec) cipeherSpecClient() error {
 		return err
 	}
 
+	// create a new cipher spec
+	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	if st == nil {
+		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
+	}
+
+	clientKeys := x.ctx.GetKeys().ClientKeys
+	newSpec := tlssl.NewTLSCipherSpec(st, &clientKeys, x.ctx.GetMacMode())
+	if newSpec == nil {
+		return fmt.Errorf("nil TLSCipherSpec object create(%v)", x.Name())
+	}
+
+	x.ctx.SetCipherScpec(CIPHERSPECCLIENT, newSpec)
+	x.tCtx.Lg.Debug("Client CipherSpec created")
 	return nil
 }
 
@@ -114,6 +128,7 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 	return nil
 }
 
+// Calculate session keys
 func (x *xChangeCipherSpec) sessionKeys() error {
 
 	var seed []byte

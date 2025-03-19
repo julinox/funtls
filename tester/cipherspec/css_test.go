@@ -54,7 +54,7 @@ func keys() *tlssl.Keys {
 }
 
 func cipherSpec() tlssl.TLSCipherSpec {
-	return tlssl.NewTLSCipherSpec(cipherSuite(), keys(), suite.MTE)
+	return tlssl.NewTLSCipherSpec(cipherSuite(), keys(), tlssl.MODE_MTE)
 }
 
 func cipherText() []byte {
