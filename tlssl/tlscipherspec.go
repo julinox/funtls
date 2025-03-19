@@ -31,7 +31,7 @@ type TLSCipherText struct {
 
 type TLSCipherSpec interface {
 	CipherType() int
-	Encode() ([]byte, error)
+	Encode([]byte) ([]byte, error)
 	Decode([]byte) (*TLSCipherText, error)
 	IV(*TLSCipherText) []byte
 	Content(*TLSCipherText) []byte
@@ -71,8 +71,18 @@ func (x *xTLSCipherSpec) CipherType() int {
 	return x.cipherSuite.Info().CipherType
 }
 
-func (x *xTLSCipherSpec) Encode() ([]byte, error) {
-	return nil, nil
+func (x *xTLSCipherSpec) Encode(data []byte) ([]byte, error) {
+
+	switch x.cipherSuite.Info().CipherType {
+	case suite.CIPHER_STREAM:
+		return nil, fmt.Errorf("stream cipher not implemented")
+	case suite.CIPHER_CBC:
+		return x.encodeCBC(data)
+	case suite.CIPHER_AEAD:
+		return nil, fmt.Errorf("AEAD cipher not implemented")
+	}
+
+	return nil, fmt.Errorf("encode unknown cipher type")
 }
 
 // Deciper and format
@@ -82,12 +92,12 @@ func (x *xTLSCipherSpec) Decode(data []byte) (*TLSCipherText, error) {
 	case suite.CIPHER_STREAM:
 		return nil, fmt.Errorf("stream cipher not implemented")
 	case suite.CIPHER_CBC:
-		return x.cbc(data)
+		return x.decodeCBC(data)
 	case suite.CIPHER_AEAD:
 		return nil, fmt.Errorf("AEAD cipher not implemented")
 	}
 
-	return nil, fmt.Errorf("unknown cipher type")
+	return nil, fmt.Errorf("decode unknown cipher type")
 }
 
 func (x *xTLSCipherSpec) IV(tct *TLSCipherText) []byte {

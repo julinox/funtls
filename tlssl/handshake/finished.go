@@ -1,6 +1,7 @@
 package handshake
 
 import (
+	"crypto/hmac"
 	"fmt"
 	"tlesio/tlssl"
 	"tlesio/tlssl/suite"
@@ -64,11 +65,12 @@ func (x *xFinished) finishedClient() error {
 	}
 
 	// computed verify data
-	calcVerify, err := x.expectedVD(hskMsgs, _VERIFY_DATA_LABEL_CLIENT)
+	calcVerify, err := x.calculateVD(hskMsgs, _VERIFY_DATA_LABEL_CLIENT)
 	if err != nil {
 		return err
 	}
 
+	fmt.Printf("CALCVERIFY(client): %x\n", calcVerify)
 	// Get the verify data from the client
 	cs := x.ctx.GetCipherScpec(CIPHERSPECCLIENT)
 	if cs == nil {
@@ -85,16 +87,51 @@ func (x *xFinished) finishedClient() error {
 		return fmt.Errorf("nil content buffer(%v)", x.Name())
 	}
 
-	fmt.Printf("CONTENIDO: %x\n", content)
-	x.tCtx.Lg.Tracef("Expected verify data: %x", calcVerify)
+	if len(content) < tlssl.TLS_HANDSHAKE_SIZE+_VERIFY_DATA_SZ {
+		return fmt.Errorf("invalid Finished content-buffer len(%v)", x.Name())
+	}
+
+	x.tCtx.Lg.Tracef("Computed/Received verify data: %x / %x", calcVerify,
+		content[tlssl.TLS_HANDSHAKE_SIZE:])
+	verifyData := content[tlssl.TLS_HANDSHAKE_SIZE:]
+	if !hmac.Equal(calcVerify, verifyData) {
+		return fmt.Errorf("verify data mismatch(%v)", x.Name())
+	}
+
+	x.ctx.AppendOrder(FINISHED)
 	x.nextState = TRANSITION
 	return nil
 }
 
 func (x *xFinished) finishedServer() error {
 
+	var err error
+
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
+	cs := x.ctx.GetCipherScpec(CIPHERSPECSERVER)
+	if cs == nil {
+		return fmt.Errorf("nil cipher spec client(%v)", x.Name())
+	}
+
+	// Get the handshake messages (in order) to hash them
+	hskMsgs := x.handshakeMessagesOrder()
+	if hskMsgs == nil {
+		return fmt.Errorf("nil handshake messages buffer(%v)", x.Name())
+	}
+
+	// computed verify data
+	calcVerify, err := x.calculateVD(hskMsgs, _VERIFY_DATA_LABEL_SERVER)
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("CALCVERIFY(SERVER): %x\n", calcVerify)
+	_, err = cs.Encode(nil)
+	if err != nil {
+		return err
+	}
+
 	x.nextState = TRANSITION
 	return nil
 }
@@ -120,12 +157,16 @@ func (x *xFinished) handshakeMessagesOrder() []byte {
 			aux = x.ctx.GetBuffer(CLIENTCERTIFICATE)
 		case CLIENTKEYEXCHANGE:
 			aux = x.ctx.GetBuffer(CLIENTKEYEXCHANGE)
+		case FINISHED:
+			aux = x.ctx.GetBuffer(FINISHED)
 		case SERVERHELLO:
 			aux = x.ctx.GetBuffer(SERVERHELLO)
 		case SERVERHELLODONE:
 			aux = x.ctx.GetBuffer(SERVERHELLODONE)
 		case SERVERKEYEXCHANGE:
 			aux = x.ctx.GetBuffer(SERVERKEYEXCHANGE)
+		default:
+			continue
 		}
 
 		hashMe = append(hashMe, aux[tlssl.TLS_HEADER_SIZE:]...)
@@ -134,7 +175,7 @@ func (x *xFinished) handshakeMessagesOrder() []byte {
 	return hashMe
 }
 
-func (x *xFinished) expectedVD(hskMsgs []byte, label string) ([]byte, error) {
+func (x *xFinished) calculateVD(hskMsgs []byte, label string) ([]byte, error) {
 
 	var err error
 

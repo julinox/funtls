@@ -51,6 +51,7 @@ func (x *xChangeCipherSpec) Handle() error {
 	}
 }
 
+// Create master-secret/session-keys and the cipher spec for the client
 func (x *xChangeCipherSpec) cipeherSpecClient() error {
 
 	x.tCtx.Lg.Tracef("Running state: %v(CLIENT)", x.Name())
@@ -80,10 +81,24 @@ func (x *xChangeCipherSpec) cipeherSpecClient() error {
 	return nil
 }
 
+// Create the cipher spec for the server
 func (x *xChangeCipherSpec) cipeherSpecServer() error {
 
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
+	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	if st == nil {
+		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
+	}
+
+	serverKeys := x.ctx.GetKeys().ServerKeys
+	newSpec := tlssl.NewTLSCipherSpec(st, &serverKeys, x.ctx.GetMacMode())
+	if newSpec == nil {
+		return fmt.Errorf("nil TLSCipherSpec object create(%v)", x.Name())
+	}
+
+	x.ctx.SetCipherScpec(CIPHERSPECSERVER, newSpec)
+	x.tCtx.Lg.Debug("Server CipherSpec created")
 	return nil
 }
 

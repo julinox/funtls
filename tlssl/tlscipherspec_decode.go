@@ -37,7 +37,7 @@ MAC(MAC_write_key,
 	TLSCompressed.fragment);
 */
 
-func (x *xTLSCipherSpec) cbc(data []byte) (*TLSCipherText, error) {
+func (x *xTLSCipherSpec) decodeCBC(data []byte) (*TLSCipherText, error) {
 
 	var err error
 	var tct *TLSCipherText
@@ -46,9 +46,9 @@ func (x *xTLSCipherSpec) cbc(data []byte) (*TLSCipherText, error) {
 	myself := systema.MyName()
 	switch x.macMode {
 	case MODE_ETM:
-		tct, err = x.cbcETM(data)
+		tct, err = x.decodeCBCETM(data)
 	case MODE_MTE:
-		tct, err = x.cbcMTE(data)
+		tct, err = x.decodeCBCMTE(data)
 	default:
 		return nil, fmt.Errorf("no cipher mode(%v)", myself)
 	}
@@ -79,7 +79,7 @@ func (x *xTLSCipherSpec) cbc(data []byte) (*TLSCipherText, error) {
 // When cipherMode is MTE order is:
 // TLSHEADER | IV | CipherBlock(DATA | MAC | PADDING | PADDING_LENGTH)
 // If seqNum is 0 that means is (or should be) the 'Finished' message
-func (x *xTLSCipherSpec) cbcMTE(data []byte) (*TLSCipherText, error) {
+func (x *xTLSCipherSpec) decodeCBCMTE(data []byte) (*TLSCipherText, error) {
 
 	var tct TLSCipherText
 	var fragment GenericBlockCipher
@@ -113,7 +113,7 @@ func (x *xTLSCipherSpec) cbcMTE(data []byte) (*TLSCipherText, error) {
 		fragment.Content = decoded[ivSz : len(decoded)-HMAC_SIZE]
 		fragment.Mac = decoded[len(decoded)-HMAC_SIZE:]
 	} else {
-		return nil, fmt.Errorf("AGUANTALO")
+		return nil, fmt.Errorf("---------- AGUANTALO ----------")
 	}
 
 	// The TLS header used to calculate the MAC was the
@@ -123,6 +123,6 @@ func (x *xTLSCipherSpec) cbcMTE(data []byte) (*TLSCipherText, error) {
 	return &tct, nil
 }
 
-func (x *xTLSCipherSpec) cbcETM(data []byte) (*TLSCipherText, error) {
+func (x *xTLSCipherSpec) decodeCBCETM(data []byte) (*TLSCipherText, error) {
 	return nil, fmt.Errorf("not implemented yet 2")
 }
