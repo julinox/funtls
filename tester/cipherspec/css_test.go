@@ -27,7 +27,7 @@ func TestTLSCipherTextDecode(t *testing.T) {
 		lg.Error(err)
 	}
 
-	lg.Infof("Content: %x", tct.Fragment.(*tlssl.GenericBlockCipher).Content)
+	lg.Infof("Content: %x", tct.Fragment.(*tlssl.GenericBlockCipher).BlockCiphered)
 }
 
 func testLogger() *logrus.Logger {

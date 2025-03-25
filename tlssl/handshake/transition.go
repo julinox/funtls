@@ -2,6 +2,7 @@ package handshake
 
 import (
 	"fmt"
+	"time"
 	"tlesio/tlssl"
 )
 
@@ -49,9 +50,7 @@ func (x *xTransition) Handle() error {
 		return x.transitFinishedClient()
 
 	case STAGE_FINISHED_SERVER:
-		x.nextState = COMPLETEHANDSHAKE
-		x.tCtx.Lg.Info("Complete Handshake")
-		return nil
+		return x.transitFinishedServer()
 
 	default:
 		return fmt.Errorf("%v: invalid transition stage", x.Name())
@@ -63,5 +62,22 @@ func (x *xTransition) transitFinishedClient() error {
 	x.tCtx.Lg.Debug("Transitioning from FINISHED_CLIENT")
 	x.nextState = CHANGECIPHERSPEC
 	x.ctx.SetTransitionStage(STAGE_FINISHED_SERVER)
+	return nil
+}
+
+func (x *xTransition) transitFinishedServer() error {
+
+	css := []byte{0x14, 0x03, 0x03, 0x00, 0x01, 0x01}
+	fsh := x.ctx.GetBuffer(FINISHEDSERVER)
+	x.ctx.Send(append(css, fsh...))
+	/*x.tCtx.Lg.Debug("Transitioning from FINISHED_SERVER")
+	x.ctx.SetBuffer(CHANGECIPHERSPEC, css)
+	x.ctx.SendCtxBuff([]int{CHANGECIPHERSPEC, FINISHEDSERVER})*/
+
+	//fmt.Printf("SEND FINISHED SERVER: %x\n", x.ctx.GetBuffer(FINISHEDSERVER))
+	//fmt.Printf("SEND CHANGECIPHERSPEC: %x\n", x.ctx.GetBuffer(CHANGECIPHERSPEC))
+	time.Sleep(1 * time.Second)
+	x.nextState = COMPLETEHANDSHAKE
+	x.tCtx.Lg.Info("Complete Handshake")
 	return nil
 }

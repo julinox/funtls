@@ -72,6 +72,7 @@ func (x *serverOp) initTLSContextModz() {
 	}
 
 	suites := []suite.Suite{
+		ciphersuites.NewAES_256_CBC_SHA(),
 		ciphersuites.NewAES_256_CBC_SHA256(),
 	}
 

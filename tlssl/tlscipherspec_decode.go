@@ -37,7 +37,7 @@ MAC(MAC_write_key,
 	TLSCompressed.fragment);
 */
 
-func (x *xTLSCipherSpec) decodeCBC(data []byte) (*TLSCipherText, error) {
+func (x *xTLSCSpec) decodeCBC(data []byte) (*TLSCipherText, error) {
 
 	var err error
 	var tct *TLSCipherText
@@ -58,7 +58,8 @@ func (x *xTLSCipherSpec) decodeCBC(data []byte) (*TLSCipherText, error) {
 	}
 
 	// Compute MAC and compare
-	content := tct.Fragment.(*GenericBlockCipher).Content
+	//content := tct.Fragment.(*GenericBlockCipher).Content
+	content := tct.Fragment.(*GenericBlockCipher).BlockCiphered
 	givenMAC := tct.Fragment.(*GenericBlockCipher).Mac
 	dataMac := seqNumToBytes(x.seqNum)
 	dataMac = append(dataMac, TLSHeadPacket(tct.Header)...)
@@ -79,7 +80,7 @@ func (x *xTLSCipherSpec) decodeCBC(data []byte) (*TLSCipherText, error) {
 // When cipherMode is MTE order is:
 // TLSHEADER | IV | CipherBlock(DATA | MAC | PADDING | PADDING_LENGTH)
 // If seqNum is 0 that means is (or should be) the 'Finished' message
-func (x *xTLSCipherSpec) decodeCBCMTE(data []byte) (*TLSCipherText, error) {
+func (x *xTLSCSpec) decodeCBCMTE(data []byte) (*TLSCipherText, error) {
 
 	var tct TLSCipherText
 	var fragment GenericBlockCipher
@@ -102,7 +103,8 @@ func (x *xTLSCipherSpec) decodeCBCMTE(data []byte) (*TLSCipherText, error) {
 		return nil, fmt.Errorf("fail decipher(%v): %v", myName, err)
 	}
 
-	if len(decoded) < ivSz+HMAC_SIZE {
+	hashSz := x.cipherSuite.Info().HashSize
+	if len(decoded) < ivSz+hashSz {
 		return nil, fmt.Errorf("decoded too short(%v)", myName)
 	}
 
@@ -110,19 +112,19 @@ func (x *xTLSCipherSpec) decodeCBCMTE(data []byte) (*TLSCipherText, error) {
 	tct.Header = TLSHead(data[:TLS_HEADER_SIZE])
 	fragment.IV = suiteCtx.IV
 	if x.seqNum == 0 {
-		fragment.Content = decoded[ivSz : len(decoded)-HMAC_SIZE]
-		fragment.Mac = decoded[len(decoded)-HMAC_SIZE:]
+		fragment.BlockCiphered = decoded[ivSz : len(decoded)-hashSz]
+		fragment.Mac = decoded[len(decoded)-hashSz:]
 	} else {
 		return nil, fmt.Errorf("---------- AGUANTALO ----------")
 	}
 
 	// The TLS header used to calculate the MAC was the
 	// 'original' (before encription + mac)
-	tct.Header.Len = len(fragment.Content)
+	tct.Header.Len = len(fragment.BlockCiphered)
 	tct.Fragment = &fragment
 	return &tct, nil
 }
 
-func (x *xTLSCipherSpec) decodeCBCETM(data []byte) (*TLSCipherText, error) {
+func (x *xTLSCSpec) decodeCBCETM(data []byte) (*TLSCipherText, error) {
 	return nil, fmt.Errorf("not implemented yet 2")
 }

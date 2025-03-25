@@ -10,7 +10,7 @@ func (x *xTransition) transitServerHelloDone() error {
 
 	x.tCtx.Lg.Info("Transitioning from SERVERHELLODONE")
 	// Send all packets
-	x.ctx.Send(x.ctx.Order())
+	x.ctx.SendCtxBuff(x.ctx.Order())
 
 	// Read 'Expected()' client response packets
 	// Wait for '_READ_TIMEOUT_' seconds then return error

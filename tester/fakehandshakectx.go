@@ -80,7 +80,7 @@ func (x *testHandshakeCtx) PrintExpected() string {
 	return handshake.HandshakeNameList(expected)
 }
 
-func (x *testHandshakeCtx) Send([]int) error {
+func (x *testHandshakeCtx) SendCtxBuff([]int) error {
 	return nil
 }
 

@@ -12,7 +12,7 @@ const (
 	HMAC
 	POLY1305
 
-	SHA
+	SHA1
 	SHA256
 	SHA384
 
@@ -101,8 +101,8 @@ func modeToString(cipherType int) string {
 func hashToString(hash int) string {
 
 	switch hash {
-	case SHA:
-		return "SHA"
+	case SHA1:
+		return "SHA1"
 	case SHA256:
 		return "SHA256"
 	case SHA384:

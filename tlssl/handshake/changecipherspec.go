@@ -112,12 +112,7 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
 
-	stInfo := stt.Info()
-	if stInfo == nil {
-		return fmt.Errorf("nil SuiteInfo object(%v)", x.Name())
-	}
-
-	keyMaker, err := tlssl.NewKeymaker(stInfo.Hash, _MASTER_SECRET_SIZE_)
+	keyMaker, err := tlssl.NewKeymaker(suite.SHA256, _MASTER_SECRET_SIZE_)
 	if err != nil {
 		return fmt.Errorf("NewKeymaker error(%v): %v", x.Name(), err)
 	}
@@ -140,6 +135,7 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 
 	x.ctx.SetBuffer(MASTERSECRET, masterSecret)
 	x.tCtx.Lg.Info("MasterSecret generated")
+	x.tCtx.Lg.Tracef("MasterSecret: %x", masterSecret)
 	return nil
 }
 
@@ -201,6 +197,8 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 
 	x.ctx.SetKeys(&seshKeys)
 	x.tCtx.Lg.Info("SessionKeys generated")
+	x.tCtx.Lg.Tracef("ClientKeys: \n%v", seshKeys.ClientKeys.PrintKeys())
+	x.tCtx.Lg.Tracef("ServerKeys: \n%v", seshKeys.ServerKeys.PrintKeys())
 	return nil
 }
 

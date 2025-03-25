@@ -8,7 +8,6 @@ import (
 	"tlesio/tlssl/suite"
 )
 
-const HMAC_SIZE = sha256.Size
 const (
 	_SHA1_LEN_BYTES   = 20
 	_SHA256_LEN_BYTES = 32
@@ -104,4 +103,8 @@ func (x *xKeyMake) shamir(secret, seed []byte, fn func() hash.Hash) []byte {
 	}
 
 	return blockKey[:x.blockLen]
+}
+
+func (k *Keys) PrintKeys() string {
+	return fmt.Sprintf("MAC: %x\nKey: %x\nIV: %x", k.MAC, k.Key, k.IV)
 }

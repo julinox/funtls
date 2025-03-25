@@ -5,7 +5,7 @@ import (
 	"tlesio/systema"
 )
 
-func (x *xTLSCipherSpec) encodeCBC(data []byte) ([]byte, error) {
+func (x *xTLSCSpec) encodeCBC(data []byte) ([]byte, error) {
 
 	myself := systema.MyName()
 	switch x.macMode {
@@ -18,33 +18,29 @@ func (x *xTLSCipherSpec) encodeCBC(data []byte) ([]byte, error) {
 	}
 }
 
-func (x *xTLSCipherSpec) encodeCBCMTE(data []byte) ([]byte, error) {
+func (x *xTLSCSpec) encodeCBCMTE(data []byte) ([]byte, error) {
 
-	// Give me the TLS header
-
-	var tlsHeader TLSHeader
+	var tpt TLSPlaintext
 
 	myself := systema.MyName()
-	// Set TLS header for Mac calculation
-	if x.seqNum == 0 {
-		if len(data) < 1 {
-			return nil, fmt.Errorf("empty data on first packet(%v)", myself)
-		}
-
-		tlsHeader.ContentType = ContentTypeHandshake
-	} else {
-		tlsHeader.ContentType = ContentTypeApplicationData
+	mac, err := x.Macintosh(data)
+	if err != nil {
+		return nil, fmt.Errorf("MAC calculation(%v): %v", myself, err)
 	}
 
-	tlsHeader.Version = TLS_VERSION1_2
-	tlsHeader.Len = len(data)
-	fmt.Printf("Header MAC calc: %v\n", &tlsHeader)
-	//tlsHead := TLSHeadPacket(data)
-	fmt.Println("Running encodeCBCMTE------------")
+	tpt.Header = &TLSHeader{ContentType: ContentTypeApplicationData}
+	if x.seqNum == 0 {
+		tpt.Header.ContentType = ContentTypeHandshake
+	}
+
+	fmt.Printf("MAC: %x\n", mac)
+	tpt.Fragment = append(tpt.Fragment, data...)
+	tpt.Fragment = append(tpt.Fragment, mac...)
+	x.EncryptRecord(&tpt)
 	return nil, fmt.Errorf("not implemented encodeCBCMTE")
 }
 
-func (x *xTLSCipherSpec) encodeCBCETM(data []byte) ([]byte, error) {
+func (x *xTLSCSpec) encodeCBCETM(data []byte) ([]byte, error) {
 
 	return nil, fmt.Errorf("not implemented encodeCBCETM")
 }

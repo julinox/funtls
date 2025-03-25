@@ -2,12 +2,12 @@ package handshake
 
 import (
 	"crypto/hmac"
+	"crypto/sha256"
 	"fmt"
 	"tlesio/tlssl"
 	"tlesio/tlssl/suite"
 )
 
-const _VERIFY_DATA_SZ = 12
 const _VERIFY_DATA_LABEL_CLIENT = "client finished"
 const _VERIFY_DATA_LABEL_SERVER = "server finished"
 
@@ -70,7 +70,6 @@ func (x *xFinished) finishedClient() error {
 		return err
 	}
 
-	fmt.Printf("CALCVERIFY(client): %x\n", calcVerify)
 	// Get the verify data from the client
 	cs := x.ctx.GetCipherScpec(CIPHERSPECCLIENT)
 	if cs == nil {
@@ -82,12 +81,13 @@ func (x *xFinished) finishedClient() error {
 		return err
 	}
 
+	// Content should be the Finished message (handshake header + verify data)
 	content := cs.Content(tct)
 	if content == nil {
 		return fmt.Errorf("nil content buffer(%v)", x.Name())
 	}
 
-	if len(content) < tlssl.TLS_HANDSHAKE_SIZE+_VERIFY_DATA_SZ {
+	if len(content) < tlssl.TLS_HANDSHAKE_SIZE+tlssl.VERIFYDATALEN {
 		return fmt.Errorf("invalid Finished content-buffer len(%v)", x.Name())
 	}
 
@@ -98,11 +98,20 @@ func (x *xFinished) finishedClient() error {
 		return fmt.Errorf("verify data mismatch(%v)", x.Name())
 	}
 
+	// We save the decoded Finished message. The reason for adding the TLS header
+	// is cause we are keeping the whole TLS message
+	aux := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
+		ContentType: tlssl.ContentTypeHandshake,
+		Version:     tlssl.TLS_VERSION1_2,
+		Len:         len(content)})
+
+	x.ctx.SetBuffer(FINISHED, append(aux, content...))
 	x.ctx.AppendOrder(FINISHED)
 	x.nextState = TRANSITION
 	return nil
 }
 
+// Data to send: Finished message(handshake header + verify data)
 func (x *xFinished) finishedServer() error {
 
 	var err error
@@ -126,12 +135,35 @@ func (x *xFinished) finishedServer() error {
 		return err
 	}
 
-	fmt.Printf("CALCVERIFY(SERVER): %x\n", calcVerify)
-	_, err = cs.Encode(nil)
+	//--------- DEBUG ------------
+	//fmt.Printf("Handshake messages: %x\n", hskMsgs)
+	sher2 := sha256.New()
+	sher2.Write(hskMsgs)
+	fmt.Printf("Handshake Hash(TLSSERVER): %x\n", sher2.Sum(nil))
+	fmt.Printf("VerifyData(TLSSERVER): %x\n", calcVerify)
+	//--------- DEBUG ------------
+	data1 := tlssl.TLSHeadHandShakePacket(&tlssl.TLSHeaderHandshake{
+		HandshakeType: tlssl.HandshakeTypeFinished,
+		Len:           0x0c,
+	})
+
+	x.tCtx.Lg.Debugf("Computed verify data(SERVER): %x", calcVerify)
+	tpt := &tlssl.TLSPlaintext{
+		Header:   &tlssl.TLSHeader{ContentType: tlssl.ContentTypeHandshake},
+		Fragment: append(data1, calcVerify...)}
+
+	tct, err := cs.EncryptRecord(tpt)
 	if err != nil {
-		return err
+		return fmt.Errorf("encrypt record(%v)", x.Name())
 	}
 
+	cipherType := x.ctx.GetCipherScpec(CIPHERSPECSERVER).CipherType()
+	packet, err := tct.Packet(cipherType, true)
+	if err != nil {
+		return fmt.Errorf("TLSCipherText packet creation(%v)", x.Name())
+	}
+
+	x.ctx.SetBuffer(FINISHEDSERVER, packet)
 	x.nextState = TRANSITION
 	return nil
 }
@@ -175,6 +207,10 @@ func (x *xFinished) handshakeMessagesOrder() []byte {
 	return hashMe
 }
 
+// Calculate the verify data.
+// The label is "client finished" or "server finished"
+// The verify data is the first 12 bytes of the PRF output
+// Hash function is SHA256 (as defined in the RFC)
 func (x *xFinished) calculateVD(hskMsgs []byte, label string) ([]byte, error) {
 
 	var err error
@@ -195,16 +231,12 @@ func (x *xFinished) calculateVD(hskMsgs []byte, label string) ([]byte, error) {
 		return nil, fmt.Errorf("invalid master secret buffer(%v)", x.Name())
 	}
 
-	hash, err := st.HashMe(hskMsgs)
-	if err != nil {
-		return nil, err
-	}
-
-	// Get the PRF
-	expectedVerify := keyMake.PRF(masterSecret, label, hash)
-	if len(expectedVerify) <= _VERIFY_DATA_SZ {
+	hasher := sha256.New()
+	hasher.Write(hskMsgs)
+	expectedVerify := keyMake.PRF(masterSecret, label, hasher.Sum(nil))
+	if len(expectedVerify) <= tlssl.VERIFYDATALEN {
 		return nil, fmt.Errorf("expected verify data calc(%v)", x.Name())
 	}
 
-	return expectedVerify[:_VERIFY_DATA_SZ], nil
+	return expectedVerify[:tlssl.VERIFYDATALEN], nil
 }

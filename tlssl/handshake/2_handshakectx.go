@@ -19,6 +19,7 @@ const (
 	MASTERSECRET      = 39
 	CIPHERSPECCLIENT  = 41
 	CIPHERSPECSERVER  = 43
+	FINISHEDSERVER    = 47
 )
 
 type prfData struct {
@@ -31,11 +32,13 @@ type prfData struct {
 type xHandhsakeContextData struct {
 	certificate        []byte
 	certificateRequest []byte
-	certificateverify  []byte
+	certificateVerify  []byte
 	clientCertificate  []byte
+	changeCipherSpec   []byte
 	clientHello        []byte
 	clientKeyExchange  []byte
 	finished           []byte
+	finishedServer     []byte
 	serverHello        []byte
 	serverHelloDone    []byte
 	serverKeyExchange  []byte
@@ -83,7 +86,8 @@ type HandShakeContext interface {
 	AppendExpected(int)
 	UnAppendExpected(int)
 	PrintExpected() string
-	Send([]int) error
+	SendCtxBuff([]int) error
+	Send([]byte) error
 }
 
 func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
@@ -118,7 +122,10 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 		x.data.certificateRequest = buff
 
 	case CERTIFICATEVERIFY:
-		x.data.certificateverify = buff
+		x.data.certificateVerify = buff
+
+	case CHANGECIPHERSPEC:
+		x.data.changeCipherSpec = buff
 
 	case CLIENTCERTIFICATE:
 		x.data.clientCertificate = buff
@@ -131,6 +138,9 @@ func (x *xHandhsakeContext) SetBuffer(op int, buff []byte) {
 
 	case FINISHED:
 		x.data.finished = buff
+
+	case FINISHEDSERVER:
+		x.data.finishedServer = buff
 
 	case SERVERHELLO:
 		x.data.serverHello = buff
@@ -165,7 +175,10 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 		return x.data.certificateRequest
 
 	case CERTIFICATEVERIFY:
-		return x.data.certificateverify
+		return x.data.certificateVerify
+
+	case CHANGECIPHERSPEC:
+		return x.data.changeCipherSpec
 
 	case CLIENTCERTIFICATE:
 		return x.data.clientCertificate
@@ -178,6 +191,9 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 
 	case FINISHED:
 		return x.data.finished
+
+	case FINISHEDSERVER:
+		return x.data.finishedServer
 
 	case SERVERHELLO:
 		return x.data.serverHello
@@ -385,7 +401,7 @@ func (x *xHandhsakeContext) PrintExpected() string {
 	return HandshakeNameList(expected)
 }
 
-func (x *xHandhsakeContext) Send(ids []int) error {
+func (x *xHandhsakeContext) SendCtxBuff(ids []int) error {
 
 	var outBuff []byte
 
@@ -400,8 +416,12 @@ func (x *xHandhsakeContext) Send(ids []int) error {
 			x.lg.Debug("Sending CERTIFICATEREQUEST")
 
 		case CERTIFICATEVERIFY:
-			outBuff = append(outBuff, x.data.certificateverify...)
+			outBuff = append(outBuff, x.data.certificateVerify...)
 			x.lg.Debug("Sending CERTIFICATEVERIFY")
+
+		case CHANGECIPHERSPEC:
+			outBuff = append(outBuff, x.data.changeCipherSpec...)
+			x.lg.Debug("Sending CHANGECIPHERSPEC")
 
 		case CLIENTHELLO:
 			continue
@@ -413,6 +433,10 @@ func (x *xHandhsakeContext) Send(ids []int) error {
 		case FINISHED:
 			outBuff = append(outBuff, x.data.finished...)
 			x.lg.Debug("Sending FINISHED")
+
+		case FINISHEDSERVER:
+			outBuff = append(outBuff, x.data.finishedServer...)
+			x.lg.Debug("Sending FINISHEDSERVER")
 
 		case SERVERHELLO:
 			outBuff = append(outBuff, x.data.serverHello...)
@@ -429,6 +453,15 @@ func (x *xHandhsakeContext) Send(ids []int) error {
 	}
 
 	return x.sendData(outBuff)
+}
+
+func (x *xHandhsakeContext) Send(buffer []byte) error {
+
+	if buffer == nil {
+		return systema.ErrNilParams
+	}
+
+	return x.sendData(buffer)
 }
 
 func (x *xHandhsakeContext) sendData(buffer []byte) error {
