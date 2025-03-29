@@ -2,7 +2,6 @@ package handshake
 
 import (
 	"fmt"
-	"time"
 	"tlesio/tlssl"
 )
 
@@ -67,16 +66,10 @@ func (x *xTransition) transitFinishedClient() error {
 
 func (x *xTransition) transitFinishedServer() error {
 
-	css := []byte{0x14, 0x03, 0x03, 0x00, 0x01, 0x01}
+	x.tCtx.Lg.Debug("Transitioning from FINISHED_SERVER")
+	css := []byte{0x14, 0x03, 0x03, 0x00, 0x01, 0x01} // ChangeCipherSpec message
 	fsh := x.ctx.GetBuffer(FINISHEDSERVER)
 	x.ctx.Send(append(css, fsh...))
-	/*x.tCtx.Lg.Debug("Transitioning from FINISHED_SERVER")
-	x.ctx.SetBuffer(CHANGECIPHERSPEC, css)
-	x.ctx.SendCtxBuff([]int{CHANGECIPHERSPEC, FINISHEDSERVER})*/
-
-	//fmt.Printf("SEND FINISHED SERVER: %x\n", x.ctx.GetBuffer(FINISHEDSERVER))
-	//fmt.Printf("SEND CHANGECIPHERSPEC: %x\n", x.ctx.GetBuffer(CHANGECIPHERSPEC))
-	time.Sleep(1 * time.Second)
 	x.nextState = COMPLETEHANDSHAKE
 	x.tCtx.Lg.Info("Complete Handshake")
 	return nil

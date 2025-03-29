@@ -1,12 +1,13 @@
 package tlssl
 
 import (
+	"crypto/hmac"
 	"fmt"
 	"tlesio/systema"
 	"tlesio/tlssl/suite"
 )
 
-func (x *xTLSCSpec) encryptRecordMTE(tpt *TLSPlaintext) (*TLSCipherText, error) {
+func (x *xTLSCSpec) encryptMTE(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
 	var err error
 	var tct TLSCipherText
@@ -32,21 +33,17 @@ func (x *xTLSCSpec) encryptRecordMTE(tpt *TLSPlaintext) (*TLSCipherText, error) 
 
 	sCtx.Data = append(sCtx.Data, tpt.Fragment...)
 	sCtx.Data = append(sCtx.Data, mac...)
-	fmt.Printf("ClearText(preciphered): %x\n", sCtx.Data)
 	ciphered, err := x.cipherSuite.Cipher(&sCtx)
 	if err != nil {
 		return nil, fmt.Errorf("Ciphering(%v): %v", myself, err)
 	}
 
-	fmt.Printf("%x | %x | %x\n", iv, tpt.Fragment, mac)
-	fmt.Printf("Ciphered: %x\n", ciphered)
 	tct.Header = &TLSHeader{
 		ContentType: tpt.Header.ContentType,
 		Version:     TLS_VERSION1_2,
 		Len:         len(ciphered),
 	}
 
-	fmt.Printf("KEY / IV / HKEY: %x / %x / %x\n", x.keys.Key, x.keys.IV, x.keys.MAC)
 	switch x.cipherSuite.Info().CipherType {
 	case suite.CIPHER_STREAM:
 		return nil, fmt.Errorf("stream cipher not implemented")
@@ -62,4 +59,68 @@ func (x *xTLSCSpec) encryptRecordMTE(tpt *TLSPlaintext) (*TLSCipherText, error) 
 	}
 
 	return &tct, nil
+}
+
+func (x *xTLSCSpec) decryptMTE(tct *TLSCipherText) (*TLSPlaintext, error) {
+
+	var err error
+	var tpt TLSPlaintext
+	var iv, cipherText []byte
+
+	myself := systema.MyName()
+	cipherRecord, ok := tct.Fragment.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("invalid fragment buffer type(%v)", myself)
+	}
+
+	if len(cipherRecord) <= x.cipherSuite.Info().IVSize {
+		return nil, fmt.Errorf("decrypt short data(%v)", myself)
+	}
+
+	cipherText = cipherRecord[x.cipherSuite.Info().IVSize:]
+	iv = cipherRecord[:x.cipherSuite.Info().IVSize]
+	if x.seqNum == 0 {
+		iv = x.keys.IV
+		cipherText = cipherRecord
+	}
+
+	sCtx := suite.SuiteContext{
+		IV:   iv,
+		Key:  x.keys.Key,
+		Data: cipherText,
+	}
+
+	clearText, err := x.cipherSuite.CipherNot(&sCtx)
+	if err != nil {
+		return nil, fmt.Errorf("decipher(%v): %v", myself, err)
+	}
+
+	hashSz := x.cipherSuite.Info().HashSize
+	if len(clearText) < hashSz {
+		return nil, fmt.Errorf("decipher short data(%v)", myself)
+	}
+
+	plainText := clearText[:len(clearText)-hashSz]
+	givenMAC := clearText[len(clearText)-hashSz:]
+	if x.seqNum == 0 {
+		plainText = plainText[x.cipherSuite.Info().IVSize:]
+	}
+
+	computedMAC, err := x.Macintosh(plainText)
+	if err != nil {
+		return nil, fmt.Errorf("MAC calculation(%v): %v", myself, err)
+	}
+
+	if !hmac.Equal(givenMAC, computedMAC) {
+		return nil, fmt.Errorf("MAC mismatch(%v)", myself)
+	}
+
+	tpt.Fragment = plainText
+	tpt.Header = &TLSHeader{
+		ContentType: tct.Header.ContentType,
+		Version:     TLS_VERSION1_2,
+		Len:         len(plainText),
+	}
+
+	return &tpt, nil
 }

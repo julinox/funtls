@@ -8,9 +8,39 @@ import (
 	"tlesio/tlssl/suite"
 )
 
-// Mac mode
+/*
+struct {
+	ContentType type;
+	ProtocolVersion version;
+	uint16 length;
+	select (SecurityParameters.cipher_type) {
+		case stream: GenericStreamCipher;
+		case block: GenericBlockCipher;
+		case aead: GenericAEADCipher;
+	} fragment;
+} TLSCiphertext
+
+ struct {
+	opaque IV[SecurityParameters.record_iv_length];
+	block-ciphered struct {
+		opaque content[TLSCompressed.length];
+		opaque MAC[SecurityParameters.mac_length];
+		uint8 padding[GenericBlockCipher.padding_length];
+		uint8 padding_length;
+	};
+} GenericBlockCipher;
+
+MAC(MAC_write_key,
+	seq_num +
+	TLSCompressed.type +
+	TLSCompressed.version +
+	TLSCompressed.length +
+	TLSCompressed.fragment);
+*/
+
 const VERIFYDATALEN = 12
 
+// Mac mode
 const (
 	MODE_MTE = iota + 1
 	MODE_ETM
@@ -40,11 +70,9 @@ type TLSPlaintext struct {
 
 type TLSCipherSpec interface {
 	CipherType() int
-	Encode([]byte) ([]byte, error)
-	Decode([]byte) (*TLSCipherText, error)
 	EncryptRecord(*TLSPlaintext) (*TLSCipherText, error)
+	DecryptRecord(*TLSCipherText) (*TLSPlaintext, error)
 	Macintosh([]byte) ([]byte, error)
-	Content(*TLSCipherText) []byte
 }
 
 type xTLSCSpec struct {
@@ -76,38 +104,6 @@ func NewTLSCipherSpec(cs suite.Suite, keys *Keys, mode int) TLSCipherSpec {
 	return &newTLSCT
 }
 
-func (x *xTLSCSpec) CipherType() int {
-	return x.cipherSuite.Info().CipherType
-}
-
-func (x *xTLSCSpec) Encode(data []byte) ([]byte, error) {
-
-	switch x.cipherSuite.Info().CipherType {
-	case suite.CIPHER_STREAM:
-		return nil, fmt.Errorf("stream cipher not implemented")
-	case suite.CIPHER_CBC:
-		return x.encodeCBC(data)
-	case suite.CIPHER_AEAD:
-		return nil, fmt.Errorf("AEAD cipher not implemented")
-	}
-
-	return nil, fmt.Errorf("encode unknown cipher type")
-}
-
-func (x *xTLSCSpec) Decode(data []byte) (*TLSCipherText, error) {
-
-	switch x.cipherSuite.Info().CipherType {
-	case suite.CIPHER_STREAM:
-		return nil, fmt.Errorf("stream cipher not implemented")
-	case suite.CIPHER_CBC:
-		return x.decodeCBC(data)
-	case suite.CIPHER_AEAD:
-		return nil, fmt.Errorf("AEAD cipher not implemented")
-	}
-
-	return nil, fmt.Errorf("decode unknown cipher type")
-}
-
 func (x *xTLSCSpec) EncryptRecord(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
 	myself := systema.MyName()
@@ -127,18 +123,32 @@ func (x *xTLSCSpec) EncryptRecord(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
 	switch x.macMode {
 	case MODE_ETM:
-		return x.encryptRecordETM(tpt)
+		return x.encryptETM(tpt)
 	case MODE_MTE:
-		return x.encryptRecordMTE(tpt)
+		return x.encryptMTE(tpt)
 	}
 
 	return nil, fmt.Errorf("no MAC-Mode match(%v)", myself)
 }
 
+func (x *xTLSCSpec) DecryptRecord(tct *TLSCipherText) (*TLSPlaintext, error) {
+
+	myself := systema.MyName()
+	if tct == nil || tct.Header == nil || tct.Fragment == nil {
+		return nil, fmt.Errorf("nil TLSCipherText(%v)", myself)
+	}
+
+	switch x.macMode {
+	case MODE_MTE:
+		return x.decryptMTE(tct)
+	case MODE_ETM:
+		return x.decryptETM(tct)
+	}
+
+	return nil, fmt.Errorf("no cipher mode(%v)", myself)
+}
+
 // calculate MAC
-// MAC(MAC_write_key, seq_num + TLSCompressed.type +
-// TLSCompressed.version + TLSCompressed.length +
-// TLSCompressed.fragment)
 func (x *xTLSCSpec) Macintosh(data []byte) ([]byte, error) {
 
 	var macData []byte
@@ -155,6 +165,10 @@ func (x *xTLSCSpec) Macintosh(data []byte) ([]byte, error) {
 	macData = append(macData, TLSHeadPacket(&header)...)
 	macData = append(macData, data...)
 	return x.cipherSuite.MacMe(macData, x.keys.MAC)
+}
+
+func (x *xTLSCSpec) CipherType() int {
+	return x.cipherSuite.Info().CipherType
 }
 
 // TLSCipherText
@@ -182,26 +196,10 @@ func (xt *TLSCipherText) Packet(fragType int, skipIv bool) ([]byte, error) {
 
 	packet := TLSHeadPacket(xt.Header)
 	if !skipIv {
-		fmt.Println("----------------------- DEBUG PACKET -----------------------")
 		packet = append(packet, iv...)
 	}
 
 	return append(packet, content...), nil
-}
-
-// ----------------------------------------------------------------------
-func (x *xTLSCSpec) Content(tct *TLSCipherText) []byte {
-
-	switch x.cipherSuite.Info().CipherType {
-	case suite.CIPHER_STREAM:
-		return nil
-	case suite.CIPHER_CBC:
-		return tct.Fragment.(*GenericBlockCipher).BlockCiphered
-	case suite.CIPHER_AEAD:
-		return nil
-	}
-
-	return nil
 }
 
 func seqNumToBytes(sn uint64) []byte {
