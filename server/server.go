@@ -33,13 +33,13 @@ type xFunx struct {
 // It initializes the TLS context and starts listening on the port
 // Can handle multiple certificates, if the certificate is signed
 // by a CA, the cert file should contain the full chain
-func FunTLS(cfg *FunTLSCfg) net.Listener {
+func FunTLS(cfg *FunTLSCfg) (net.Listener, error) {
 
 	var err error
 	var fun xFunx
 
 	if cfg == nil {
-		return nil
+		return nil, fmt.Errorf("FunTLSCfg is nil")
 	}
 
 	fun.lg = cfg.Logger
@@ -50,11 +50,11 @@ func FunTLS(cfg *FunTLSCfg) net.Listener {
 	fun.tCtx, err = startTlsContext(cfg)
 	if err != nil {
 		fun.lg.Error(err)
-		return nil
+		return nil, err
 	}
 
 	fun.lg.Info("Starting FunTLS Server")
-	return nil
+	return nil, nil
 }
 
 func startTlsContext(fun *FunTLSCfg) (*tlssl.TLSContext, error) {
