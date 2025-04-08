@@ -1,56 +1,151 @@
 package server
 
 import (
+	"fmt"
 	"net"
+	"os"
+	"strings"
 
 	"tlesio/tlssl"
+
+	mx "tlesio/tlssl/modulos"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
 )
 
 var port = ":8443"
+var _ENV_LOG_LEVEL_VAR_ = "FUNTLS_LOG_LEVEL"
+var _CERT_PATH_VAR_ = "./certs"
 
-type serverOp struct {
-	lg     *logrus.Logger
-	tlsCtx *tlssl.TLSContext
-	err    error // For initialization errors
+type FunTLSCfg struct {
+	EnableClientAuth bool
+	Logger           *logrus.Logger
+	Certs            []*mx.CertPaths
 }
 
-func RealServidor() {
+type xFunx struct {
+	lg   *logrus.Logger
+	tCtx *tlssl.TLSContext
+}
+
+// FunTLS is the main entry point for the FunTLS server
+// It initializes the TLS context and starts listening on the port
+// Can handle multiple certificates, if the certificate is signed
+// by a CA, the cert file should contain the full chain
+func FunTLS(cfg *FunTLSCfg) net.Listener {
 
 	var err error
-	var server serverOp
+	var fun xFunx
 
-	server.lg = clog.InitNewLogger(&clog.CustomFormatter{Tag: "SERVER"})
-	listener, err := net.Listen("tcp", port)
+	if cfg == nil {
+		return nil
+	}
+
+	fun.lg = cfg.Logger
+	if fun.lg == nil {
+		fun.lg = defaultLogger()
+	}
+
+	fun.tCtx, err = startTlsContext(cfg)
 	if err != nil {
-		server.lg.Error(err)
-		return
-	}
-	server.tlsCtx = &tlssl.TLSContext{}
-	server.initTLSContext()
-	if server.err != nil {
-		server.lg.Error("TLS Init err: ", server.err)
-		return
+		fun.lg.Error(err)
+		return nil
 	}
 
-	server.lg.Info("TLS Context Initialized")
-	defer listener.Close()
-	server.lg.Info("Listening on PORT ", port)
-	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			server.lg.Error("error accepting connection:", err)
-			continue
-		}
-
-		server.lg.Info("Connection accepted from ", conn.RemoteAddr())
-		go server.handleConnection(conn)
-	}
+	fun.lg.Info("Starting FunTLS Server")
+	return nil
 }
 
-func (server *serverOp) handleConnection(conn net.Conn) {
+func startTlsContext(fun *FunTLSCfg) (*tlssl.TLSContext, error) {
+
+	var err error
+	var tlsCtx tlssl.TLSContext
+
+	tlsCtx.Modz = mx.NewModuloZ()
+	if len(fun.Certs) <= 0 {
+		fun.Certs = defaultCerts()
+	}
+
+	tlsCtx.Modz.Certs, err = mx.NewModCerts2(fun.Certs)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Println("STAR CTX TLS")
+	return &tlsCtx, nil
+}
+
+func defaultLogger() *logrus.Logger {
+
+	var lvl logrus.Level
+
+	lg := clog.InitNewLogger(&clog.CustomFormatter{
+		Tag: "FunTLS", TagColor: "blue"})
+	if lg == nil {
+		return nil
+	}
+
+	levelStr := strings.ToUpper(os.Getenv(_ENV_LOG_LEVEL_VAR_))
+	switch levelStr {
+	case "TRACE":
+		lvl = logrus.TraceLevel
+	case "DEBUG":
+		lvl = logrus.DebugLevel
+	case "WARN":
+		lvl = logrus.WarnLevel
+	case "ERROR":
+		lvl = logrus.ErrorLevel
+	case "FATAL":
+		lvl = logrus.FatalLevel
+	case "PANIC":
+		lvl = logrus.PanicLevel
+	default:
+		lvl = logrus.InfoLevel
+	}
+
+	lg.SetLevel(lvl)
+	return lg
+}
+
+func defaultCerts() []*mx.CertPaths {
+
+	//keyName := "serverkey.pem"
+	//certName := "servercert.pem"
+	fmt.Println("Default certs: ", _CERT_PATH_VAR_)
+	fmt.Println("No certificates provided, using default")
+	return nil
+}
+
+/*listener, err := net.Listen("tcp", port)
+if err != nil {
+	fun.lg.Error(err)
+	return nil
+}
+
+server.tlsCtx = &tlssl.TLSContext{}
+server.initTLSContext()
+if server.err != nil {
+	server.lg.Error("TLS Init err: ", server.err)
+	return nil
+}
+
+server.lg.Info("TLS Context Initialized")
+return listener*/
+/*defer listener.Close()
+server.lg.Info("Listening on PORT ", port)
+for {
+	conn, err := listener.Accept()
+	if err != nil {
+		server.lg.Error("error accepting connection:", err)
+		continue
+	}
+
+	server.lg.Info("Connection accepted from ", conn.RemoteAddr())
+	go server.handleConnection(conn)
+}*/
+
+/*func (server *serverOp) handleConnection(conn net.Conn) {
 
 	defer conn.Close()
 	buffer := make([]byte, 4096)
@@ -99,4 +194,4 @@ func (server *serverOp) handleConnection(conn net.Conn) {
 	}
 
 	handle.LetsTalk(buffer[:n])
-}
+}*/

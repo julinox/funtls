@@ -2,7 +2,6 @@ package handshake
 
 import (
 	"fmt"
-	"time"
 	"tlesio/tlssl"
 )
 
@@ -23,7 +22,8 @@ func (x *xTransition) transitServerHelloDone() error {
 			return fmt.Errorf("nil net.Conn object")
 		}
 
-		coms.SetDeadline(time.Now().Add(_READ_TIMEOUT_ * time.Second))
+		//coms.SetDeadline(time.Now().Add(_READ_TIMEOUT_ * time.Second))
+		//x.ctx.ComsDeadline(_READ_TIMEOUT_)
 		buff := make([]byte, _BUFFER_SIZE_)
 		n, err := coms.Read(buff)
 		if err != nil {

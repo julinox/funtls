@@ -6,7 +6,7 @@ import (
 )
 
 const _BUFFER_SIZE_ = 2048
-const _READ_TIMEOUT_ = 1
+const _READ_TIMEOUT_ = 1000 // milliseconds
 const (
 	STAGE_SERVERHELLODONE = iota + 1
 	STAGE_FINISHED_CLIENT
@@ -72,5 +72,12 @@ func (x *xTransition) transitFinishedServer() error {
 	x.ctx.Send(append(css, fsh...))
 	x.nextState = COMPLETEHANDSHAKE
 	x.tCtx.Lg.Info("Complete Handshake")
+
+	// Reset deadline
+	//x.ctx.ComsDeadline(2000)
+	if err := x.ctx.CloseNotify(2); err != nil {
+		x.tCtx.Lg.Warn("CloseNotify error: ", err.Error())
+	}
+
 	return nil
 }

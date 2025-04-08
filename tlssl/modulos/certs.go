@@ -17,11 +17,6 @@ import (
 	"golang.org/x/exp/maps"
 )
 
-var (
-	PKI_TYPE_RSA = 0x01
-	PKI_TYPE_EC  = 0x02
-)
-
 type ModCerts interface {
 	Name() string
 	Print() string
@@ -36,11 +31,6 @@ type ModCerts interface {
 type CertPaths struct {
 	PathCert string
 	PathKey  string
-}
-
-type MsgCertificate struct {
-	Length uint32
-	Cert   []byte
 }
 
 type pki struct {
@@ -84,6 +74,23 @@ func NewModCerts(lg *logrus.Logger, paths []*CertPaths) (ModCerts, error) {
 	}
 
 	lg.Info("Module loaded: ", newMod.Name())
+	return &newMod, nil
+}
+
+func NewModCerts2(certs []*CertPaths) (ModCerts, error) {
+
+	var newMod _xModCerts
+
+	myself := systema.MyName()
+	if len(certs) <= 0 {
+		return nil, fmt.Errorf("empty certificates(%s)", myself)
+	}
+
+	newMod.pkInfo = make([]*pki, 0)
+	for _, p := range certs {
+		fmt.Printf("LOADING CERT: %s\n", p.PathCert)
+	}
+
 	return &newMod, nil
 }
 

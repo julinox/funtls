@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
+	"time"
 	"tlesio/systema"
 	"tlesio/tlssl"
 
@@ -88,6 +89,8 @@ type HandShakeContext interface {
 	PrintExpected() string
 	SendCtxBuff([]int) error
 	Send([]byte) error
+	CloseNotify(int) error
+	ComsDeadline(int) error
 }
 
 func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
@@ -475,5 +478,35 @@ func (x *xHandhsakeContext) sendData(buffer []byte) error {
 		return err
 	}
 
+	return nil
+}
+
+// Miliseconds
+func (x *xHandhsakeContext) ComsDeadline(ms int) error {
+
+	var t time.Time
+
+	if ms <= 0 {
+		t = time.Time{}
+	}
+
+	t = time.Now().Add(time.Duration(ms) * time.Millisecond)
+	return x.coms.SetDeadline(t)
+}
+
+func (x *xHandhsakeContext) CloseNotify(timeWait int) error {
+
+	closeNotify := []byte{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00}
+	// Give client time to settle
+	//time.Sleep(time.Duration(timeWait) * time.Second)
+	time.Sleep(2 * time.Second)
+	_, err := x.coms.Write(closeNotify)
+	if err != nil {
+		return err
+	}
+
+	time.Sleep(300 * time.Millisecond) // Flush time
+	x.coms.(*net.TCPConn).CloseWrite()
+	x.coms.Close()
 	return nil
 }

@@ -1,8 +1,6 @@
 package modulos
 
 import (
-	"fmt"
-
 	sts "tlesio/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
@@ -11,32 +9,27 @@ import (
 type ModuloZ struct {
 	Certs    ModCerts
 	TLSSuite ModTLSSuite
-	err      error // only for initialization
 }
 
 func NewModuloZ() *ModuloZ {
 	return &ModuloZ{}
 }
 
-func (z *ModuloZ) InitCerts(lg *logrus.Logger, paths []*CertPaths) error {
-	if z.err != nil {
-		return z.err
-	}
+func (z *ModuloZ) LoadCertificates() {
+}
 
-	aux, err := NewModCerts(lg, paths)
+/*func (z *ModuloZ) InitCerts(lg *logrus.Logger, paths []*CertPaths) error {
+
+	aux, err := NewModCerts2(paths)
 	if aux == nil {
 		return err
 	}
 
 	z.Certs = aux
 	return nil
-}
+}*/
 
 func (z *ModuloZ) InitTLSSuite(lg *logrus.Logger, suites []sts.Suite) error {
-
-	if z.err != nil {
-		return z.err
-	}
 
 	aux, err := NewModTLSSuite(lg)
 	if aux == nil {
@@ -51,24 +44,6 @@ func (z *ModuloZ) InitTLSSuite(lg *logrus.Logger, suites []sts.Suite) error {
 		}
 
 		lg.Info("Suite registered: ", suite.Name())
-	}
-
-	return nil
-}
-
-// Check if all modules are initialized
-func (z *ModuloZ) CheckModInit() error {
-
-	if z.err != nil {
-		return z.err
-	}
-
-	if z.Certs == nil {
-		return fmt.Errorf("module 'ModCerts' not initialized")
-	}
-
-	if z.TLSSuite == nil {
-		return fmt.Errorf("module 'ModTLSSuite' not initialized")
 	}
 
 	return nil
