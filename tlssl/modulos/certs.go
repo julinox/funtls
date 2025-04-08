@@ -10,8 +10,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
-	"tlesio/systema"
-	ex "tlesio/tlssl/extensions"
+
+	"github.com/julinox/funtls/systema"
+	ex "github.com/julinox/funtls/tlssl/extensions"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"

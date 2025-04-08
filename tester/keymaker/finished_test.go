@@ -6,8 +6,9 @@ import (
 	"encoding/hex"
 	"os"
 	"testing"
-	"tlesio/tlssl"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 // TLS_RSA_AES_256_CBC_SHA1

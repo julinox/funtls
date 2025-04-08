@@ -2,7 +2,8 @@ package handshake
 
 import (
 	"fmt"
-	"tlesio/tlssl"
+
+	"github.com/julinox/funtls/tlssl"
 )
 
 type xServerKeyExchange struct {

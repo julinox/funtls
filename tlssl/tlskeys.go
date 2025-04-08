@@ -5,7 +5,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"hash"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 const (

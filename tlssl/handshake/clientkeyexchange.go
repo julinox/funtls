@@ -5,8 +5,9 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"fmt"
-	"tlesio/tlssl"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 const _PMS_SIZE_ = 48

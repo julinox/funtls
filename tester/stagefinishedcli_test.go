@@ -6,8 +6,9 @@ import (
 	"os"
 	"testing"
 	"time"
-	"tlesio/tlssl"
-	"tlesio/tlssl/handshake"
+
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/handshake"
 )
 
 var _HANDSHAKE_TIMEOUT_ = 3

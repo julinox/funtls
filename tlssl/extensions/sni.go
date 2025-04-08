@@ -2,7 +2,8 @@ package extensions
 
 import (
 	"fmt"
-	"tlesio/systema"
+
+	"github.com/julinox/funtls/systema"
 )
 
 const _MAX_SNI_NAMES = 5

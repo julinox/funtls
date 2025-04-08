@@ -2,7 +2,8 @@ package tester
 
 import (
 	"net"
-	"tlesio/tlssl/handshake"
+
+	"github.com/julinox/funtls/tlssl/handshake"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"

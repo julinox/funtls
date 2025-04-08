@@ -2,7 +2,8 @@ package tlssl
 
 import (
 	"fmt"
-	"tlesio/systema"
+
+	"github.com/julinox/funtls/systema"
 )
 
 func (x *xTLSCSpec) encryptETM(tpt *TLSPlaintext) (*TLSCipherText, error) {

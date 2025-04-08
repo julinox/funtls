@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"tlesio/tlssl"
-	"tlesio/tlssl/suite"
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 func TestPRFSha2(t *testing.T) {

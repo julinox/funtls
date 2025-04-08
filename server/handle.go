@@ -3,9 +3,10 @@ package server
 import (
 	"fmt"
 	"net"
-	"tlesio/systema"
-	"tlesio/tlssl"
-	"tlesio/tlssl/handshake"
+
+	"github.com/julinox/funtls/systema"
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/handshake"
 
 	evilmac "github.com/julinox/statemaquina"
 	"github.com/sirupsen/logrus"

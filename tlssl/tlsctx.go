@@ -1,8 +1,8 @@
 package tlssl
 
 import (
-	ex "tlesio/tlssl/extensions"
-	mx "tlesio/tlssl/modulos"
+	ex "github.com/julinox/funtls/tlssl/extensions"
+	mx "github.com/julinox/funtls/tlssl/modulos"
 
 	"github.com/sirupsen/logrus"
 )

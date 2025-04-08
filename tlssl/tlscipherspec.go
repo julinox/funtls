@@ -4,8 +4,10 @@ import (
 	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"tlesio/systema"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl/suite"
+
+	"github.com/julinox/funtls/systema"
 )
 
 /*

@@ -2,7 +2,8 @@ package tester
 
 import (
 	"testing"
-	"tlesio/tlssl"
+
+	"github.com/julinox/funtls/tlssl"
 )
 
 func TestTlsRecordDecoder(t *testing.T) {

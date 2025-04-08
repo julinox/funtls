@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"net"
 	"time"
-	"tlesio/systema"
-	"tlesio/tlssl"
+
+	"github.com/julinox/funtls/systema"
+	"github.com/julinox/funtls/tlssl"
 
 	"github.com/sirupsen/logrus"
 )

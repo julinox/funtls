@@ -5,7 +5,8 @@ import (
 	"crypto/hmac"
 	"crypto/sha1"
 	"fmt"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 type x0x0035 struct {

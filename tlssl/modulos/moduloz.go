@@ -1,7 +1,7 @@
 package modulos
 
 import (
-	sts "tlesio/tlssl/suite"
+	sts "github.com/julinox/funtls/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 )

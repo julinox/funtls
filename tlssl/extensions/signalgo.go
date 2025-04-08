@@ -1,7 +1,7 @@
 package extensions
 
 import (
-	"tlesio/systema"
+	"github.com/julinox/funtls/systema"
 )
 
 const (

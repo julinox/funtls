@@ -3,8 +3,10 @@ package tlssl
 import (
 	"crypto/hmac"
 	"fmt"
-	"tlesio/systema"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl/suite"
+
+	"github.com/julinox/funtls/systema"
 )
 
 func (x *xTLSCSpec) encryptMTE(tpt *TLSPlaintext) (*TLSCipherText, error) {

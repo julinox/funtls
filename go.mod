@@ -1,4 +1,4 @@
-module tlesio
+module github.com/julinox/funtls
 
 go 1.23.0
 

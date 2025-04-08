@@ -1,6 +1,6 @@
 package handshake
 
-import "tlesio/tlssl"
+import "github.com/julinox/funtls/tlssl"
 
 type xServerHelloDone struct {
 	stateBasicInfo

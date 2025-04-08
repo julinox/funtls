@@ -2,8 +2,9 @@ package handshake
 
 import (
 	"fmt"
-	"tlesio/tlssl"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 const _MASTER_SECRET_SIZE_ = 48

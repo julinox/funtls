@@ -6,9 +6,9 @@ import (
 	"os"
 	"strings"
 
-	"tlesio/tlssl"
+	"github.com/julinox/funtls/tlssl"
 
-	mx "tlesio/tlssl/modulos"
+	mx "github.com/julinox/funtls/tlssl/modulos"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"

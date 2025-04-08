@@ -2,8 +2,9 @@ package modulos
 
 import (
 	"fmt"
-	"tlesio/systema"
-	css "tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/systema"
+	css "github.com/julinox/funtls/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 )

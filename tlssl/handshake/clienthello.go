@@ -16,10 +16,11 @@ import (
 	"encoding/binary"
 	"fmt"
 	"strings"
-	"tlesio/systema"
-	"tlesio/tlssl"
-	ex "tlesio/tlssl/extensions"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/systema"
+	"github.com/julinox/funtls/tlssl"
+	ex "github.com/julinox/funtls/tlssl/extensions"
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 var (

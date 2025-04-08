@@ -4,8 +4,9 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"fmt"
-	"tlesio/tlssl"
-	"tlesio/tlssl/suite"
+
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/suite"
 )
 
 const _VERIFY_DATA_LABEL_CLIENT = "client finished"
