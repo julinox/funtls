@@ -6,9 +6,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/julinox/funtls/tlssl"
-
+	ex "github.com/julinox/funtls/tlssl/extensions"
 	mx "github.com/julinox/funtls/tlssl/modulos"
+	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/suite/ciphersuites"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -21,19 +22,21 @@ var _CERT_PATH_VAR_ = "./certs"
 type FunTLSCfg struct {
 	EnableClientAuth bool
 	Logger           *logrus.Logger
-	Certs            []*mx.CertPaths
+	Certs            []*mx.CertInfo
 }
 
 type xFunx struct {
-	lg   *logrus.Logger
-	tCtx *tlssl.TLSContext
+	certs  mx.ModCerts
+	suites mx.ModTLSSuite
+	lg     *logrus.Logger
+	extns  *ex.Extensions
 }
 
-// FunTLS is the main entry point for the FunTLS server
+// FunTLServe is the main entry point for the FunTLS server
 // It initializes the TLS context and starts listening on the port
 // Can handle multiple certificates, if the certificate is signed
 // by a CA, the cert file should contain the full chain
-func FunTLS(cfg *FunTLSCfg) (net.Listener, error) {
+func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 
 	var err error
 	var fun xFunx
@@ -42,41 +45,28 @@ func FunTLS(cfg *FunTLSCfg) (net.Listener, error) {
 		return nil, fmt.Errorf("FunTLSCfg is nil")
 	}
 
-	fun.lg = cfg.Logger
-	if fun.lg == nil {
-		fun.lg = defaultLogger()
+	if cfg.Logger == nil {
+		fun.lg = initDefaultLogger()
 	}
 
-	fun.tCtx, err = startTlsContext(cfg)
+	fun.certs, err = mx.NewModCerts2(fun.lg, cfg.Certs)
 	if err != nil {
-		fun.lg.Error(err)
+		fun.lg.Error("Error loading certificates: ", err)
 		return nil, err
 	}
 
+	fun.suites, err = initTLSSuites(fun.lg)
+	if err != nil {
+		fun.lg.Error("Error initializing TLS suites: ", err)
+		return nil, err
+	}
+
+	fun.extns = initExtensions(fun.lg)
 	fun.lg.Info("Starting FunTLS Server")
 	return nil, nil
 }
 
-func startTlsContext(fun *FunTLSCfg) (*tlssl.TLSContext, error) {
-
-	var err error
-	var tlsCtx tlssl.TLSContext
-
-	tlsCtx.Modz = mx.NewModuloZ()
-	if len(fun.Certs) <= 0 {
-		fun.Certs = defaultCerts()
-	}
-
-	tlsCtx.Modz.Certs, err = mx.NewModCerts2(fun.Certs)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Println("STAR CTX TLS")
-	return &tlsCtx, nil
-}
-
-func defaultLogger() *logrus.Logger {
+func initDefaultLogger() *logrus.Logger {
 
 	var lvl logrus.Level
 
@@ -108,90 +98,38 @@ func defaultLogger() *logrus.Logger {
 	return lg
 }
 
-func defaultCerts() []*mx.CertPaths {
+func initTLSSuites(lg *logrus.Logger) (mx.ModTLSSuite, error) {
 
-	//keyName := "serverkey.pem"
-	//certName := "servercert.pem"
-	fmt.Println("Default certs: ", _CERT_PATH_VAR_)
-	fmt.Println("No certificates provided, using default")
-	return nil
-}
+	var err error
+	var tSuite mx.ModTLSSuite
 
-/*listener, err := net.Listen("tcp", port)
-if err != nil {
-	fun.lg.Error(err)
-	return nil
-}
-
-server.tlsCtx = &tlssl.TLSContext{}
-server.initTLSContext()
-if server.err != nil {
-	server.lg.Error("TLS Init err: ", server.err)
-	return nil
-}
-
-server.lg.Info("TLS Context Initialized")
-return listener*/
-/*defer listener.Close()
-server.lg.Info("Listening on PORT ", port)
-for {
-	conn, err := listener.Accept()
+	tSuite, err = mx.NewModTLSSuite(lg)
 	if err != nil {
-		server.lg.Error("error accepting connection:", err)
-		continue
+		return nil, err
 	}
 
-	server.lg.Info("Connection accepted from ", conn.RemoteAddr())
-	go server.handleConnection(conn)
-}*/
-
-/*func (server *serverOp) handleConnection(conn net.Conn) {
-
-	defer conn.Close()
-	buffer := make([]byte, 4096)
-	n, err := conn.Read(buffer)
-	if err != nil {
-		server.lg.Error("error reading data:", err)
-		return
+	supportedSuites := []suite.Suite{
+		ciphersuites.NewAES_256_CBC_SHA(),
+		ciphersuites.NewAES_256_CBC_SHA256(),
 	}
 
-	if n <= 5 {
-		server.lg.Warning("Very little Data")
-		return
+	for _, suite := range supportedSuites {
+		if err := tSuite.RegisterSuite(suite); err != nil {
+			lg.Error("Suite registry:", err)
+			continue
+		}
+
+		lg.Info("Suite registered: ", suite.Name())
 	}
 
-	if len(buffer[:n]) <= 45 {
-		server.lg.Warning("buffer is too small for a client hello")
-		return
-	}
+	return tSuite, nil
+}
 
-	tHeader := tlssl.TLSHead(buffer)
-	if tHeader.ContentType != tlssl.ContentTypeHandshake {
-		server.lg.Warning("We do not negotiate with terrorist!")
-		return
-	}
+func initExtensions(lg *logrus.Logger) *ex.Extensions {
 
-	if tHeader.Len != len(buffer[tlssl.TLS_HEADER_SIZE:n]) {
-		server.lg.Warning("Header length does not match buffer length")
-		return
-	}
-
-	tHeaderHS := tlssl.TLSHeadHandShake(buffer[tlssl.TLS_HEADER_SIZE:])
-	if tHeaderHS.HandshakeType != tlssl.HandshakeTypeClientHello {
-		server.lg.Warning("Pretty rude from you not to say helo first")
-		return
-	}
-
-	offset := tlssl.TLS_HEADER_SIZE + tlssl.TLS_HANDSHAKE_SIZE
-	if tHeaderHS.Len != len(buffer[offset:n]) {
-		server.lg.Warning("Handshake length does not match buffer length")
-		return
-	}
-
-	handle, _ := Handle(server.tlsCtx, conn)
-	if handle == nil {
-		return
-	}
-
-	handle.LetsTalk(buffer[:n])
-}*/
+	extns := ex.NewExtensions(lg)
+	extns.Register(ex.NewExtSignAlgo())
+	extns.Register(ex.NewExtSNI())
+	extns.Register(ex.NewExtRenegotiation())
+	return extns
+}

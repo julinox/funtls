@@ -21,15 +21,15 @@ import (
 type ModCerts interface {
 	Name() string
 	Print() string
-	Load(*CertPaths) (*pki, error)
 	CNs() []string
+	Load(*CertInfo) (*pki, error)
 	Get(string) *x509.Certificate
+	GetCertChain(string) []*x509.Certificate
 	GetByCriteria(uint16, string) *x509.Certificate
 	GetCertKey(*x509.Certificate) crypto.PrivateKey
-	GetCertChain(*x509.Certificate) []*x509.Certificate
 }
 
-type CertPaths struct {
+type CertInfo struct {
 	PathCert string
 	PathKey  string
 }
@@ -40,6 +40,7 @@ type pki struct {
 	san       map[string]bool // Subject Alternative Names
 	key       crypto.PrivateKey
 	cert      *x509.Certificate
+	certChain []*x509.Certificate
 }
 
 type _xModCerts struct {
@@ -48,7 +49,7 @@ type _xModCerts struct {
 }
 
 // Load all certificates and private keys
-func NewModCerts(lg *logrus.Logger, paths []*CertPaths) (ModCerts, error) {
+func NewModCerts(lg *logrus.Logger, paths []*CertInfo) (ModCerts, error) {
 
 	var newMod _xModCerts
 
@@ -78,18 +79,35 @@ func NewModCerts(lg *logrus.Logger, paths []*CertPaths) (ModCerts, error) {
 	return &newMod, nil
 }
 
-func NewModCerts2(certs []*CertPaths) (ModCerts, error) {
+func NewModCerts2(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 
 	var newMod _xModCerts
 
 	myself := systema.MyName()
+	if lg == nil {
+		return nil, fmt.Errorf("nil logger (%s)", myself)
+	}
+
+	if len(certs) <= 0 {
+		return nil, fmt.Errorf("empty paths (%s)", myself)
+	}
+
 	if len(certs) <= 0 {
 		return nil, fmt.Errorf("empty certificates(%s)", myself)
 	}
 
+	newMod.lg = lg
 	newMod.pkInfo = make([]*pki, 0)
 	for _, p := range certs {
-		fmt.Printf("LOADING CERT: %s\n", p.PathCert)
+		newPki, err := newMod.Load(p)
+		if err != nil {
+			newMod.lg.Error("error loading PKI: ", p.PathCert)
+			continue
+		}
+
+		newMod.pkInfo = append(newMod.pkInfo, newPki)
+		newMod.lg.Debugf("Certificate loaded: %s",
+			newPki.certChain[0].Subject.CommonName)
 	}
 
 	return &newMod, nil
@@ -99,13 +117,17 @@ func (m *_xModCerts) Name() string {
 	return "Certificate_Handler"
 }
 
-func (m *_xModCerts) Load(ptr *CertPaths) (*pki, error) {
+func (m *_xModCerts) Load(ptr *CertInfo) (*pki, error) {
 
 	var newPki pki
 
-	cc, err := loadCertificate(ptr.PathCert)
+	chain, err := loadCertificate2(ptr.PathCert)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(chain) <= 0 {
+		return nil, fmt.Errorf("no certificate found")
 	}
 
 	key, err := loadPrivateKey(ptr.PathKey)
@@ -113,17 +135,17 @@ func (m *_xModCerts) Load(ptr *CertPaths) (*pki, error) {
 		return nil, err
 	}
 
-	if !validateKeyPair(cc, key) {
+	if !validateKeyPair(chain[0], key) {
 		return nil, fmt.Errorf("certificate and private key mismatch")
 	}
 
 	newPki.san = make(map[string]bool)
-	newPki.cn = cc.Subject.CommonName
-	newPki.san[newPki.cn] = true
+	newPki.cn = chain[0].Subject.CommonName
 	newPki.key = key
-	newPki.cert = cc
+	newPki.certChain = chain
 	newPki.setSignAlgoSupport()
-	for _, san := range cc.DNSNames {
+	newPki.san[newPki.cn] = true
+	for _, san := range chain[0].DNSNames {
 		newPki.san[san] = true
 	}
 
@@ -189,8 +211,16 @@ func (m *_xModCerts) GetCertKey(cert *x509.Certificate) crypto.PrivateKey {
 	return nil
 }
 
-func (m *_xModCerts) GetCertChain(cert *x509.Certificate) []*x509.Certificate {
-	return []*x509.Certificate{cert}
+// func (m *_xModCerts) GetCertChain(cert *x509.Certificate) []*x509.Certificate {
+func (m *_xModCerts) GetCertChain(cn string) []*x509.Certificate {
+
+	for _, pki := range m.pkInfo {
+		if strings.EqualFold(pki.cn, cn) {
+			return pki.certChain
+		}
+	}
+
+	return []*x509.Certificate{}
 }
 
 // Print certs info
@@ -214,7 +244,7 @@ func (m *_xModCerts) Print() string {
 func (p *pki) setSignAlgoSupport() {
 
 	p.saSupport = make(map[uint16]bool)
-	switch pub := p.cert.PublicKey.(type) {
+	switch pub := p.certChain[0].PublicKey.(type) {
 	case *rsa.PublicKey:
 		// RSA PKCS1
 		p.saSupport[ex.RSA_PKCS1_SHA256] = true
@@ -228,6 +258,37 @@ func (p *pki) setSignAlgoSupport() {
 			p.saSupport[ex.RSA_PSS_RSAE_SHA512] = true
 		}
 	}
+}
+
+func loadCertificate2(path string) ([]*x509.Certificate, error) {
+
+	var err error
+	var certs []*x509.Certificate
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		block, rest := pem.Decode(data)
+		if block == nil {
+			break
+		}
+
+		if block.Type == "CERTIFICATE" {
+			cert, err := x509.ParseCertificate(block.Bytes)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse certificate: %w", err)
+			}
+
+			certs = append(certs, cert)
+		}
+
+		data = rest
+	}
+
+	return certs, nil
 }
 
 func loadCertificate(path string) (*x509.Certificate, error) {

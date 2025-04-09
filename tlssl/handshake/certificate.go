@@ -90,7 +90,8 @@ func (x *xCertificate) certificateServer() error {
 
 	// Certs
 	x.ctx.SetCert(certs[0])
-	certificateBuff := packetCerts(x.tCtx.Modz.Certs.GetCertChain(certs[0]))
+	certificateBuff := packetCerts(
+		x.tCtx.Modz.Certs.GetCertChain(certs[0].Subject.CommonName))
 
 	// Headers
 	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeCertificate,
