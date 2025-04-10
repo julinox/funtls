@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
 	mx "github.com/julinox/funtls/tlssl/modulos"
 	"github.com/julinox/funtls/tlssl/suite"
@@ -15,21 +16,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var port = ":8443"
-var _ENV_LOG_LEVEL_VAR_ = "FUNTLS_LOG_LEVEL"
-var _CERT_PATH_VAR_ = "./certs"
+var _DEFAULT_PORT_ = "4433"
+var (
+	_ENV_LISTENING_PORT_  = "FUNTLS_PORT"
+	_ENV_LOG_LEVEL_VAR_   = "FUNTLS_LOG_LEVEL"
+	_ENV_CLIENT_AUTH_VAR_ = "FUNTLS_CLIENT_AUTH"
+)
 
 type FunTLSCfg struct {
 	EnableClientAuth bool
 	Logger           *logrus.Logger
 	Certs            []*mx.CertInfo
+	ListeningPort    string
 }
 
-type xFunx struct {
-	certs  mx.ModCerts
-	suites mx.ModTLSSuite
-	lg     *logrus.Logger
-	extns  *ex.Extensions
+type xTLSListener struct {
+	listener net.Listener
+	tCtx     tlssl.TLSContext
 }
 
 // FunTLServe is the main entry point for the FunTLS server
@@ -39,31 +42,37 @@ type xFunx struct {
 func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 
 	var err error
-	var fun xFunx
+	var fun xTLSListener
 
 	if cfg == nil {
 		return nil, fmt.Errorf("FunTLSCfg is nil")
 	}
 
 	if cfg.Logger == nil {
-		fun.lg = initDefaultLogger()
+		fun.tCtx.Lg = initDefaultLogger()
 	}
 
-	fun.certs, err = mx.NewModCerts2(fun.lg, cfg.Certs)
+	fun.tCtx.Certs, err = mx.NewModCerts2(fun.tCtx.Lg, cfg.Certs)
 	if err != nil {
-		fun.lg.Error("Error loading certificates: ", err)
+		fun.tCtx.Lg.Error("Error loading certificates: ", err)
 		return nil, err
 	}
 
-	fun.suites, err = initTLSSuites(fun.lg)
+	fun.tCtx.TLSSuite, err = initTLSSuites(fun.tCtx.Lg)
 	if err != nil {
-		fun.lg.Error("Error initializing TLS suites: ", err)
+		fun.tCtx.Lg.Error("Error initializing TLS suites: ", err)
 		return nil, err
 	}
 
-	fun.extns = initExtensions(fun.lg)
-	fun.lg.Info("Starting FunTLS Server")
-	return nil, nil
+	fun.tCtx.Exts = initExtensions(fun.tCtx.Lg)
+	fun.tCtx.OptClientAuth = initClientAuthOpt()
+	if cfg.ListeningPort == "" {
+		cfg.ListeningPort = _DEFAULT_PORT_
+	}
+
+	fun.listener, err = net.Listen("tcp", ":"+cfg.ListeningPort)
+	fun.tCtx.Lg.Info("Starting FunTLS Server")
+	return &fun, nil
 }
 
 func initDefaultLogger() *logrus.Logger {
@@ -132,4 +141,12 @@ func initExtensions(lg *logrus.Logger) *ex.Extensions {
 	extns.Register(ex.NewExtSNI())
 	extns.Register(ex.NewExtRenegotiation())
 	return extns
+}
+
+func initClientAuthOpt() bool {
+	return strings.ToLower(os.Getenv(_ENV_CLIENT_AUTH_VAR_)) == "true"
+}
+
+func initNetListener(port string) (net.Listener, error) {
+	return net.Listen("tcp", ":"+port)
 }

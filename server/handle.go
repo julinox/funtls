@@ -21,6 +21,26 @@ type xHandle struct {
 	handhsake *handshake.Handshake
 }
 
+func (x *xTLSListener) Accept() (net.Conn, error) {
+
+	/*rawConn, err := x.Listener.Accept()
+	if err != nil {
+		x.tCtx.Lg.Error("error accepting connection: ", err)
+		return nil, err
+	}
+	fmt.Println("ACEPTAR2")
+	return nil, fmt.Errorf("not implemented")*/
+	return nil, nil
+}
+
+func (x *xTLSListener) Close() error {
+	return x.listener.Close()
+}
+
+func (x *xTLSListener) Addr() net.Addr {
+	return x.listener.Addr()
+}
+
 // This file is the lowest level for logging stuff
 func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
 
