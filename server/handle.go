@@ -16,36 +16,17 @@ import (
 // Transitions are not messages but are part of the handshake flow.
 const _MAX_STATES_COUNT_ = 1 << 4
 
-type xHandle struct {
+type xNewHSK struct {
+	rawConn   net.Conn
 	lg        *logrus.Logger
 	handhsake *handshake.Handshake
 }
 
-func (x *xTLSListener) Accept() (net.Conn, error) {
-
-	/*rawConn, err := x.Listener.Accept()
-	if err != nil {
-		x.tCtx.Lg.Error("error accepting connection: ", err)
-		return nil, err
-	}
-	fmt.Println("ACEPTAR2")
-	return nil, fmt.Errorf("not implemented")*/
-	return nil, nil
-}
-
-func (x *xTLSListener) Close() error {
-	return x.listener.Close()
-}
-
-func (x *xTLSListener) Addr() net.Addr {
-	return x.listener.Addr()
-}
-
 // This file is the lowest level for logging stuff
-func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
+func InitHandshake(ctx *tlssl.TLSContext, conn net.Conn) (*xNewHSK, error) {
 
 	var err error
-	var newHandle xHandle
+	var newHs xNewHSK
 
 	if ctx == nil || conn == nil {
 		return nil, systema.ErrNilParams
@@ -58,7 +39,7 @@ func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
 	}
 
 	handshakeCtx.SetTransitionStage(handshake.STAGE_SERVERHELLODONE)
-	newHandle.handhsake, err = handshake.NewHandshake(&handshake.AllContexts{
+	newHs.handhsake, err = handshake.NewHandshake(&handshake.AllContexts{
 		Hctx: handshakeCtx,
 		Tctx: ctx})
 
@@ -67,11 +48,12 @@ func Handle(ctx *tlssl.TLSContext, conn net.Conn) (*xHandle, error) {
 		return nil, err
 	}
 
-	newHandle.lg = ctx.Lg
-	return &newHandle, nil
+	newHs.lg = ctx.Lg
+	newHs.rawConn = conn
+	return &newHs, nil
 }
 
-func (x *xHandle) LetsTalk(cliHello []byte) {
+func (x *xNewHSK) LetsTalk(cliHello []byte) (net.Conn, error) {
 
 	var err error
 
@@ -85,12 +67,12 @@ func (x *xHandle) LetsTalk(cliHello []byte) {
 
 	if err != nil {
 		x.lg.Error("error creating state machine: ", err)
-		return
+		return nil, err
 	}
 
 	if err = x.registryStates(b166er); err != nil {
 		x.lg.Error("error registering state: ", err)
-		return
+		return nil, err
 	}
 
 	x.handhsake.Contexto.SetBuffer(handshake.CLIENTHELLO, cliHello)
@@ -98,9 +80,11 @@ func (x *xHandle) LetsTalk(cliHello []byte) {
 	if err = b166er.Start(); err != nil {
 		x.lg.Error("err Handshake flow: ", err)
 	}
+
+	return nil, nil
 }
 
-func (x *xHandle) registryStates(mac evilmac.StateMac) error {
+func (x *xNewHSK) registryStates(mac evilmac.StateMac) error {
 
 	var err error
 

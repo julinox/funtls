@@ -35,7 +35,6 @@ func NewModTLSSuite(lg *logrus.Logger) (ModTLSSuite, error) {
 
 	newCS.lg = lg
 	newCS.supported = make(map[uint16]css.Suite)
-	newCS.lg.Info("Module loaded: ", newCS.Name())
 	return &newCS, nil
 }
 

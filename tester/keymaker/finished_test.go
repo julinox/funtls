@@ -7,14 +7,16 @@ import (
 	"os"
 	"testing"
 
+	"github.com/julinox/funtls/tester"
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/sirupsen/logrus"
 )
 
 // TLS_RSA_AES_256_CBC_SHA1
 func TestSuiteFinished(t *testing.T) {
 
-	lg := testLogger()
+	lg := tester.TestLogger(logrus.DebugLevel)
 	// Get all handshake messages
 	handshakeMsgs := getHandshakeMsgs()
 	lg.Debugf("Handshake messages: %x", handshakeMsgs)

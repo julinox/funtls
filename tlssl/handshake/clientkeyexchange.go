@@ -97,7 +97,8 @@ func (x *xClientKeyExchange) Handle() error {
 // Calculate the pre master secret
 func (x *xClientKeyExchange) preMasterSecret(cPms []byte) ([]byte, error) {
 
-	cs := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	//cs := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if cs == nil {
 		return nil, fmt.Errorf("cipher suite get err(%v)", x.Name())
 	}
@@ -120,7 +121,8 @@ func (x *xClientKeyExchange) preMasterSecretRSA(cPms []byte) ([]byte, error) {
 		return nil, fmt.Errorf("handshakectx nil certificate(%v)", x.Name())
 	}
 
-	privateKey := x.tCtx.Modz.Certs.GetCertKey(ctxCert)
+	//privateKey := x.tCtx.Modz.Certs.GetCertKey(ctxCert)
+	privateKey := x.tCtx.Certs.GetCertKey(ctxCert)
 	if privateKey == nil {
 		return nil, fmt.Errorf("cert's private key not found(%v)", x.Name())
 	}

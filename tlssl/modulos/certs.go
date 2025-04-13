@@ -49,7 +49,7 @@ type _xModCerts struct {
 }
 
 // Load all certificates and private keys
-func NewModCerts(lg *logrus.Logger, paths []*CertInfo) (ModCerts, error) {
+/*func NewModCertss(lg *logrus.Logger, paths []*CertInfo) (ModCerts, error) {
 
 	var newMod _xModCerts
 
@@ -77,7 +77,7 @@ func NewModCerts(lg *logrus.Logger, paths []*CertInfo) (ModCerts, error) {
 
 	lg.Info("Module loaded: ", newMod.Name())
 	return &newMod, nil
-}
+}*/
 
 func NewModCerts2(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 
@@ -106,7 +106,7 @@ func NewModCerts2(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 		}
 
 		newMod.pkInfo = append(newMod.pkInfo, newPki)
-		newMod.lg.Debugf("Certificate loaded: %s",
+		newMod.lg.Infof("Certificate loaded: %s",
 			newPki.certChain[0].Subject.CommonName)
 	}
 
@@ -184,15 +184,18 @@ func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
 	var certCopy x509.Certificate
 
 	for _, pki := range m.pkInfo {
+		fmt.Println("SA Name1: ", sa)
 		if sa != 0 && (!pki.saSupport[sa]) {
 			continue
 		}
 
+		fmt.Println("SA Name2: ", sa)
 		// 'cn' is in the SAN list (set at Load)
 		if cn != "" && !pki.san[cn] {
 			continue
 		}
 
+		fmt.Println("SA Name3: ", sa)
 		certCopy = *pki.cert
 		return &certCopy
 	}
@@ -291,7 +294,7 @@ func loadCertificate2(path string) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func loadCertificate(path string) (*x509.Certificate, error) {
+/*func loadCertificate(path string) (*x509.Certificate, error) {
 
 	if path == "" {
 		return nil, fmt.Errorf("empty path")
@@ -308,7 +311,7 @@ func loadCertificate(path string) (*x509.Certificate, error) {
 	}
 
 	return x509.ParseCertificate(block.Bytes)
-}
+}*/
 
 func loadPrivateKey(path string) (crypto.PrivateKey, error) {
 

@@ -21,6 +21,7 @@ type TLSConn struct {
 }
 
 func NewTLSConn(conn net.Conn) *TLSConn {
+
 	return &TLSConn{
 		rawConn:           conn,
 		handshakeComplete: false,

@@ -113,7 +113,8 @@ func (x *xServerHello) cipherSuites(cliMsg *MsgHello) []byte {
 	var newBuff []byte
 
 	for _, algo := range cliMsg.CipherSuites {
-		if x.tCtx.Modz.TLSSuite.IsSupported(algo) {
+		//if x.tCtx.Modz.TLSSuite.IsSupported(algo) {
+		if x.tCtx.TLSSuite.IsSupported(algo) {
 			newBuff = append(newBuff, byte(algo>>8), byte(algo))
 			cs = algo
 			break

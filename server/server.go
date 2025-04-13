@@ -71,7 +71,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 	}
 
 	fun.listener, err = net.Listen("tcp", ":"+cfg.ListeningPort)
-	fun.tCtx.Lg.Info("Starting FunTLS Server")
+	fun.tCtx.Lg.Infof("Starting FunTLS Server (%v)", fun.listener.Addr())
 	return &fun, nil
 }
 
@@ -147,6 +147,70 @@ func initClientAuthOpt() bool {
 	return strings.ToLower(os.Getenv(_ENV_CLIENT_AUTH_VAR_)) == "true"
 }
 
-func initNetListener(port string) (net.Listener, error) {
-	return net.Listen("tcp", ":"+port)
+/* Interface */
+func (x *xTLSListener) Accept() (net.Conn, error) {
+
+	conn, err := x.listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+
+	defer conn.Close()
+	buffer := make([]byte, 4096)
+	n, err := conn.Read(buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	if n <= 5 {
+		return nil, fmt.Errorf("received less than 5 bytes")
+	}
+
+	if len(buffer[:n]) <= 45 {
+		return nil, fmt.Errorf("buffer is too small for a client hello")
+	}
+
+	tHeader := tlssl.TLSHead(buffer)
+	if tHeader.ContentType != tlssl.ContentTypeHandshake {
+		return nil, fmt.Errorf("We do not negotiate with terrorist!")
+	}
+
+	if tHeader.Len != len(buffer[tlssl.TLS_HEADER_SIZE:n]) {
+		return nil, fmt.Errorf("Header len does not match buffer len")
+	}
+
+	tHeaderHS := tlssl.TLSHeadHandShake(buffer[tlssl.TLS_HEADER_SIZE:])
+	if tHeaderHS.HandshakeType != tlssl.HandshakeTypeClientHello {
+		return nil, fmt.Errorf("Pretty rude from you not to say helo first")
+	}
+
+	offset := tlssl.TLS_HEADER_SIZE + tlssl.TLS_HANDSHAKE_SIZE
+	if tHeaderHS.Len != len(buffer[offset:n]) {
+		return nil, fmt.Errorf("Handshake len does not match buffer len")
+	}
+
+	nhs, err := InitHandshake(&x.tCtx, conn)
+	if err != nil {
+		return nil, err
+	}
+
+	x.tCtx.Lg.Info("Connection accepted from ", conn.RemoteAddr())
+	return nhs.LetsTalk(buffer[:n])
 }
+
+func (x *xTLSListener) Close() error {
+	return x.listener.Close()
+}
+
+func (x *xTLSListener) Addr() net.Addr {
+	return x.listener.Addr()
+}
+
+/*
+Anotaciones: tCtx.Modz
+- serverhello.ho
+- certificate.go
+- changecipherspec.go
+- clientkeyexchange.go
+- finished.go
+*/

@@ -106,7 +106,6 @@ func (x *xClientHello) Handle() error {
 	offset += 1 + compressionMethodsLen
 	newMsg.Extensions = make(map[uint16]interface{})
 	offset += x.extensions(cliHelloBuf[offset:], &newMsg)
-
 	if int(offset) != len(cliHelloBuf) {
 		return fmt.Errorf("ClientHello message parse doesnt match offset")
 	}

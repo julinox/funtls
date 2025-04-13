@@ -1,12 +1,13 @@
-package keymaker
+package tester
 
 import (
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
 )
 
-func TestLogger() *logrus.Logger {
+func TestLogger(lvl logrus.Level) *logrus.Logger {
+
 	lg := clog.InitNewLogger(&clog.CustomFormatter{Tag: "TESTER"})
-	lg.SetLevel(logrus.InfoLevel)
+	lg.SetLevel(lvl)
 	return lg
 }

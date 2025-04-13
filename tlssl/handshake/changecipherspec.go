@@ -66,7 +66,8 @@ func (x *xChangeCipherSpec) cipeherSpecClient() error {
 	}
 
 	// create a new cipher spec
-	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	//st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	st := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if st == nil {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
@@ -87,7 +88,8 @@ func (x *xChangeCipherSpec) cipeherSpecServer() error {
 
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
-	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	//st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	st := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if st == nil {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
@@ -108,7 +110,8 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 
 	var seed []byte
 
-	stt := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	//stt := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	stt := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if stt == nil {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
@@ -146,7 +149,8 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 	var seed []byte
 	var seshKeys tlssl.SessionKeys
 
-	st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	//st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	st := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if st == nil {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
