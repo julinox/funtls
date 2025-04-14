@@ -63,25 +63,20 @@ func (x *xCertificate) certificateServer() error {
 
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
-	//cs := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if cs == nil {
 		return fmt.Errorf("%v: invalid cipher suite", x.Name())
 	}
 
 	helloMsg := x.ctx.GetMsgHello()
-	//cNames := x.tCtx.Modz.Certs.CNs()
 	cNames := x.tCtx.Certs.CNs()
 	cNames = append(cNames, getClientSAN(helloMsg.Extensions[0x0000])...)
 	saAlgos := getClientSuppAlgos(helloMsg.Extensions[0x000D])
 
 	// Brute force. Why ???
 	// Might return multiples choices? Dont remember why
-	fmt.Printf("cNames: %v\n", cNames)
-	fmt.Printf("saAlgos: %x\n", saAlgos)
 	for _, cn := range cNames {
 		for _, sa := range saAlgos {
-			//if cert := x.tCtx.Modz.Certs.GetByCriteria(sa, cn); cert != nil {
 			if cert := x.tCtx.Certs.GetByCriteria(sa, cn); cert != nil {
 				certs = append(certs, cert)
 				break
@@ -96,7 +91,6 @@ func (x *xCertificate) certificateServer() error {
 	// Certs
 	x.ctx.SetCert(certs[0])
 	certificateBuff := packetCerts(
-		//x.tCtx.Modz.Certs.GetCertChain(certs[0].Subject.CommonName))
 		x.tCtx.Certs.GetCertChain(certs[0].Subject.CommonName))
 
 	// Headers

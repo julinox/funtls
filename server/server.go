@@ -52,7 +52,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 		fun.tCtx.Lg = initDefaultLogger()
 	}
 
-	fun.tCtx.Certs, err = mx.NewModCerts2(fun.tCtx.Lg, cfg.Certs)
+	fun.tCtx.Certs, err = mx.NewModCerts(fun.tCtx.Lg, cfg.Certs)
 	if err != nil {
 		fun.tCtx.Lg.Error("Error loading certificates: ", err)
 		return nil, err
@@ -205,12 +205,3 @@ func (x *xTLSListener) Close() error {
 func (x *xTLSListener) Addr() net.Addr {
 	return x.listener.Addr()
 }
-
-/*
-Anotaciones: tCtx.Modz
-- serverhello.ho
-- certificate.go
-- changecipherspec.go
-- clientkeyexchange.go
-- finished.go
-*/

@@ -204,7 +204,6 @@ func (x *xFinished) calculateVD(hskMsgs []byte, label string) ([]byte, error) {
 
 	var err error
 
-	//st := x.tCtx.Modz.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	st := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if st == nil {
 		return nil, fmt.Errorf("error getting TLS Suite(%v)", x.Name())

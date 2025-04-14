@@ -39,8 +39,7 @@ type pki struct {
 	saSupport map[uint16]bool
 	san       map[string]bool // Subject Alternative Names
 	key       crypto.PrivateKey
-	cert      *x509.Certificate
-	certChain []*x509.Certificate
+	certChain []*x509.Certificate // 0 is the leaf
 }
 
 type _xModCerts struct {
@@ -49,37 +48,7 @@ type _xModCerts struct {
 }
 
 // Load all certificates and private keys
-/*func NewModCertss(lg *logrus.Logger, paths []*CertInfo) (ModCerts, error) {
-
-	var newMod _xModCerts
-
-	if lg == nil {
-		return nil, systema.ErrNilLogger
-	}
-
-	if len(paths) <= 0 {
-		return nil, systema.ErrInvalidData
-	}
-
-	newMod.lg = lg
-	newMod.pkInfo = make([]*pki, 0)
-	for _, p := range paths {
-		newPki, err := newMod.Load(p)
-		if err != nil {
-			newMod.lg.Error("error loading PKI: ", p.PathCert)
-			continue
-		}
-
-		newMod.pkInfo = append(newMod.pkInfo, newPki)
-		newMod.lg.Debugf("Certificate loaded: %s",
-			newPki.cert.Subject.CommonName)
-	}
-
-	lg.Info("Module loaded: ", newMod.Name())
-	return &newMod, nil
-}*/
-
-func NewModCerts2(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
+func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 
 	var newMod _xModCerts
 
@@ -121,7 +90,7 @@ func (m *_xModCerts) Load(ptr *CertInfo) (*pki, error) {
 
 	var newPki pki
 
-	chain, err := loadCertificate2(ptr.PathCert)
+	chain, err := loadCertificate(ptr.PathCert)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +137,7 @@ func (m *_xModCerts) Get(cn string) *x509.Certificate {
 
 	for _, pki := range m.pkInfo {
 		if strings.EqualFold(pki.cn, cn) {
-			certCopy = *pki.cert
+			certCopy = *pki.certChain[0]
 			return &certCopy
 		}
 	}
@@ -184,19 +153,16 @@ func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
 	var certCopy x509.Certificate
 
 	for _, pki := range m.pkInfo {
-		fmt.Println("SA Name1: ", sa)
 		if sa != 0 && (!pki.saSupport[sa]) {
 			continue
 		}
 
-		fmt.Println("SA Name2: ", sa)
 		// 'cn' is in the SAN list (set at Load)
 		if cn != "" && !pki.san[cn] {
 			continue
 		}
 
-		fmt.Println("SA Name3: ", sa)
-		certCopy = *pki.cert
+		certCopy = *pki.certChain[0]
 		return &certCopy
 	}
 
@@ -206,7 +172,7 @@ func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
 func (m *_xModCerts) GetCertKey(cert *x509.Certificate) crypto.PrivateKey {
 
 	for _, pki := range m.pkInfo {
-		if pki.cert.Equal(cert) {
+		if pki.certChain[0].Equal(cert) {
 			return pki.key
 		}
 	}
@@ -214,7 +180,6 @@ func (m *_xModCerts) GetCertKey(cert *x509.Certificate) crypto.PrivateKey {
 	return nil
 }
 
-// func (m *_xModCerts) GetCertChain(cert *x509.Certificate) []*x509.Certificate {
 func (m *_xModCerts) GetCertChain(cn string) []*x509.Certificate {
 
 	for _, pki := range m.pkInfo {
@@ -263,7 +228,7 @@ func (p *pki) setSignAlgoSupport() {
 	}
 }
 
-func loadCertificate2(path string) ([]*x509.Certificate, error) {
+func loadCertificate(path string) ([]*x509.Certificate, error) {
 
 	var err error
 	var certs []*x509.Certificate
@@ -293,25 +258,6 @@ func loadCertificate2(path string) ([]*x509.Certificate, error) {
 
 	return certs, nil
 }
-
-/*func loadCertificate(path string) (*x509.Certificate, error) {
-
-	if path == "" {
-		return nil, fmt.Errorf("empty path")
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(data)
-	if block == nil || block.Type != "CERTIFICATE" {
-		return nil, fmt.Errorf("failed to parse certificate PEM")
-	}
-
-	return x509.ParseCertificate(block.Bytes)
-}*/
 
 func loadPrivateKey(path string) (crypto.PrivateKey, error) {
 
