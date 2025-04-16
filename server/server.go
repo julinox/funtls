@@ -8,6 +8,7 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
+	"github.com/julinox/funtls/tlssl/handshake"
 	mx "github.com/julinox/funtls/tlssl/modulos"
 	"github.com/julinox/funtls/tlssl/suite"
 	"github.com/julinox/funtls/tlssl/suite/ciphersuites"
@@ -189,13 +190,14 @@ func (x *xTLSListener) Accept() (net.Conn, error) {
 		return nil, fmt.Errorf("Handshake len does not match buffer len")
 	}
 
-	nhs, err := InitHandshake(&x.tCtx, conn)
-	if err != nil {
-		return nil, err
+	hskServer := &handshake.HandshakeServer{
+		CliHello: buffer[:n],
+		Conn:     conn,
+		Tctx:     &x.tCtx,
 	}
 
 	x.tCtx.Lg.Info("Connection accepted from ", conn.RemoteAddr())
-	return nhs.LetsTalk(buffer[:n])
+	return handshake.NewHandshakeServer(hskServer)
 }
 
 func (x *xTLSListener) Close() error {

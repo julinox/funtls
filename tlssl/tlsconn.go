@@ -1,75 +1,48 @@
 package tlssl
 
-import "net"
-
-/*
-Read(p []byte) (n int, err error)
-Write(p []byte) (n int, err error)
-Close() error
-SetDeadline(t time.Time) error
-SetReadDeadline(t time.Time) error
-SetWriteDeadline(t time.Time) error
-*/
+import (
+	"net"
+	"time"
+)
 
 type TLSConn struct {
-	rawConn           net.Conn
-	handshakeComplete bool
-	//cipher            CipherSuite // tu interfaz de cifrado ya implementada
-	//state             connState   // flags, rol, etc.
-	//readBuf           []byte
-	//writeBuf          []byte
+	rawConn net.Conn
 }
 
-func NewTLSConn(conn net.Conn) *TLSConn {
-
+func NewTLSConn(raw net.Conn) net.Conn {
 	return &TLSConn{
-		rawConn:           conn,
-		handshakeComplete: false,
+		rawConn: raw,
 	}
 }
 
-// TLSConn representa una conexión TLS ya negociada, lista para leer/escribir.
-/*
-
-type connState struct {
-	isClient          bool
-	version           uint16
-	handshakeComplete bool
+func (x TLSConn) Read(p []byte) (int, error) {
+	return x.rawConn.Read(p)
 }
 
-func (c *TLSConn) Read(p []byte) (int, error) {
-	if !c.handshakeComplete {
-		return 0, errors.New("TLS handshake not complete")
-	}
-	// Leer, decifrar, verificar MAC, etc.
-	return 0, nil
+func (x TLSConn) Write(p []byte) (int, error) {
+	return x.rawConn.Write(p)
 }
 
-func (c *TLSConn) Write(p []byte) (int, error) {
-	if !c.handshakeComplete {
-		return 0, errors.New("TLS handshake not complete")
-	}
-	// Fragmentar, cifrar, aplicar MAC, enviar
-	return 0, nil
+func (x TLSConn) Close() error {
+	return x.rawConn.Close()
 }
 
-func (c *TLSConn) Close() error {
-	// Enviar close_notify si aplica
-	return c.rawConn.Close()
+func (x TLSConn) SetDeadline(t time.Time) error {
+	return x.rawConn.SetDeadline(t)
 }
 
-func (c *TLSConn) SetDeadline(t time.Time) error {
-	return c.rawConn.SetDeadline(t)
+func (x TLSConn) SetReadDeadline(t time.Time) error {
+	return x.rawConn.SetReadDeadline(t)
 }
 
-func (c *TLSConn) SetReadDeadline(t time.Time) error {
-	return c.rawConn.SetReadDeadline(t)
+func (x TLSConn) SetWriteDeadline(t time.Time) error {
+	return x.rawConn.SetWriteDeadline(t)
 }
 
-func (c *TLSConn) SetWriteDeadline(t time.Time) error {
-	return c.rawConn.SetWriteDeadline(t)
+func (x TLSConn) LocalAddr() net.Addr {
+	return x.rawConn.LocalAddr()
 }
 
-// NewTLSConn construye una nueva conexión TLS lista para uso (post-handshake).
-
-*/
+func (x TLSConn) RemoteAddr() net.Addr {
+	return x.rawConn.RemoteAddr()
+}

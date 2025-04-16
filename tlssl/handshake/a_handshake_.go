@@ -103,31 +103,47 @@ type stateBasicInfo struct {
 	ctx       HandShakeContext
 }
 
-func NewHandshake(actx *AllContexts) (*Handshake, error) {
+func HandshakeNameList(l []int) string {
 
-	var newHandshake Handshake
+	out := "["
 
-	if actx == nil || actx.Tctx == nil || actx.Hctx == nil {
-		return nil, fmt.Errorf("nil HandshakeContext object")
+	for i, v := range l {
+		out += handshakeName(v)
+
+		if i < len(l)-1 {
+			out += ", "
+		}
 	}
 
-	newHandshake.Contexto = actx.Hctx
-	newHandshake.Cert = NewCertificate(actx)
-	newHandshake.CertificateReq = NewCertificateRequest(actx.Hctx)
-	newHandshake.CertificateVerf = NewCertificateVerify(actx.Hctx)
-	newHandshake.ChgCph = NewChangeCipherSpec(actx)
-	newHandshake.ClientHelo = NewClientHello(actx)
-	newHandshake.ClientKeyExch = NewClientKeyExchange(actx)
-	newHandshake.Finish = NewFinished(actx)
-	newHandshake.ServerHelo = NewServerHello(actx)
-	newHandshake.ServerHeloDone = NewServerHelloDone(actx)
-	newHandshake.ServerKeyExch = NewServerKeyExchange(actx)
-	newHandshake.Transit = NewTransition(actx)
-	if err := checkHandshakeInit(&newHandshake); err != nil {
-		return nil, fmt.Errorf("handshake object creation: %v", err)
+	return out + "]"
+}
+
+func handshakeName(h int) string {
+
+	switch h {
+	case CERTIFICATE:
+		return "CERTIFICATE"
+	case CERTIFICATEREQUEST:
+		return "CERTIFICATEREQUEST"
+	case CERTIFICATEVERIFY:
+		return "CERTIFICATEVERIFY"
+	case CHANGECIPHERSPEC:
+		return "CHANGECIPHERSPEC"
+	case CLIENTHELLO:
+		return "CLIENTHELLO"
+	case CLIENTKEYEXCHANGE:
+		return "CLIENTKEYEXCHANGE"
+	case FINISHED:
+		return "FINISHED"
+	case SERVERHELLO:
+		return "SERVERHELLO"
+	case SERVERHELLODONE:
+		return "SERVERHELLODONE"
+	case SERVERKEYEXCHANGE:
+		return "SERVERKEYEXCHANGE"
 	}
 
-	return &newHandshake, nil
+	return "UNKNOWN"
 }
 
 func checkHandshakeInit(hsk *Handshake) error {
@@ -185,47 +201,4 @@ func checkHandshakeInit(hsk *Handshake) error {
 	}
 
 	return nil
-}
-
-func HandshakeName(h int) string {
-
-	switch h {
-	case CERTIFICATE:
-		return "CERTIFICATE"
-	case CERTIFICATEREQUEST:
-		return "CERTIFICATEREQUEST"
-	case CERTIFICATEVERIFY:
-		return "CERTIFICATEVERIFY"
-	case CHANGECIPHERSPEC:
-		return "CHANGECIPHERSPEC"
-	case CLIENTHELLO:
-		return "CLIENTHELLO"
-	case CLIENTKEYEXCHANGE:
-		return "CLIENTKEYEXCHANGE"
-	case FINISHED:
-		return "FINISHED"
-	case SERVERHELLO:
-		return "SERVERHELLO"
-	case SERVERHELLODONE:
-		return "SERVERHELLODONE"
-	case SERVERKEYEXCHANGE:
-		return "SERVERKEYEXCHANGE"
-	}
-
-	return "UNKNOWN"
-}
-
-func HandshakeNameList(l []int) string {
-
-	out := "["
-
-	for i, v := range l {
-		out += HandshakeName(v)
-
-		if i < len(l)-1 {
-			out += ", "
-		}
-	}
-
-	return out + "]"
 }
