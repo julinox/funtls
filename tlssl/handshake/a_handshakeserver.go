@@ -80,7 +80,13 @@ func NewHandshakeServer(hsks *HandshakeServer) (net.Conn, error) {
 		return nil, err
 	}
 
-	return nil, nil
+	// This shouldnt happen
+	if !newHandshake.Contexto.IsCompleted() {
+		hsks.Tctx.Lg.Errorf("Handshake not completed(%s)", myself)
+		return nil, fmt.Errorf("Handshake not completed(%s)", myself)
+	}
+
+	return tlssl.NewTLSConn(hsks.Conn)
 }
 
 func registryStates(mac evilmac.StateMac, hsk *Handshake) error {

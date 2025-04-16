@@ -11,6 +11,9 @@ const _MASTER_SECRET_SIZE_ = 48
 const _MASTER_SECRET_LABEL_ = "master secret"
 const _KEY_EXPANSION_LABEL_ = "key expansion"
 
+// ChangeCipherSpec message
+var _CSS_MSG_ = []byte{0x14, 0x03, 0x03, 0x00, 0x01, 0x01}
+
 type xChangeCipherSpec struct {
 	stateBasicInfo
 	tCtx *tlssl.TLSContext

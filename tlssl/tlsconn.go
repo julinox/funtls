@@ -9,10 +9,11 @@ type TLSConn struct {
 	rawConn net.Conn
 }
 
-func NewTLSConn(raw net.Conn) net.Conn {
+func NewTLSConn(raw net.Conn) (net.Conn, error) {
+
 	return &TLSConn{
 		rawConn: raw,
-	}
+	}, nil
 }
 
 func (x TLSConn) Read(p []byte) (int, error) {

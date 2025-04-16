@@ -4,7 +4,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"net"
-	"time"
 
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
@@ -55,6 +54,7 @@ type xHandhsakeContextData struct {
 	keys               *tlssl.SessionKeys
 	cipherSpecClient   tlssl.TLSCipherSpec
 	cipherSpecServer   tlssl.TLSCipherSpec
+	completed          bool
 }
 
 type xHandhsakeContext struct {
@@ -90,8 +90,9 @@ type HandShakeContext interface {
 	PrintExpected() string
 	SendCtxBuff([]int) error
 	Send([]byte) error
-	CloseNotify(int) error
-	ComsDeadline(int) error
+	//CloseNotify(int) error
+	IsCompleted() bool
+	SetCompleted(bool)
 }
 
 func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
@@ -482,19 +483,15 @@ func (x *xHandhsakeContext) sendData(buffer []byte) error {
 	return nil
 }
 
-// Miliseconds
-func (x *xHandhsakeContext) ComsDeadline(ms int) error {
-
-	var t time.Time
-
-	if ms <= 0 {
-		t = time.Time{}
-	}
-
-	t = time.Now().Add(time.Duration(ms) * time.Millisecond)
-	return x.coms.SetDeadline(t)
+func (x *xHandhsakeContext) IsCompleted() bool {
+	return x.data.completed
 }
 
+func (x *xHandhsakeContext) SetCompleted(completed bool) {
+	x.data.completed = completed
+}
+
+/*
 func (x *xHandhsakeContext) CloseNotify(timeWait int) error {
 
 	closeNotify := []byte{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00}
@@ -511,3 +508,4 @@ func (x *xHandhsakeContext) CloseNotify(timeWait int) error {
 	x.coms.Close()
 	return nil
 }
+*/

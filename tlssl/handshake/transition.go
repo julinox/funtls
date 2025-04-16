@@ -68,17 +68,9 @@ func (x *xTransition) transitFinishedClient() error {
 func (x *xTransition) transitFinishedServer() error {
 
 	x.tCtx.Lg.Debug("Transitioning from FINISHED_SERVER")
-	css := []byte{0x14, 0x03, 0x03, 0x00, 0x01, 0x01} // ChangeCipherSpec message
-	fsh := x.ctx.GetBuffer(FINISHEDSERVER)
-	x.ctx.Send(append(css, fsh...))
+	x.ctx.Send(append(_CSS_MSG_, x.ctx.GetBuffer(FINISHEDSERVER)...))
 	x.nextState = COMPLETEHANDSHAKE
 	x.tCtx.Lg.Info("Complete Handshake")
-
-	// Reset deadline
-	//x.ctx.ComsDeadline(2000)
-	if err := x.ctx.CloseNotify(2); err != nil {
-		x.tCtx.Lg.Warn("CloseNotify error: ", err.Error())
-	}
-
+	x.ctx.SetCompleted(true)
 	return nil
 }
