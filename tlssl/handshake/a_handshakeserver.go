@@ -86,7 +86,11 @@ func NewHandshakeServer(hsks *HandshakeServer) (net.Conn, error) {
 		return nil, fmt.Errorf("Handshake not completed(%s)", myself)
 	}
 
-	return tlssl.NewTLSConn(hsks.Conn)
+	return tlssl.NewTLSConn(&tlssl.TLSConn{
+		RawConn:   hsks.Conn,
+		SpecRead:  newHandshake.Contexto.GetCipherScpec(CIPHERSPECCLIENT),
+		SpecWrite: newHandshake.Contexto.GetCipherScpec(CIPHERSPECSERVER),
+	})
 }
 
 func registryStates(mac evilmac.StateMac, hsk *Handshake) error {

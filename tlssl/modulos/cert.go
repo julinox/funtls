@@ -79,6 +79,10 @@ func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 			newPki.certChain[0].Subject.CommonName)
 	}
 
+	if len(newMod.pkInfo) <= 0 {
+		return nil, fmt.Errorf("no certificates loaded (%s)", myself)
+	}
+
 	return &newMod, nil
 }
 

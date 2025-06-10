@@ -90,7 +90,6 @@ type HandShakeContext interface {
 	PrintExpected() string
 	SendCtxBuff([]int) error
 	Send([]byte) error
-	//CloseNotify(int) error
 	IsCompleted() bool
 	SetCompleted(bool)
 }
@@ -490,22 +489,3 @@ func (x *xHandhsakeContext) IsCompleted() bool {
 func (x *xHandhsakeContext) SetCompleted(completed bool) {
 	x.data.completed = completed
 }
-
-/*
-func (x *xHandhsakeContext) CloseNotify(timeWait int) error {
-
-	closeNotify := []byte{0x15, 0x03, 0x03, 0x00, 0x02, 0x01, 0x00}
-	// Give client time to settle
-	//time.Sleep(time.Duration(timeWait) * time.Second)
-	time.Sleep(2 * time.Second)
-	_, err := x.coms.Write(closeNotify)
-	if err != nil {
-		return err
-	}
-
-	time.Sleep(300 * time.Millisecond) // Flush time
-	x.coms.(*net.TCPConn).CloseWrite()
-	x.coms.Close()
-	return nil
-}
-*/

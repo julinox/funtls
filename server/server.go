@@ -55,13 +55,13 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 
 	fun.tCtx.Certs, err = mx.NewModCerts(fun.tCtx.Lg, cfg.Certs)
 	if err != nil {
-		fun.tCtx.Lg.Error("Error loading certificates: ", err)
+		fun.tCtx.Lg.Error("error loading certificates: ", err)
 		return nil, err
 	}
 
 	fun.tCtx.TLSSuite, err = initTLSSuites(fun.tCtx.Lg)
 	if err != nil {
-		fun.tCtx.Lg.Error("Error initializing TLS suites: ", err)
+		fun.tCtx.Lg.Error("error initializing TLS suites: ", err)
 		return nil, err
 	}
 
@@ -71,6 +71,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 		cfg.ListeningPort = _DEFAULT_PORT_
 	}
 
+	// Implements the net.Listener interface
 	fun.listener, err = net.Listen("tcp", ":"+cfg.ListeningPort)
 	fun.tCtx.Lg.Infof("Starting FunTLS Server (%v)", fun.listener.Addr())
 	return &fun, nil
@@ -156,7 +157,6 @@ func (x *xTLSListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	defer conn.Close()
 	buffer := make([]byte, 4096)
 	n, err := conn.Read(buffer)
 	if err != nil {
