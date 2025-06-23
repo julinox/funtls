@@ -54,16 +54,6 @@ func NewTLSConn(tc *TLSConn) (net.Conn, error) {
 
 func (x *xTLSConn) Read(p []byte) (int, error) {
 
-	fmt.Println("---------------------------------- X -----------------------")
-	fmt.Println(x.rawConn)
-	fmt.Println("---------------------------------- X -----------------------")
-	return x.rawConn.Read(p)
-}
-
-func (x *xTLSConn) Read2(p []byte) (int, error) {
-
-	// Partial reads means
-
 	if len(p) == 0 {
 		return 0, nil
 	}
@@ -94,11 +84,12 @@ func (x *xTLSConn) Read2(p []byte) (int, error) {
 				break
 			}
 
-			tpt, err := x.specRead.DecryptRecord(&TLSCipherText{
+			aux := &TLSCipherText{
 				Header:   TLSHead(x.rawBuf[:TLS_HEADER_SIZE]),
 				Fragment: x.rawBuf[TLS_HEADER_SIZE : pktSz+TLS_HEADER_SIZE],
-			})
+			}
 
+			tpt, err := x.specRead.DecryptRecord(aux)
 			if err != nil {
 				if !x.debugMode {
 					return 0, err
@@ -114,10 +105,16 @@ func (x *xTLSConn) Read2(p []byte) (int, error) {
 			if tpt != nil {
 				x.readBuf.Write(tpt.Fragment)
 			}
+
+			x.lg.Tracef("Decrypted TLS record: %x", tpt.Fragment)
 		}
 	}
 
 	return x.readBuf.Read(p)
+}
+
+func (x *xTLSConn) Read2(p []byte) (int, error) {
+	return x.rawConn.Read(p)
 }
 
 func (x *xTLSConn) Write(p []byte) (int, error) {

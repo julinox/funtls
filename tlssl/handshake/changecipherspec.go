@@ -201,8 +201,10 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 
 	x.ctx.SetKeys(&seshKeys)
 	x.tCtx.Lg.Info("SessionKeys generated")
-	x.tCtx.Lg.Tracef("ClientKeys: \n%v", seshKeys.ClientKeys.PrintKeys())
-	x.tCtx.Lg.Tracef("ServerKeys: \n%v", seshKeys.ServerKeys.PrintKeys())
+
+	// Print Keys
+	seshKeys.ClientKeys.PrintKeysWithLog(x.tCtx.Lg, "CLIENT")
+	seshKeys.ServerKeys.PrintKeysWithLog(x.tCtx.Lg, "SERVER")
 	return nil
 }
 

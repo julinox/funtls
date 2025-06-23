@@ -50,9 +50,13 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 	}
 
 	if cfg.Logger == nil {
-		fun.tCtx.Lg = initDefaultLogger()
+		cfg.Logger = InitDefaultLogger()
+		if cfg.Logger == nil {
+			return nil, fmt.Errorf("error initializing default logger")
+		}
 	}
 
+	fun.tCtx.Lg = cfg.Logger
 	fun.tCtx.Certs, err = mx.NewModCerts(fun.tCtx.Lg, cfg.Certs)
 	if err != nil {
 		fun.tCtx.Lg.Error("error loading certificates: ", err)
@@ -77,7 +81,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 	return &fun, nil
 }
 
-func initDefaultLogger() *logrus.Logger {
+func InitDefaultLogger() *logrus.Logger {
 
 	var lvl logrus.Level
 

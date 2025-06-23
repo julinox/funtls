@@ -72,9 +72,10 @@ type TLSPlaintext struct {
 
 type TLSCipherSpec interface {
 	CipherType() int
+	SeqNumPlusPlus() error
+	Macintosh([]byte) ([]byte, error)
 	EncryptRecord(*TLSPlaintext) (*TLSCipherText, error)
 	DecryptRecord(*TLSCipherText) (*TLSPlaintext, error)
-	Macintosh([]byte) ([]byte, error)
 }
 
 type xTLSCSpec struct {
@@ -135,6 +136,9 @@ func (x *xTLSCSpec) EncryptRecord(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
 func (x *xTLSCSpec) DecryptRecord(tct *TLSCipherText) (*TLSPlaintext, error) {
 
+	var err error
+	var tpt *TLSPlaintext
+
 	myself := systema.MyName()
 	if tct == nil || tct.Header == nil || tct.Fragment == nil {
 		return nil, fmt.Errorf("nil TLSCipherText(%v)", myself)
@@ -142,12 +146,18 @@ func (x *xTLSCSpec) DecryptRecord(tct *TLSCipherText) (*TLSPlaintext, error) {
 
 	switch x.macMode {
 	case MODE_MTE:
-		return x.decryptMTE(tct)
+		tpt, err = x.decryptMTE(tct)
 	case MODE_ETM:
-		return x.decryptETM(tct)
+		tpt, err = x.decryptETM(tct)
+	default:
+		return nil, fmt.Errorf("no cipher mode(%v)", myself)
 	}
 
-	return nil, fmt.Errorf("no cipher mode(%v)", myself)
+	if err0 := x.SeqNumPlusPlus(); err0 != nil {
+		return nil, err0
+	}
+
+	return tpt, err
 }
 
 // calculate MAC
@@ -173,7 +183,15 @@ func (x *xTLSCSpec) CipherType() int {
 	return x.cipherSuite.Info().CipherType
 }
 
-// TLSCipherText
+func (x *xTLSCSpec) SeqNumPlusPlus() error {
+	if x.seqNum == 0xFFFFFFFFFFFFFFFF {
+		return fmt.Errorf("sequence number overflow")
+	}
+
+	x.seqNum++
+	return nil
+}
+
 func (xt *TLSCipherText) Packet(fragType int, skipIv bool) ([]byte, error) {
 
 	var iv []byte

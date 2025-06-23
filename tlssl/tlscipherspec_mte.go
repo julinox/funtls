@@ -35,14 +35,11 @@ func (x *xTLSCSpec) encryptMTE(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
 	sCtx.Data = append(sCtx.Data, tpt.Fragment...)
 	sCtx.Data = append(sCtx.Data, mac...)
-	fmt.Printf("Plaint: %x\n", sCtx.Data)
-	fmt.Printf("KEYS: %x | IV: %x\n", sCtx.Key, sCtx.IV)
 	ciphered, err := x.cipherSuite.Cipher(&sCtx)
 	if err != nil {
 		return nil, fmt.Errorf("Ciphering(%v): %v", myself, err)
 	}
 
-	fmt.Printf("ciphered: %x\n", ciphered)
 	tct.Header = &TLSHeader{
 		ContentType: tpt.Header.ContentType,
 		Version:     TLS_VERSION1_2,

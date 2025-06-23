@@ -7,6 +7,7 @@ import (
 	"hash"
 
 	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -108,4 +109,15 @@ func (x *xKeyMake) shamir(secret, seed []byte, fn func() hash.Hash) []byte {
 
 func (k *Keys) PrintKeys() string {
 	return fmt.Sprintf("MAC: %x\nKey: %x\nIV: %x", k.MAC, k.Key, k.IV)
+}
+
+func (k *Keys) PrintKeysWithLog(lg *logrus.Logger, tag string) {
+
+	if lg == nil {
+		return
+	}
+
+	lg.Tracef("%s MAC-Key: %x", tag, k.MAC)
+	lg.Tracef("%s Cipher-Key: %x", tag, k.Key)
+	lg.Tracef("%s IV-Key: %x", tag, k.IV)
 }

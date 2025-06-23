@@ -88,6 +88,7 @@ func NewHandshakeServer(hsks *HandshakeServer) (net.Conn, error) {
 
 	return tlssl.NewTLSConn(&tlssl.TLSConn{
 		RawConn:   hsks.Conn,
+		Lg:        hsks.Tctx.Lg,
 		SpecRead:  newHandshake.Contexto.GetCipherScpec(CIPHERSPECCLIENT),
 		SpecWrite: newHandshake.Contexto.GetCipherScpec(CIPHERSPECSERVER),
 	})
