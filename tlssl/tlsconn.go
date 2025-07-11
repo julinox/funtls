@@ -3,6 +3,7 @@ package tlssl
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
@@ -29,8 +30,10 @@ type xTLSConn struct {
 	rawBuf    []byte
 	readBuf   bytes.Buffer
 	rMutex    sync.Mutex
-	debugMode bool
 	lg        *logrus.Logger
+	debugMode bool
+	eofRead   bool
+	eofWrite  bool
 }
 
 func NewTLSConn(tc *TLSConn) (net.Conn, error) {
@@ -63,10 +66,21 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 			break
 		}
 
+		if x.eofRead {
+			return 0, io.EOF
+		}
+
 		tmp := make([]byte, 4096)
 		n, err := x.rawConn.Read(tmp)
 		if err != nil {
-			return 0, err
+			if err == io.EOF {
+
+				x.eofRead = true
+			}
+
+			if n <= 0 {
+				return 0, err
+			}
 		}
 
 		x.rawBuf = append(x.rawBuf, tmp[:n]...)
@@ -111,10 +125,6 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 	}
 
 	return x.readBuf.Read(p)
-}
-
-func (x *xTLSConn) Read2(p []byte) (int, error) {
-	return x.rawConn.Read(p)
 }
 
 func (x *xTLSConn) Write(p []byte) (int, error) {
