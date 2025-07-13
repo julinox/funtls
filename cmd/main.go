@@ -2,8 +2,6 @@ package main
 
 import (
 	"bufio"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -38,16 +36,20 @@ func main() {
 		return
 	}
 
-	handleClient(hearit)
+	//handleClient(hearit)
+	basico(hearit)
+}
+
+func basico(con net.Conn) {
+
 }
 
 func handleClient(conn net.Conn) {
-	defer conn.Close()
-	reader := bufio.NewReader(conn)
 
 	var contentLength int
 
-	// Leer línea por línea los headers
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
@@ -77,9 +79,15 @@ func handleClient(conn net.Conn) {
 		return
 	}
 
-	fmt.Printf(">> Recibido %d bytes\n", len(body))
-	h := sha256.Sum256(body)
-	fmt.Printf(">> SHA-256 del body: %s\n", hex.EncodeToString(h[:]))
+	//fmt.Printf(">> Recibido %d bytes\n", len(body))
+	//h := sha256.Sum256(body)
+	//fmt.Printf(">> SHA-256 del body: %s\n", hex.EncodeToString(h[:]))
+	conn.Write([]byte("HTTP/1.1 200 OK\r\n" +
+		"Content-Type: text/plain\r\n" +
+		"Content-Length: 0\r\n" +
+		"\r\n"))
+	//fmt.Println(">> Respuesta enviada al cliente.")
 }
 
+// go build -gcflags="all=-N -l" -o funtls
 //dlv exec ./funtls --headless --listen=127.0.0.1:2345 --api-version=2

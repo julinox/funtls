@@ -109,6 +109,9 @@ func NewTLSCipherSpec(cs suite.Suite, keys *Keys, mode int) TLSCipherSpec {
 
 func (x *xTLSCSpec) EncryptRecord(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
+	var err error
+	var tct *TLSCipherText
+
 	myself := systema.MyName()
 	if tpt == nil || tpt.Header == nil {
 		return nil, fmt.Errorf("nil TLSPlaintext(%v)", myself)
@@ -126,12 +129,16 @@ func (x *xTLSCSpec) EncryptRecord(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
 	switch x.macMode {
 	case MODE_ETM:
-		return x.encryptETM(tpt)
+		tct, err = x.encryptETM(tpt)
 	case MODE_MTE:
-		return x.encryptMTE(tpt)
+		tct, err = x.encryptMTE(tpt)
 	}
 
-	return nil, fmt.Errorf("no MAC-Mode match(%v)", myself)
+	if err0 := x.SeqNumPlusPlus(); err0 != nil {
+		return nil, err0
+	}
+
+	return tct, err
 }
 
 func (x *xTLSCSpec) DecryptRecord(tct *TLSCipherText) (*TLSPlaintext, error) {

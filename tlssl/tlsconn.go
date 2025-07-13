@@ -120,7 +120,7 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 				x.readBuf.Write(tpt.Fragment)
 			}
 
-			x.lg.Tracef("Decrypted TLS record: %x", tpt.Fragment)
+			//x.lg.Tracef("Decrypted TLS record: %x", tpt.Fragment)
 		}
 	}
 
@@ -128,6 +128,29 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 }
 
 func (x *xTLSConn) Write(p []byte) (int, error) {
+
+	if len(p) == 0 {
+		return 0, nil
+	}
+
+	newHead := &TLSHeader{
+		ContentType: ContentTypeApplicationData,
+		Version:     TLS_VERSION1_2,
+		Len:         len(p),
+	}
+
+	tpt := &TLSPlaintext{
+		Header:   newHead,
+		Fragment: p,
+	}
+
+	cipheredText, err := x.specWrite.EncryptRecord(tpt)
+	if err != nil {
+		x.lg.Errorf("Error encrypting TLS record: %v", err)
+		return 0, err
+	}
+
+	fmt.Printf("%x:", cipheredText)
 	return x.rawConn.Write(p)
 }
 

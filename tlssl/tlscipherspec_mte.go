@@ -102,8 +102,9 @@ func (x *xTLSCSpec) decryptMTE(tct *TLSCipherText) (*TLSPlaintext, error) {
 		return nil, fmt.Errorf("decipher short data(%v)", myself)
 	}
 
-	plainText := clearText[:len(clearText)-hashSz]
-	givenMAC := clearText[len(clearText)-hashSz:]
+	boundary := len(clearText) - hashSz
+	plainText := clearText[:boundary]
+	givenMAC := clearText[boundary:]
 	if x.seqNum == 0 {
 		plainText = plainText[x.cipherSuite.Info().IVSize:]
 	}
