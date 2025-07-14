@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -112,23 +113,31 @@ func (x *xFinished) finishedServer() error {
 
 	var err error
 
+	myself := systema.MyName()
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
 	cs := x.ctx.GetCipherScpec(CIPHERSPECSERVER)
 	if cs == nil {
-		return fmt.Errorf("nil cipher spec client(%v)", x.Name())
+		return fmt.Errorf("GetCipherScpec(%v)", myself)
 	}
+
+	// -------------------------------------- CIPHERSPEC 2
+	cs2 := x.ctx.GetCipherSpec2(CIPHERSPECSERVER)
+	if cs2 == nil {
+		return fmt.Errorf("GetCipherSpec2(%v)", myself)
+	}
+	// ---------------------------------------------------
 
 	// Get the handshake messages (in order) to hash them
 	hskMsgs := x.handshakeMessagesOrder()
 	if hskMsgs == nil {
-		return fmt.Errorf("nil handshake messages buffer(%v)", x.Name())
+		return fmt.Errorf("handshakeMessagesOrder%v)", myself)
 	}
 
 	// computed verify data
 	calcVerify, err := x.calculateVD(hskMsgs, _VERIFY_DATA_LABEL_SERVER)
 	if err != nil {
-		return err
+		return fmt.Errorf("calculateVD(%v): %v", myself, err)
 	}
 
 	data1 := tlssl.TLSHeadHandShakePacket(&tlssl.TLSHeaderHandshake{
@@ -143,13 +152,24 @@ func (x *xFinished) finishedServer() error {
 
 	tct, err := cs.EncryptRecord(tpt)
 	if err != nil {
-		return fmt.Errorf("encrypt record(%v)", x.Name())
+		return fmt.Errorf("EncryptRecord(%v)", myself)
 	}
+
+	// -------------------------------------- CIPHERSPEC 2
+	//readyToSend, err := cs2.EncryptRecord(tlssl.ContentTypeHandshake, nil)
+	aux1 := append(data1, calcVerify...)
+	rts, err := cs2.EncryptRec(tlssl.ContentTypeHandshake, aux1)
+	if err != nil {
+		return fmt.Errorf("EncryptRec(%v): %v", myself, err)
+	}
+
+	fmt.Printf("Ready to send(finishedServer): %x\n", rts)
+	// ---------------------------------------------------
 
 	cipherType := x.ctx.GetCipherScpec(CIPHERSPECSERVER).CipherType()
 	packet, err := tct.Packet(cipherType, true)
 	if err != nil {
-		return fmt.Errorf("TLSCipherText packet creation(%v)", x.Name())
+		return fmt.Errorf("TLSCipherText packet creation(%v)", myself)
 	}
 
 	x.ctx.SetBuffer(FINISHEDSERVER, packet)

@@ -7,6 +7,7 @@ import (
 
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/cipherspec"
 
 	"github.com/sirupsen/logrus"
 )
@@ -55,6 +56,9 @@ type xHandhsakeContextData struct {
 	cipherSpecClient   tlssl.TLSCipherSpec
 	cipherSpecServer   tlssl.TLSCipherSpec
 	completed          bool
+
+	spec2Client cipherspec.CipherSpec
+	spec2Server cipherspec.CipherSpec
 }
 
 type xHandhsakeContext struct {
@@ -92,6 +96,9 @@ type HandShakeContext interface {
 	Send([]byte) error
 	IsCompleted() bool
 	SetCompleted(bool)
+
+	SetCipherSpec2(int, cipherspec.CipherSpec)
+	GetCipherSpec2(int) cipherspec.CipherSpec
 }
 
 func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
@@ -285,6 +292,28 @@ func (x *xHandhsakeContext) GetCipherScpec(who int) tlssl.TLSCipherSpec {
 		return x.data.cipherSpecClient
 	case CIPHERSPECSERVER:
 		return x.data.cipherSpecServer
+	}
+
+	return nil
+}
+
+func (x *xHandhsakeContext) SetCipherSpec2(who int, cs cipherspec.CipherSpec) {
+
+	switch who {
+	case CIPHERSPECCLIENT:
+		x.data.spec2Client = cs
+	case CIPHERSPECSERVER:
+		x.data.spec2Server = cs
+	}
+}
+
+func (x *xHandhsakeContext) GetCipherSpec2(who int) cipherspec.CipherSpec {
+
+	switch who {
+	case CIPHERSPECCLIENT:
+		return x.data.spec2Client
+	case CIPHERSPECSERVER:
+		return x.data.spec2Server
 	}
 
 	return nil

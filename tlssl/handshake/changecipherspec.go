@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/cipherspec"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -80,7 +81,13 @@ func (x *xChangeCipherSpec) cipeherSpecClient() error {
 		return fmt.Errorf("nil TLSCipherSpec object create(%v)", x.Name())
 	}
 
+	newSpec2 := cipherspec.NewCipherSpec(st, &clientKeys, x.ctx.GetMacMode())
+	if newSpec2 == nil {
+		return fmt.Errorf("nil CipherSpec2 object create(%v)", x.Name())
+	}
+
 	x.ctx.SetCipherScpec(CIPHERSPECCLIENT, newSpec)
+	x.ctx.SetCipherSpec2(CIPHERSPECCLIENT, newSpec2)
 	x.tCtx.Lg.Debug("Client CipherSpec created")
 	return nil
 }
@@ -101,7 +108,13 @@ func (x *xChangeCipherSpec) cipeherSpecServer() error {
 		return fmt.Errorf("nil TLSCipherSpec object create(%v)", x.Name())
 	}
 
+	newSpec2 := cipherspec.NewCipherSpec(st, &serverKeys, x.ctx.GetMacMode())
+	if newSpec2 == nil {
+		return fmt.Errorf("nil CipherSpec2 object create(%v)", x.Name())
+	}
+
 	x.ctx.SetCipherScpec(CIPHERSPECSERVER, newSpec)
+	x.ctx.SetCipherSpec2(CIPHERSPECSERVER, newSpec2)
 	x.tCtx.Lg.Debug("Server CipherSpec created")
 	return nil
 }

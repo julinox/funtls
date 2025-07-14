@@ -32,7 +32,6 @@ func main() {
 
 	hearit, err := srv.Accept()
 	if err != nil {
-		fmt.Println("Error accepting connection:", err)
 		return
 	}
 

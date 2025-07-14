@@ -76,14 +76,15 @@ func NewHandshakeServer(hsks *HandshakeServer) (net.Conn, error) {
 	newHandshake.Contexto.SetBuffer(CLIENTHELLO, hsks.CliHello)
 	b166er.Post(CLIENTHELLO)
 	if err := b166er.Start(); err != nil {
-		hsks.Tctx.Lg.Errorf("err Handshake flow(%v): %v", myself, err)
+		//hsks.Tctx.Lg.Errorf("err Handshake flow(%v): %v", myself, err)
+		hsks.Tctx.Lg.Errorf("HandShake | %v", err)
 		return nil, err
 	}
 
 	// This shouldnt happen
 	if !newHandshake.Contexto.IsCompleted() {
-		hsks.Tctx.Lg.Errorf("Handshake not completed(%s)", myself)
-		return nil, fmt.Errorf("Handshake not completed(%s)", myself)
+		hsks.Tctx.Lg.Errorf("Handshake CTX incomplete(%s)", myself)
+		return nil, fmt.Errorf("Handshake CTX incomplete(%s)", myself)
 	}
 
 	return tlssl.NewTLSConn(&tlssl.TLSConn{
