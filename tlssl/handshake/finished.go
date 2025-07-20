@@ -116,10 +116,10 @@ func (x *xFinished) finishedServer() error {
 	myself := systema.MyName()
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
-	cs := x.ctx.GetCipherScpec(CIPHERSPECSERVER)
+	/*cs := x.ctx.GetCipherScpec(CIPHERSPECSERVER)
 	if cs == nil {
 		return fmt.Errorf("GetCipherScpec(%v)", myself)
-	}
+	}*/
 
 	// -------------------------------------- CIPHERSPEC 2
 	cs2 := x.ctx.GetCipherSpec2(CIPHERSPECSERVER)
@@ -140,13 +140,25 @@ func (x *xFinished) finishedServer() error {
 		return fmt.Errorf("calculateVD(%v): %v", myself, err)
 	}
 
+	// Cipherspec1
 	data1 := tlssl.TLSHeadHandShakePacket(&tlssl.TLSHeaderHandshake{
 		HandshakeType: tlssl.HandshakeTypeFinished,
 		Len:           0x0c,
 	})
 
 	x.tCtx.Lg.Debugf("Computed verify data(SERVER): %x", calcVerify)
-	tpt := &tlssl.TLSPlaintext{
+	aux1 := append(data1, calcVerify...)
+
+	// -------------------------------------- CIPHERSPEC 2
+	packet, err0 := cs2.EncryptRec(tlssl.ContentTypeHandshake, aux1)
+	if err0 != nil {
+		x.tCtx.Lg.Errorf("EncryptRec(%v): %v", myself, err0)
+		return fmt.Errorf("EncryptRec(%v): %v", myself, err0)
+	}
+
+	// ---------------------------------------------------
+
+	/*tpt := &tlssl.TLSPlaintext{
 		Header:   &tlssl.TLSHeader{ContentType: tlssl.ContentTypeHandshake},
 		Fragment: append(data1, calcVerify...)}
 
@@ -155,24 +167,15 @@ func (x *xFinished) finishedServer() error {
 		return fmt.Errorf("EncryptRecord(%v)", myself)
 	}
 
-	// -------------------------------------- CIPHERSPEC 2
-	//readyToSend, err := cs2.EncryptRecord(tlssl.ContentTypeHandshake, nil)
-	aux1 := append(data1, calcVerify...)
-	rts, err := cs2.EncryptRec(tlssl.ContentTypeHandshake, aux1)
-	if err != nil {
-		return fmt.Errorf("EncryptRec(%v): %v", myself, err)
-	}
-
-	fmt.Printf("Ready to send(finishedServer): %x\n", rts)
-	// ---------------------------------------------------
-
 	cipherType := x.ctx.GetCipherScpec(CIPHERSPECSERVER).CipherType()
 	packet, err := tct.Packet(cipherType, true)
 	if err != nil {
 		return fmt.Errorf("TLSCipherText packet creation(%v)", myself)
-	}
+	}*/
 
+	//fmt.Printf("PACKETO: %x\n", packet)
 	x.ctx.SetBuffer(FINISHEDSERVER, packet)
+	//x.ctx.SetBuffer(FINISHEDSERVER, packet)
 	x.nextState = TRANSITION
 	return nil
 }
