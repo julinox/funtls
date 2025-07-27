@@ -98,6 +98,7 @@ type TLSRecord struct {
 
 // Checks if the buffer contains a valid TLS record
 // Returns a TLSRecord object if valid, otherwise returns an error
+// Validates Header and length of the record
 func TLSRecordMe(buffer []byte) (*TLSRecord, error) {
 
 	var tlsHeader *TLSHeader

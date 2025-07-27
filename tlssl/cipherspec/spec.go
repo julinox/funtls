@@ -10,10 +10,14 @@ package cipherspec
 // is not computed separately, and the MACMode does not affect the
 // encryption/decryption process. The AEAD ciphersuite handles both
 // encryption and MAC computation in a single step.
-
-// Neither 'EncryptRec' nor 'DecryptRec' does not check any length of the
-// input data, so it is the caller's responsibility to ensure that the
-// input data is valid in terms of length and content.
+//
+// Decrypt/Encryt functions validate several length of the input
+// In general, the following rules apply:
+//   * TLS Record must be at least TLS_HEADER_SIZE + LEN_SIZE
+// CBC ciphersuites:
+//   * Must have at least TLS_HEADER_SIZE + IV_SIZE + MAC_SIZE
+//   * Decrypted data must be at least IV_SIZE + MAC_SIZE
+// AEAD ciphersuites:
 import (
 	"crypto/rand"
 	"encoding/binary"

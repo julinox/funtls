@@ -58,19 +58,6 @@ func (x *xFinished) finishedClient() error {
 	x.tCtx.Lg.Tracef("Running state: %v(CLIENT)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(CLIENT)", x.Name())
 
-	// Get the handshake messages (in order) to hash them
-	hskMsgs := x.handshakeMessagesOrder()
-	if hskMsgs == nil {
-		return fmt.Errorf("nil handshake messages buffer(%v)", x.Name())
-	}
-
-	// computed verify data
-	calcVerify, err := x.calculateVD(hskMsgs, _VERIFY_DATA_LABEL_CLIENT)
-	if err != nil {
-		return err
-	}
-
-	// Get the verify data from the client
 	cs := x.ctx.GetCipherSpec(CIPHERSPECCLIENT)
 	if cs == nil {
 		return fmt.Errorf("nil cipher spec client(%v)", x.Name())
@@ -78,34 +65,33 @@ func (x *xFinished) finishedClient() error {
 
 	// Get the "Finished" message
 	finished := x.ctx.GetBuffer(FINISHED)
-	/*tpt, err := cs.DecryptRec(&tlssl.TLSCipherText{
-		Header:   tlssl.TLSHead(finished[:tlssl.TLS_HEADER_SIZE]),
-		Fragment: finished[tlssl.TLS_HEADER_SIZE:],
-	})*/
-
-	//fmt.Printf("ORDER: %x\n", hskMsgs)
-	fmt.Printf("CALC: %x\n", calcVerify)
-	pt, err := cs.DecryptRec(finished)
+	plainText, err := cs.DecryptRec(finished)
 	if err != nil {
 		return err
 	}
 
-	return fmt.Errorf("STOP")
-	/*content := tpt.Fragment
-	if len(content) < tlssl.TLS_HANDSHAKE_SIZE+tlssl.VERIFYDATALEN {
-		return fmt.Errorf("invalid Finished content-buffer len(%v)", x.Name())
-	}*/
+	// We discard the handshake header (which is part of the finished message)
+	rcvedVD := plainText[tlssl.TLS_HANDSHAKE_SIZE:]
 
-	x.tCtx.Lg.Tracef("Computed/Received verify data: %x / %x", calcVerify,
-		pt[tlssl.TLS_HANDSHAKE_SIZE:])
-	verifyData := pt[tlssl.TLS_HANDSHAKE_SIZE:]
-	if !hmac.Equal(calcVerify, verifyData) {
+	// Compute verify data (Get the handshake messages in order)
+	hskMsgs := x.handshakeMessagesOrder()
+	if hskMsgs == nil {
+		return fmt.Errorf("nil handshake messages buffer(%v)", x.Name())
+	}
+
+	calcVD, err := x.calculateVD(hskMsgs, _VERIFY_DATA_LABEL_CLIENT)
+	if err != nil {
+		return err
+	}
+
+	x.tCtx.Lg.Tracef("Received/Computed verify data(CLIENT): %x / %x",
+		rcvedVD, calcVD)
+	if !hmac.Equal(rcvedVD, calcVD) {
 		return fmt.Errorf("verify data mismatch(%v)", x.Name())
 	}
 
-	//finishedMsg := append(tlssl.TLSHeadPacket(tpt.Header), content...)
-	//x.ctx.SetBuffer(FINISHED, finishedMsg)
-	x.ctx.SetBuffer(FINISHED, pt)
+	// We set back the finished message (this time unencrypted)
+	x.ctx.SetBuffer(FINISHED, plainText)
 	x.ctx.AppendOrder(FINISHED)
 	x.nextState = TRANSITION
 	return nil

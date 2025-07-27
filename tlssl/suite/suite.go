@@ -35,7 +35,7 @@ type SuiteContext struct {
 }
 
 type SuiteInfo struct {
-	Mac         int
+	Mac         int // MAC algorithm
 	CipherType  int
 	Hash        int
 	HashSize    int
