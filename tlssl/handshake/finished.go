@@ -55,8 +55,6 @@ func (x *xFinished) Handle() error {
 
 func (x *xFinished) finishedClient() error {
 
-	//var err error
-
 	x.tCtx.Lg.Tracef("Running state: %v(CLIENT)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(CLIENT)", x.Name())
 
@@ -73,36 +71,41 @@ func (x *xFinished) finishedClient() error {
 	}
 
 	// Get the verify data from the client
-	cs := x.ctx.GetCipherScpec(CIPHERSPECCLIENT)
+	cs := x.ctx.GetCipherSpec(CIPHERSPECCLIENT)
 	if cs == nil {
 		return fmt.Errorf("nil cipher spec client(%v)", x.Name())
 	}
 
 	// Get the "Finished" message
 	finished := x.ctx.GetBuffer(FINISHED)
-	tpt, err := cs.DecryptRecord(&tlssl.TLSCipherText{
+	/*tpt, err := cs.DecryptRec(&tlssl.TLSCipherText{
 		Header:   tlssl.TLSHead(finished[:tlssl.TLS_HEADER_SIZE]),
 		Fragment: finished[tlssl.TLS_HEADER_SIZE:],
-	})
+	})*/
 
+	//fmt.Printf("ORDER: %x\n", hskMsgs)
+	fmt.Printf("CALC: %x\n", calcVerify)
+	pt, err := cs.DecryptRec(finished)
 	if err != nil {
 		return err
 	}
 
-	content := tpt.Fragment
+	return fmt.Errorf("STOP")
+	/*content := tpt.Fragment
 	if len(content) < tlssl.TLS_HANDSHAKE_SIZE+tlssl.VERIFYDATALEN {
 		return fmt.Errorf("invalid Finished content-buffer len(%v)", x.Name())
-	}
+	}*/
 
 	x.tCtx.Lg.Tracef("Computed/Received verify data: %x / %x", calcVerify,
-		content[tlssl.TLS_HANDSHAKE_SIZE:])
-	verifyData := content[tlssl.TLS_HANDSHAKE_SIZE:]
+		pt[tlssl.TLS_HANDSHAKE_SIZE:])
+	verifyData := pt[tlssl.TLS_HANDSHAKE_SIZE:]
 	if !hmac.Equal(calcVerify, verifyData) {
 		return fmt.Errorf("verify data mismatch(%v)", x.Name())
 	}
 
-	finishedMsg := append(tlssl.TLSHeadPacket(tpt.Header), content...)
-	x.ctx.SetBuffer(FINISHED, finishedMsg)
+	//finishedMsg := append(tlssl.TLSHeadPacket(tpt.Header), content...)
+	//x.ctx.SetBuffer(FINISHED, finishedMsg)
+	x.ctx.SetBuffer(FINISHED, pt)
 	x.ctx.AppendOrder(FINISHED)
 	x.nextState = TRANSITION
 	return nil
@@ -116,17 +119,10 @@ func (x *xFinished) finishedServer() error {
 	myself := systema.MyName()
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
-	/*cs := x.ctx.GetCipherScpec(CIPHERSPECSERVER)
-	if cs == nil {
-		return fmt.Errorf("GetCipherScpec(%v)", myself)
-	}*/
-
-	// -------------------------------------- CIPHERSPEC 2
-	cs2 := x.ctx.GetCipherSpec2(CIPHERSPECSERVER)
-	if cs2 == nil {
-		return fmt.Errorf("GetCipherSpec2(%v)", myself)
+	cspec := x.ctx.GetCipherSpec(CIPHERSPECSERVER)
+	if cspec == nil {
+		return fmt.Errorf("GetCipherSpec(%v)", myself)
 	}
-	// ---------------------------------------------------
 
 	// Get the handshake messages (in order) to hash them
 	hskMsgs := x.handshakeMessagesOrder()
@@ -140,7 +136,6 @@ func (x *xFinished) finishedServer() error {
 		return fmt.Errorf("calculateVD(%v): %v", myself, err)
 	}
 
-	// Cipherspec1
 	data1 := tlssl.TLSHeadHandShakePacket(&tlssl.TLSHeaderHandshake{
 		HandshakeType: tlssl.HandshakeTypeFinished,
 		Len:           0x0c,
@@ -148,34 +143,20 @@ func (x *xFinished) finishedServer() error {
 
 	x.tCtx.Lg.Debugf("Computed verify data(SERVER): %x", calcVerify)
 	aux1 := append(data1, calcVerify...)
-
-	// -------------------------------------- CIPHERSPEC 2
-	packet, err0 := cs2.EncryptRec(tlssl.ContentTypeHandshake, aux1)
+	fragment, err0 := cspec.EncryptRec(tlssl.ContentTypeHandshake, aux1)
 	if err0 != nil {
 		x.tCtx.Lg.Errorf("EncryptRec(%v): %v", myself, err0)
 		return fmt.Errorf("EncryptRec(%v): %v", myself, err0)
 	}
 
-	// ---------------------------------------------------
+	packet := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
+		ContentType: tlssl.ContentTypeHandshake,
+		Version:     tlssl.TLS_VERSION1_2,
+		Len:         len(fragment),
+	})
 
-	/*tpt := &tlssl.TLSPlaintext{
-		Header:   &tlssl.TLSHeader{ContentType: tlssl.ContentTypeHandshake},
-		Fragment: append(data1, calcVerify...)}
-
-	tct, err := cs.EncryptRecord(tpt)
-	if err != nil {
-		return fmt.Errorf("EncryptRecord(%v)", myself)
-	}
-
-	cipherType := x.ctx.GetCipherScpec(CIPHERSPECSERVER).CipherType()
-	packet, err := tct.Packet(cipherType, true)
-	if err != nil {
-		return fmt.Errorf("TLSCipherText packet creation(%v)", myself)
-	}*/
-
-	//fmt.Printf("PACKETO: %x\n", packet)
+	packet = append(packet, fragment...)
 	x.ctx.SetBuffer(FINISHEDSERVER, packet)
-	//x.ctx.SetBuffer(FINISHEDSERVER, packet)
 	x.nextState = TRANSITION
 	return nil
 }
@@ -214,6 +195,7 @@ func (x *xFinished) handshakeMessagesOrder() []byte {
 		}
 
 		hashMe = append(hashMe, aux[tlssl.TLS_HEADER_SIZE:]...)
+		//x.tCtx.Lg.Tracef("Added HSMSG (%v): %x", HandshakeName(m), aux[tlssl.TLS_HEADER_SIZE:])
 	}
 
 	return hashMe

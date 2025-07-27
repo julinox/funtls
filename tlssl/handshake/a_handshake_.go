@@ -103,22 +103,7 @@ type stateBasicInfo struct {
 	ctx       HandShakeContext
 }
 
-func HandshakeNameList(l []int) string {
-
-	out := "["
-
-	for i, v := range l {
-		out += handshakeName(v)
-
-		if i < len(l)-1 {
-			out += ", "
-		}
-	}
-
-	return out + "]"
-}
-
-func handshakeName(h int) string {
+func HandshakeName(h int) string {
 
 	switch h {
 	case CERTIFICATE:
@@ -144,6 +129,21 @@ func handshakeName(h int) string {
 	}
 
 	return "UNKNOWN"
+}
+
+func HandshakeNameList(l []int) string {
+
+	out := "["
+
+	for i, v := range l {
+		out += HandshakeName(v)
+
+		if i < len(l)-1 {
+			out += ", "
+		}
+	}
+
+	return out + "]"
 }
 
 func checkHandshakeInit(hsk *Handshake) error {

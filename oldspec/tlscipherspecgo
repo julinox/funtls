@@ -40,13 +40,13 @@ MAC(MAC_write_key,
 	TLSCompressed.fragment);
 */
 
-const VERIFYDATALEN = 12
+//const VERIFYDATALEN = 12
 
 // Mac mode
-const (
+/*const (
 	MODE_MTE = iota + 1
 	MODE_ETM
-)
+)*/
 
 type GenericStreamCipher struct {
 }
@@ -128,10 +128,12 @@ func (x *xTLSCSpec) EncryptRecord(tpt *TLSPlaintext) (*TLSCipherText, error) {
 	}
 
 	switch x.macMode {
-	case MODE_ETM:
-		tct, err = x.encryptETM(tpt)
 	case MODE_MTE:
-		tct, err = x.encryptMTE(tpt)
+		//tct, err = x.encryptMTE(tpt)
+		fmt.Println("----------------------------* -----------------* No deberia imprimirse 1.1 ----------------------***")
+	case MODE_ETM:
+		//tct, err = x.encryptETM(tpt)
+		fmt.Println("----------------------------* -----------------* No deberia imprimirse 1.2 ----------------------***")
 	}
 
 	if err0 := x.SeqNumPlusPlus(); err0 != nil {
@@ -153,9 +155,11 @@ func (x *xTLSCSpec) DecryptRecord(tct *TLSCipherText) (*TLSPlaintext, error) {
 
 	switch x.macMode {
 	case MODE_MTE:
-		tpt, err = x.decryptMTE(tct)
+		//tpt, err = x.decryptMTE(tct)
+		fmt.Println("----------------------------* -----------------* No deberia imprimirse 2.1 ----------------------***")
 	case MODE_ETM:
-		tpt, err = x.decryptETM(tct)
+		//tpt, err = x.decryptETM(tct)
+		fmt.Println("----------------------------* -----------------* No deberia imprimirse 2.2 ----------------------***")
 	default:
 		return nil, fmt.Errorf("no cipher mode(%v)", myself)
 	}

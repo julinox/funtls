@@ -6,6 +6,7 @@ import (
 
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/connsec"
 	evilmac "github.com/julinox/statemaquina"
 )
 
@@ -87,11 +88,11 @@ func NewHandshakeServer(hsks *HandshakeServer) (net.Conn, error) {
 		return nil, fmt.Errorf("Handshake CTX incomplete(%s)", myself)
 	}
 
-	return tlssl.NewTLSConn(&tlssl.TLSConn{
+	return connsec.NewTLSConn(&connsec.TLSConn{
 		RawConn:   hsks.Conn,
 		Lg:        hsks.Tctx.Lg,
-		SpecRead:  newHandshake.Contexto.GetCipherScpec(CIPHERSPECCLIENT),
-		SpecWrite: newHandshake.Contexto.GetCipherScpec(CIPHERSPECSERVER),
+		SpecRead:  newHandshake.Contexto.GetCipherSpec(CIPHERSPECCLIENT),
+		SpecWrite: newHandshake.Contexto.GetCipherSpec(CIPHERSPECSERVER),
 	})
 }
 

@@ -76,18 +76,12 @@ func (x *xChangeCipherSpec) cipeherSpecClient() error {
 	}
 
 	clientKeys := x.ctx.GetKeys().ClientKeys
-	newSpec := tlssl.NewTLSCipherSpec(st, &clientKeys, x.ctx.GetMacMode())
+	newSpec := cipherspec.NewCipherSpec(st, &clientKeys, x.ctx.GetMacMode())
 	if newSpec == nil {
-		return fmt.Errorf("nil TLSCipherSpec object create(%v)", x.Name())
+		return fmt.Errorf("nil CipherSpec object create(%v)", x.Name())
 	}
 
-	newSpec2 := cipherspec.NewCipherSpec(st, &clientKeys, x.ctx.GetMacMode())
-	if newSpec2 == nil {
-		return fmt.Errorf("nil CipherSpec2 object create(%v)", x.Name())
-	}
-
-	x.ctx.SetCipherScpec(CIPHERSPECCLIENT, newSpec)
-	x.ctx.SetCipherSpec2(CIPHERSPECCLIENT, newSpec2)
+	x.ctx.SetCipherSpec(CIPHERSPECCLIENT, newSpec)
 	x.tCtx.Lg.Debug("Client CipherSpec created")
 	return nil
 }
@@ -103,18 +97,12 @@ func (x *xChangeCipherSpec) cipeherSpecServer() error {
 	}
 
 	serverKeys := x.ctx.GetKeys().ServerKeys
-	newSpec := tlssl.NewTLSCipherSpec(st, &serverKeys, x.ctx.GetMacMode())
+	newSpec := cipherspec.NewCipherSpec(st, &serverKeys, x.ctx.GetMacMode())
 	if newSpec == nil {
-		return fmt.Errorf("nil TLSCipherSpec object create(%v)", x.Name())
-	}
-
-	newSpec2 := cipherspec.NewCipherSpec(st, &serverKeys, x.ctx.GetMacMode())
-	if newSpec2 == nil {
 		return fmt.Errorf("nil CipherSpec2 object create(%v)", x.Name())
 	}
 
-	x.ctx.SetCipherScpec(CIPHERSPECSERVER, newSpec)
-	x.ctx.SetCipherSpec2(CIPHERSPECSERVER, newSpec2)
+	x.ctx.SetCipherSpec(CIPHERSPECSERVER, newSpec)
 	x.tCtx.Lg.Debug("Server CipherSpec created")
 	return nil
 }
@@ -196,8 +184,8 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 
 	off := 0 // Offset (Called 'off' for space reasons)
 	// MAC Client/Server
-	seshKeys.ClientKeys.MAC = keys[0:stInfo.KeySizeHMAC]
-	seshKeys.ServerKeys.MAC = keys[stInfo.KeySizeHMAC : 2*stInfo.KeySizeHMAC]
+	seshKeys.ClientKeys.Hkey = keys[0:stInfo.KeySizeHMAC]
+	seshKeys.ServerKeys.Hkey = keys[stInfo.KeySizeHMAC : 2*stInfo.KeySizeHMAC]
 	off += 2 * stInfo.KeySizeHMAC
 
 	// Key Client/Server
@@ -227,8 +215,8 @@ func checkKeys(keys *tlssl.SessionKeys, info *suite.SuiteInfo, tag string) error
 		return fmt.Errorf("nil SessionKeys object(%v)", tag)
 	}
 
-	if len(keys.ClientKeys.MAC) != info.KeySizeHMAC ||
-		len(keys.ServerKeys.MAC) != info.KeySizeHMAC {
+	if len(keys.ClientKeys.Hkey) != info.KeySizeHMAC ||
+		len(keys.ServerKeys.Hkey) != info.KeySizeHMAC {
 		return fmt.Errorf("invalid _Keys.MAC size(%v)", tag)
 	}
 

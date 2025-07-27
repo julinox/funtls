@@ -7,6 +7,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const VERIFYDATALEN = 12
+
+const (
+	MODE_MTE = iota + 1
+	MODE_ETM
+)
+
 type TLSContext struct {
 	Lg            *logrus.Logger
 	Certs         mx.ModCerts

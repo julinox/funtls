@@ -53,12 +53,9 @@ type xHandhsakeContextData struct {
 	order              []int
 	expected           int
 	keys               *tlssl.SessionKeys
-	cipherSpecClient   tlssl.TLSCipherSpec
-	cipherSpecServer   tlssl.TLSCipherSpec
+	specClient         cipherspec.CipherSpec
+	specServer         cipherspec.CipherSpec
 	completed          bool
-
-	spec2Client cipherspec.CipherSpec
-	spec2Server cipherspec.CipherSpec
 }
 
 type xHandhsakeContext struct {
@@ -80,8 +77,8 @@ type HandShakeContext interface {
 	GetMacMode() int
 	SetKeys(*tlssl.SessionKeys)
 	GetKeys() *tlssl.SessionKeys
-	SetCipherScpec(int, tlssl.TLSCipherSpec)
-	GetCipherScpec(int) tlssl.TLSCipherSpec
+	SetCipherSpec(int, cipherspec.CipherSpec)
+	GetCipherSpec(int) cipherspec.CipherSpec
 	SetTransitionStage(int)
 	GetTransitionStage() int
 	GetComms() net.Conn
@@ -96,9 +93,6 @@ type HandShakeContext interface {
 	Send([]byte) error
 	IsCompleted() bool
 	SetCompleted(bool)
-
-	SetCipherSpec2(int, cipherspec.CipherSpec)
-	GetCipherSpec2(int) cipherspec.CipherSpec
 }
 
 func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
@@ -275,45 +269,23 @@ func (x *xHandhsakeContext) GetKeys() *tlssl.SessionKeys {
 	return x.data.keys
 }
 
-func (x *xHandhsakeContext) SetCipherScpec(who int, cs tlssl.TLSCipherSpec) {
+func (x *xHandhsakeContext) SetCipherSpec(who int, cs cipherspec.CipherSpec) {
 
 	switch who {
 	case CIPHERSPECCLIENT:
-		x.data.cipherSpecClient = cs
+		x.data.specClient = cs
 	case CIPHERSPECSERVER:
-		x.data.cipherSpecServer = cs
+		x.data.specServer = cs
 	}
 }
 
-func (x *xHandhsakeContext) GetCipherScpec(who int) tlssl.TLSCipherSpec {
+func (x *xHandhsakeContext) GetCipherSpec(who int) cipherspec.CipherSpec {
 
 	switch who {
 	case CIPHERSPECCLIENT:
-		return x.data.cipherSpecClient
+		return x.data.specClient
 	case CIPHERSPECSERVER:
-		return x.data.cipherSpecServer
-	}
-
-	return nil
-}
-
-func (x *xHandhsakeContext) SetCipherSpec2(who int, cs cipherspec.CipherSpec) {
-
-	switch who {
-	case CIPHERSPECCLIENT:
-		x.data.spec2Client = cs
-	case CIPHERSPECSERVER:
-		x.data.spec2Server = cs
-	}
-}
-
-func (x *xHandhsakeContext) GetCipherSpec2(who int) cipherspec.CipherSpec {
-
-	switch who {
-	case CIPHERSPECCLIENT:
-		return x.data.spec2Client
-	case CIPHERSPECSERVER:
-		return x.data.spec2Server
+		return x.data.specServer
 	}
 
 	return nil

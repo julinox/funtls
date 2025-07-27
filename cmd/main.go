@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"net"
@@ -39,8 +40,34 @@ func main() {
 	basico(hearit)
 }
 
-func basico(con net.Conn) {
+func basico(conn net.Conn) {
 
+	var buf bytes.Buffer
+	tmp := make([]byte, 1024)
+	data := []byte("HTTP/1.1 200 OK\r\n" +
+		"Content-Type: text/plain\r\n" +
+		"Content-Length: 13\r\n" +
+		"Connection: close\r\n" +
+		"\r\n" +
+		"Hello, world!")
+
+	for {
+		n, err := conn.Read(tmp)
+		if err != nil {
+			fmt.Printf("error leyendo: %s\n", err)
+			return
+		}
+
+		buf.Write(tmp[:n])
+
+		// Simple check: look for the end of HTTP headers (\r\n\r\n)
+		if bytes.Contains(buf.Bytes(), []byte("\r\n\r\n")) {
+			break
+		}
+	}
+
+	fmt.Printf("LEIDO: %s\n", buf.Bytes())
+	conn.Write(data)
 }
 
 func handleClient(conn net.Conn) {

@@ -9,17 +9,6 @@ import (
 	"github.com/julinox/funtls/systema"
 )
 
-/*
-¿Cuándo ocurre el 1/n-1 Record Splitting?
-
-	Protocolo: TLS 1.0, 1.1 y a veces 1.2
-
-	Cifrado: Solo con block ciphers CBC (como AES-CBC)
-
-	Mensaje afectado: Solo el mensaje Finished del cliente, durante el handshake TLS
-
-	Motivo: Mitigar el ataque BEAST (explotable en CBC antes de encrypt-then-MAC y TLS 1.2 con client-side mitigations)
-*/
 func (x *xTLSCSpec) encryptMTE(tpt *TLSPlaintext) (*TLSCipherText, error) {
 
 	var err error

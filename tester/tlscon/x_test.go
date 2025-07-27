@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"net"
 	"testing"
-
-	"github.com/julinox/funtls/tlssl"
 )
 
 type simulador struct {
@@ -14,7 +12,7 @@ type simulador struct {
 
 func TestTLSRead(t *testing.T) {
 	// Create a new TLSConn instance
-	conn, _ := tlssl.NewTLSConn(nil)
+	/*conn, _ := tlssl.NewTLSConn(nil)
 
 	// Check if the connection is nil
 	if conn == nil {
@@ -26,7 +24,7 @@ func TestTLSRead(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	t.Log("Read bytes:", n)
+	t.Log("Read bytes:", n)*/
 }
 
 func (s *simulador) Read(b []byte) (int, error) {

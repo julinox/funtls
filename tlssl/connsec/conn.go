@@ -1,4 +1,4 @@
-package tlssl
+package connsec
 
 import (
 	"bytes"
@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/cipherspec"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,8 +17,8 @@ const _MaxTLSRecordSize_ = 16384
 
 type TLSConn struct {
 	RawConn   net.Conn
-	SpecRead  TLSCipherSpec
-	SpecWrite TLSCipherSpec
+	SpecRead  cipherspec.CipherSpec
+	SpecWrite cipherspec.CipherSpec
 	Lg        *logrus.Logger
 	DebugMode bool // ignore fatal errors like decoding errors
 }
@@ -25,8 +27,8 @@ type TLSConn struct {
 // and do the "unbuffer" when needed)
 type xTLSConn struct {
 	rawConn   net.Conn
-	specRead  TLSCipherSpec
-	specWrite TLSCipherSpec
+	specRead  cipherspec.CipherSpec
+	specWrite cipherspec.CipherSpec
 	rawBuf    []byte
 	readBuf   bytes.Buffer
 	rMutex    sync.Mutex
@@ -85,7 +87,7 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 
 		x.rawBuf = append(x.rawBuf, tmp[:n]...)
 		for {
-			if len(x.rawBuf) < TLS_HEADER_SIZE {
+			if len(x.rawBuf) < tlssl.TLS_HEADER_SIZE {
 				break
 			}
 
@@ -94,16 +96,17 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 				return 0, fmt.Errorf("invalid record size")
 			}
 
-			if len(x.rawBuf) < pktSz+TLS_HEADER_SIZE {
+			if len(x.rawBuf) < pktSz+tlssl.TLS_HEADER_SIZE {
 				break
 			}
 
-			aux := &TLSCipherText{
+			/*aux := &tlssl.TLSCipherText{
 				Header:   TLSHead(x.rawBuf[:TLS_HEADER_SIZE]),
 				Fragment: x.rawBuf[TLS_HEADER_SIZE : pktSz+TLS_HEADER_SIZE],
-			}
+			}*/
 
-			tpt, err := x.specRead.DecryptRecord(aux)
+			record := x.rawBuf[tlssl.TLS_HEADER_SIZE : pktSz+tlssl.TLS_HEADER_SIZE]
+			plainText, err := x.specRead.DecryptRec(record)
 			if err != nil {
 				if !x.debugMode {
 					return 0, err
@@ -112,15 +115,13 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 				// Discard record even if decryption fails (debug mode),
 				// to keep processing
 				x.lg.Error("Error decrypting TLS record: ", err)
-				x.lg.Debugf("RawBuf: %x", x.rawBuf[:pktSz+TLS_HEADER_SIZE])
+				x.lg.Debugf("Raw: %x", x.rawBuf[:pktSz+tlssl.TLS_HEADER_SIZE])
 			}
 
-			x.rawBuf = x.rawBuf[pktSz+TLS_HEADER_SIZE:]
-			if tpt != nil {
-				x.readBuf.Write(tpt.Fragment)
+			x.rawBuf = x.rawBuf[pktSz+tlssl.TLS_HEADER_SIZE:]
+			if plainText != nil {
+				x.readBuf.Write(plainText)
 			}
-
-			//x.lg.Tracef("Decrypted TLS record: %x", tpt.Fragment)
 		}
 	}
 
@@ -133,9 +134,9 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	newHead := &TLSHeader{
-		ContentType: ContentTypeApplicationData,
-		Version:     TLS_VERSION1_2,
+	/*newHead := &tlssl.TLSHeader{
+		ContentType: tlssl.ContentTypeApplicationData,
+		Version:     tlssl.TLS_VERSION1_2,
 		Len:         len(p),
 	}
 
@@ -148,9 +149,9 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 	if err != nil {
 		x.lg.Errorf("Error encrypting TLS record: %v", err)
 		return 0, err
-	}
+	}*/
 
-	fmt.Printf("%x:", cipheredText)
+	fmt.Printf("%x:", p)
 	return x.rawConn.Write(p)
 }
 

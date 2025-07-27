@@ -17,9 +17,9 @@ const (
 )
 
 type Keys struct {
-	MAC []byte
-	Key []byte
-	IV  []byte
+	Hkey []byte
+	Key  []byte
+	IV   []byte
 }
 
 type SessionKeys struct {
@@ -108,7 +108,7 @@ func (x *xKeyMake) shamir(secret, seed []byte, fn func() hash.Hash) []byte {
 }
 
 func (k *Keys) PrintKeys() string {
-	return fmt.Sprintf("MAC: %x\nKey: %x\nIV: %x", k.MAC, k.Key, k.IV)
+	return fmt.Sprintf("MAC: %x\nKey: %x\nIV: %x", k.Hkey, k.Key, k.IV)
 }
 
 func (k *Keys) PrintKeysWithLog(lg *logrus.Logger, tag string) {
@@ -117,7 +117,7 @@ func (k *Keys) PrintKeysWithLog(lg *logrus.Logger, tag string) {
 		return
 	}
 
-	lg.Tracef("%s MAC-Key: %x", tag, k.MAC)
+	lg.Tracef("%s MAC-Key: %x", tag, k.Hkey)
 	lg.Tracef("%s Cipher-Key: %x", tag, k.Key)
 	lg.Tracef("%s IV-Key: %x", tag, k.IV)
 }
