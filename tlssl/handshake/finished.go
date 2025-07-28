@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 
-	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -67,7 +66,7 @@ func (x *xFinished) finishedClient() error {
 	finished := x.ctx.GetBuffer(FINISHED)
 	plainText, err := cs.DecryptRec(finished)
 	if err != nil {
-		return err
+		return fmt.Errorf("DecryptRec(%v): %v", x.Name(), err)
 	}
 
 	// We discard the handshake header (which is part of the finished message)
@@ -84,14 +83,21 @@ func (x *xFinished) finishedClient() error {
 		return err
 	}
 
-	x.tCtx.Lg.Tracef("Received/Computed verify data(CLIENT): %x / %x",
+	x.tCtx.Lg.Debugf("Received/Computed verify data(CLIENT): %x / %x",
 		rcvedVD, calcVD)
 	if !hmac.Equal(rcvedVD, calcVD) {
 		return fmt.Errorf("verify data mismatch(%v)", x.Name())
 	}
 
-	// We set back the finished message (this time unencrypted)
-	x.ctx.SetBuffer(FINISHED, plainText)
+	// We set back the finished message (this time unencrypted). We
+	// add the TLS header cause we are storing the complete
+	// handshake message (including the header)
+	record := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
+		ContentType: tlssl.ContentTypeHandshake,
+		Version:     tlssl.TLS_VERSION1_2,
+		Len:         len(plainText),
+	})
+	x.ctx.SetBuffer(FINISHED, append(record, plainText...))
 	x.ctx.AppendOrder(FINISHED)
 	x.nextState = TRANSITION
 	return nil
@@ -101,48 +107,40 @@ func (x *xFinished) finishedClient() error {
 func (x *xFinished) finishedServer() error {
 
 	var err error
+	var record []byte
 
-	myself := systema.MyName()
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
 	cspec := x.ctx.GetCipherSpec(CIPHERSPECSERVER)
 	if cspec == nil {
-		return fmt.Errorf("GetCipherSpec(%v)", myself)
+		return fmt.Errorf("GetCipherSpec(%v)", x.Name())
 	}
 
 	// Get the handshake messages (in order) to hash them
 	hskMsgs := x.handshakeMessagesOrder()
 	if hskMsgs == nil {
-		return fmt.Errorf("handshakeMessagesOrder%v)", myself)
+		return fmt.Errorf("handshakeMessagesOrder%v)", x.Name())
 	}
 
 	// computed verify data
-	calcVerify, err := x.calculateVD(hskMsgs, _VERIFY_DATA_LABEL_SERVER)
+	calcVD, err := x.calculateVD(hskMsgs, _VERIFY_DATA_LABEL_SERVER)
 	if err != nil {
-		return fmt.Errorf("calculateVD(%v): %v", myself, err)
+		return fmt.Errorf("calculateVD(%v): %v", x.Name(), err)
 	}
 
-	data1 := tlssl.TLSHeadHandShakePacket(&tlssl.TLSHeaderHandshake{
+	fragment := tlssl.TLSHeadHandShakePacket(&tlssl.TLSHeaderHandshake{
 		HandshakeType: tlssl.HandshakeTypeFinished,
 		Len:           0x0c,
 	})
 
-	x.tCtx.Lg.Debugf("Computed verify data(SERVER): %x", calcVerify)
-	aux1 := append(data1, calcVerify...)
-	fragment, err0 := cspec.EncryptRec(tlssl.ContentTypeHandshake, aux1)
-	if err0 != nil {
-		x.tCtx.Lg.Errorf("EncryptRec(%v): %v", myself, err0)
-		return fmt.Errorf("EncryptRec(%v): %v", myself, err0)
+	x.tCtx.Lg.Debugf("Computed verify data(SERVER): %x", calcVD)
+	record, err = cspec.EncryptRec(tlssl.ContentTypeHandshake,
+		append(fragment, calcVD...))
+	if err != nil {
+		return fmt.Errorf("EncryptRec(%v): %v", x.Name(), err)
 	}
 
-	packet := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
-		ContentType: tlssl.ContentTypeHandshake,
-		Version:     tlssl.TLS_VERSION1_2,
-		Len:         len(fragment),
-	})
-
-	packet = append(packet, fragment...)
-	x.ctx.SetBuffer(FINISHEDSERVER, packet)
+	x.ctx.SetBuffer(FINISHEDSERVER, record)
 	x.nextState = TRANSITION
 	return nil
 }
@@ -181,7 +179,7 @@ func (x *xFinished) handshakeMessagesOrder() []byte {
 		}
 
 		hashMe = append(hashMe, aux[tlssl.TLS_HEADER_SIZE:]...)
-		//x.tCtx.Lg.Tracef("Added HSMSG (%v): %x", HandshakeName(m), aux[tlssl.TLS_HEADER_SIZE:])
+		x.tCtx.Lg.Tracef("Added HSMSG (%v): %x", HandshakeName(m), aux[tlssl.TLS_HEADER_SIZE:])
 	}
 
 	return hashMe

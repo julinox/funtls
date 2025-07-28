@@ -79,9 +79,8 @@ func (x *xCS) SeqNumIncrement() error {
 	return nil
 }
 
-// Returns a buffer containing a TLS encrypted record (with MAC included).
-// No TLS header is prepended to the buffer.
-// 'pt' is the plaintext to cipher
+// Returns a buffer containing a TLS encrypted record, ready to be
+// send on the wire ('pt' means 'plaintext')
 func (x *xCS) EncryptRec(t tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 
 	record, err := x.encryptRec(t, pt)
@@ -93,7 +92,6 @@ func (x *xCS) EncryptRec(t tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 }
 
 // Returns a buffer containing pure plaintext.
-// No TLS header is prepended to the buffer.
 // 'ct' is the ciphertext to decipher
 func (x *xCS) DecryptRec(ct []byte) ([]byte, error) {
 

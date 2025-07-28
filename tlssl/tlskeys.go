@@ -117,7 +117,7 @@ func (k *Keys) PrintKeysWithLog(lg *logrus.Logger, tag string) {
 		return
 	}
 
-	lg.Tracef("%s MAC-Key: %x", tag, k.Hkey)
-	lg.Tracef("%s Cipher-Key: %x", tag, k.Key)
-	lg.Tracef("%s IV-Key: %x", tag, k.IV)
+	lg.Debugf("%s MAC-Key: %x", tag, k.Hkey)
+	lg.Debugf("%s Cipher-Key: %x", tag, k.Key)
+	lg.Debugf("%s IV-Key: %x", tag, k.IV)
 }

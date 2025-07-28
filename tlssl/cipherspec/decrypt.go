@@ -43,23 +43,18 @@ func (x *xCS) decryptRec(record []byte) ([]byte, error) {
 			x.cipherSuite.Info().CipherType)
 	}
 
-	if err != nil {
-		return nil, err
-	}
-
-	return opaque, nil
+	return opaque, err
 }
 
 // Decrypts a TLS record using the MTE (MAC-then-Encrypt) mode.
 // It extracts the IV and the ciphertext from the TLS record.
 //
-// When the sequence number is zero it means we are dealing with the
-// FINISHED message, which (based on observation) has the following
-// implications
+// When seqnum is zero it means we are dealing with the FINISHED message
+// which (based on observation) has the following implications:
 //   - The IV is not present in the record (x.keys.IV is used instead)
 //   - The entire message is the ciphertext (again theres no preceding IV).
 //   - The first IV-Sized bytes of the decrypted message are random bytes,
-//   - The rest is HandshakeHeader + verified data + MAC.
+//     the rest is HandshakeHeader + verified data + MAC.
 //   - The MAC is computed over the HandshakeHeader and the verified data.
 func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 

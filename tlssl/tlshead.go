@@ -96,37 +96,6 @@ type TLSRecord struct {
 	HandShake *TLSHeaderHandshake
 }
 
-// Checks if the buffer contains a valid TLS record
-// Returns a TLSRecord object if valid, otherwise returns an error
-// Validates Header and length of the record
-func TLSRecordMe(buffer []byte) (*TLSRecord, error) {
-
-	var tlsHeader *TLSHeader
-	if len(buffer) < TLS_HEADER_SIZE {
-		return nil, fmt.Errorf("buffer 2short for TLSRECORD")
-	}
-
-	tlsHeader = TLSHead(buffer[:TLS_HEADER_SIZE])
-	if tlsHeader.ContentType != ContentTypeHandshake &&
-		tlsHeader.ContentType != ContentTypeAlert &&
-		tlsHeader.ContentType != ContentTypeApplicationData {
-		return nil, fmt.Errorf("invalid ContentType")
-	}
-
-	if tlsHeader.Version != TLS_VERSION1_2 {
-		return nil, fmt.Errorf("invalid TLS version")
-	}
-
-	if tlsHeader.Len < 0 || tlsHeader.Len > len(buffer)-TLS_HEADER_SIZE {
-		return nil, fmt.Errorf("invalid record length")
-	}
-
-	return &TLSRecord{
-		Header: tlsHeader,
-		Msg:    buffer[TLS_HEADER_SIZE : TLS_HEADER_SIZE+tlsHeader.Len],
-	}, nil
-}
-
 func TLSHead(buffer []byte) *TLSHeader {
 
 	var header TLSHeader
@@ -266,6 +235,37 @@ func TLSRecordsDecode(buff []byte) ([]*TLSRecord, error) {
 	}
 
 	return records, nil
+}
+
+// Checks if the buffer contains a valid TLS record
+// Returns a TLSRecord object if valid, otherwise returns an error
+// Validates Header and length of the record
+func TLSRecordMe(buffer []byte) (*TLSRecord, error) {
+
+	var tlsHeader *TLSHeader
+	if len(buffer) < TLS_HEADER_SIZE {
+		return nil, fmt.Errorf("buffer 2short for TLSRECORD")
+	}
+
+	tlsHeader = TLSHead(buffer[:TLS_HEADER_SIZE])
+	if tlsHeader.ContentType != ContentTypeHandshake &&
+		tlsHeader.ContentType != ContentTypeAlert &&
+		tlsHeader.ContentType != ContentTypeApplicationData {
+		return nil, fmt.Errorf("invalid ContentType")
+	}
+
+	if tlsHeader.Version != TLS_VERSION1_2 {
+		return nil, fmt.Errorf("invalid TLS version")
+	}
+
+	if tlsHeader.Len < 0 || tlsHeader.Len > len(buffer)-TLS_HEADER_SIZE {
+		return nil, fmt.Errorf("invalid record length")
+	}
+
+	return &TLSRecord{
+		Header: tlsHeader,
+		Msg:    buffer[TLS_HEADER_SIZE : TLS_HEADER_SIZE+tlsHeader.Len],
+	}, nil
 }
 
 func (x *TLSHeader) String() string {

@@ -8,6 +8,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/julinox/funtls/server"
 	"github.com/julinox/funtls/tlssl/modulos"
@@ -37,6 +38,8 @@ func main() {
 	}
 
 	//handleClient(hearit)
+	time.Sleep(3 * time.Second)
+	hearit.Close()
 	basico(hearit)
 }
 
