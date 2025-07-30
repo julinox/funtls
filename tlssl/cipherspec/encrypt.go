@@ -58,7 +58,7 @@ func (x *xCS) encryptMTE(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 		return nil, fmt.Errorf("empty plaintext (%v)", myself)
 	}
 
-	mac, err := x.macOS(ct, pt)
+	mac, err := x.macintosh(ct, pt)
 	if err != nil {
 		return nil, fmt.Errorf("macOS(%v): %v", myself, err)
 	}
@@ -69,16 +69,18 @@ func (x *xCS) encryptMTE(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 		sCtx.Data = append(sCtx.Data, iv...)
 	} else {
 		sCtx.IV = iv
+		fragment = append(fragment, iv...)
 	}
 
 	sCtx.Key = x.keys.Key
 	sCtx.Data = append(sCtx.Data, pt...)
 	sCtx.Data = append(sCtx.Data, mac...)
-	fragment, err = x.cipherSuite.Cipher(&sCtx)
+	ciphered, err := x.cipherSuite.Cipher(&sCtx)
 	if err != nil {
 		return nil, fmt.Errorf("Ciphering(%v): %v", myself, err)
 	}
 
+	fragment = append(fragment, ciphered...)
 	header := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
 		ContentType: ct,
 		Version:     tlssl.TLS_VERSION1_2,

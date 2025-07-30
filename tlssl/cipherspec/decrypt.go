@@ -90,7 +90,7 @@ func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 	if x.seqNum == 0 {
 		plainText = plainText[x.cipherSuite.Info().IVSize:]
 	}
-	computedMAC, err := x.macOS(tRec.Header.ContentType, plainText)
+	computedMAC, err := x.macintosh(tRec.Header.ContentType, plainText)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", myself, err)
 	}

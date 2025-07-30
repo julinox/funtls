@@ -15,6 +15,8 @@ import (
 
 const _MaxTLSRecordSize_ = 16384
 
+var _CloseNotify_ = []byte{0x01, 0x00}
+
 type TLSConn struct {
 	RawConn   net.Conn
 	SpecRead  cipherspec.CipherSpec
@@ -76,11 +78,12 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 		n, err := x.rawConn.Read(tmp)
 		if err != nil {
 			if err == io.EOF {
-
+				fmt.Println("------------------ LLEGO EL EOF NORMAL ------------------")
 				x.eofRead = true
 			}
 
 			if n <= 0 {
+				fmt.Println("------------------ LLEGO EL EOF NORMAL 2------------------")
 				return 0, err
 			}
 		}
@@ -100,12 +103,7 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 				break
 			}
 
-			/*aux := &tlssl.TLSCipherText{
-				Header:   TLSHead(x.rawBuf[:TLS_HEADER_SIZE]),
-				Fragment: x.rawBuf[TLS_HEADER_SIZE : pktSz+TLS_HEADER_SIZE],
-			}*/
-
-			record := x.rawBuf[tlssl.TLS_HEADER_SIZE : pktSz+tlssl.TLS_HEADER_SIZE]
+			record := x.rawBuf[:pktSz+tlssl.TLS_HEADER_SIZE]
 			plainText, err := x.specRead.DecryptRec(record)
 			if err != nil {
 				if !x.debugMode {
@@ -134,28 +132,26 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 		return 0, nil
 	}
 
-	/*newHead := &tlssl.TLSHeader{
-		ContentType: tlssl.ContentTypeApplicationData,
-		Version:     tlssl.TLS_VERSION1_2,
-		Len:         len(p),
-	}
-
-	tpt := &TLSPlaintext{
-		Header:   newHead,
-		Fragment: p,
-	}
-
-	cipheredText, err := x.specWrite.EncryptRecord(tpt)
+	record, err := x.specWrite.EncryptRec(tlssl.ContentTypeApplicationData, p)
 	if err != nil {
 		x.lg.Errorf("Error encrypting TLS record: %v", err)
 		return 0, err
-	}*/
+	}
 
-	fmt.Printf("%x:", p)
-	return x.rawConn.Write(p)
+	return x.rawConn.Write(record)
 }
 
 func (x *xTLSConn) Close() error {
+
+	record, err := x.specWrite.EncryptRec(tlssl.ContentTypeAlert, _CloseNotify_)
+	if err != nil {
+		x.lg.Warnf("Error encrypting close notify record: %v", err)
+	} else {
+		if _, err := x.rawConn.Write(record); err != nil {
+			x.lg.Warnf("Error writing close notify record: %v", err)
+		}
+	}
+
 	return x.rawConn.Close()
 }
 

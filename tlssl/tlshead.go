@@ -251,6 +251,7 @@ func TLSRecordMe(buffer []byte) (*TLSRecord, error) {
 	if tlsHeader.ContentType != ContentTypeHandshake &&
 		tlsHeader.ContentType != ContentTypeAlert &&
 		tlsHeader.ContentType != ContentTypeApplicationData {
+		fmt.Println("ContentType:", tlsHeader.ContentType)
 		return nil, fmt.Errorf("invalid ContentType")
 	}
 

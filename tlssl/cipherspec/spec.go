@@ -1,5 +1,35 @@
 package cipherspec
 
+/*
+struct {
+	ContentType type;
+	ProtocolVersion version;
+	uint16 length;
+	select (SecurityParameters.cipher_type) {
+		case stream: GenericStreamCipher;
+		case block: GenericBlockCipher;
+		case aead: GenericAEADCipher;
+	} fragment;
+} TLSCiphertext
+
+ struct {
+	opaque IV[SecurityParameters.record_iv_length];
+	block-ciphered struct {
+		opaque content[TLSCompressed.length];
+		opaque MAC[SecurityParameters.mac_length];
+		uint8 padding[GenericBlockCipher.padding_length];
+		uint8 padding_length;
+	};
+} GenericBlockCipher;
+
+MAC(MAC_write_key,
+	seq_num +
+	TLSCompressed.type +
+	TLSCompressed.version +
+	TLSCompressed.length +
+	TLSCompressed.fragment);
+*/
+
 // When ciphersuite uses CBC (Cipher Block Chaining) the MAC
 // (Message Authentication Code) is computed separately. That
 // means that MAC mode (MTE/ETM) only happens on CBC ciphersuites.
@@ -104,27 +134,27 @@ func (x *xCS) DecryptRec(ct []byte) ([]byte, error) {
 }
 
 // Returns a buffer containing the MAC calculated for the given data.
-func (x *xCS) macOS(ct tlssl.ContentTypeType, data []byte) ([]byte, error) {
+func (x *xCS) macintosh(t tlssl.ContentTypeType, data []byte) ([]byte, error) {
 
 	var macData []byte
 	var macTLSHeader tlssl.TLSHeader
 
 	myself := systema.MyName()
-	switch ct {
+	switch t {
 	case tlssl.ContentTypeHandshake,
 		tlssl.ContentTypeAlert,
 		tlssl.ContentTypeApplicationData:
 		break
 
 	default:
-		return nil, fmt.Errorf("invalid ContentType(%v): %d", myself, ct)
+		return nil, fmt.Errorf("invalid ContentType(%v): %d", myself, t)
 	}
 
 	macTLSHeader.ContentType = tlssl.ContentTypeApplicationData
 	macTLSHeader.Version = tlssl.TLS_VERSION1_2
 	macTLSHeader.Len = len(data)
 	if x.macMode == tlssl.MODE_MTE {
-		macTLSHeader.ContentType = ct
+		macTLSHeader.ContentType = t
 	}
 
 	macData = append(macData, seqNumToBytes(x.seqNum)...)
