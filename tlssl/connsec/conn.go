@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"sync"
 	"time"
 
 	"github.com/julinox/funtls/tlssl"
@@ -13,7 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const _MaxTLSRecordSize_ = 16384
+// const _MaxTLSRecordSize_ = 16384
+const _MaxTLSRecordSize_ = 3
 
 var _CloseNotify_ = []byte{0x01, 0x00}
 
@@ -28,16 +28,17 @@ type TLSConn struct {
 // bytes.Buffer behaves like a stream buffer (i.e mantains an internal index
 // and do the "unbuffer" when needed)
 type xTLSConn struct {
-	rawConn   net.Conn
-	specRead  cipherspec.CipherSpec
-	specWrite cipherspec.CipherSpec
-	rawBuf    []byte
-	readBuf   bytes.Buffer
-	rMutex    sync.Mutex
-	lg        *logrus.Logger
-	debugMode bool
-	eofRead   bool
-	eofWrite  bool
+	debugMode   bool
+	eofRead     bool
+	eofWrite    bool
+	rawConn     net.Conn
+	readRawBuf  []byte
+	writeRawBuf []byte
+	readBuf     bytes.Buffer
+	writeBuf    bytes.Buffer
+	lg          *logrus.Logger
+	specRead    cipherspec.CipherSpec
+	specWrite   cipherspec.CipherSpec
 }
 
 func NewTLSConn(tc *TLSConn) (net.Conn, error) {
@@ -59,6 +60,7 @@ func NewTLSConn(tc *TLSConn) (net.Conn, error) {
 	}, nil
 }
 
+// Any alert received will be ignored, but the connection will be closed
 func (x *xTLSConn) Read(p []byte) (int, error) {
 
 	if len(p) == 0 {
@@ -70,6 +72,7 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 			break
 		}
 
+		// Verifico si hay una alerta activa
 		if x.eofRead {
 			return 0, io.EOF
 		}
@@ -78,32 +81,38 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 		n, err := x.rawConn.Read(tmp)
 		if err != nil {
 			if err == io.EOF {
-				fmt.Println("------------------ LLEGO EL EOF NORMAL ------------------")
 				x.eofRead = true
 			}
 
 			if n <= 0 {
-				fmt.Println("------------------ LLEGO EL EOF NORMAL 2------------------")
 				return 0, err
 			}
 		}
 
-		x.rawBuf = append(x.rawBuf, tmp[:n]...)
+		x.readRawBuf = append(x.readRawBuf, tmp[:n]...)
 		for {
-			if len(x.rawBuf) < tlssl.TLS_HEADER_SIZE {
+			if len(x.readRawBuf) < tlssl.TLS_HEADER_SIZE {
 				break
 			}
 
-			pktSz := int(x.rawBuf[3])<<8 | int(x.rawBuf[4])
+			pktSz := int(x.readRawBuf[3])<<8 | int(x.readRawBuf[4])
 			if pktSz > _MaxTLSRecordSize_ {
 				return 0, fmt.Errorf("invalid record size")
 			}
 
-			if len(x.rawBuf) < pktSz+tlssl.TLS_HEADER_SIZE {
+			if len(x.readRawBuf) < pktSz+tlssl.TLS_HEADER_SIZE {
 				break
 			}
 
-			record := x.rawBuf[:pktSz+tlssl.TLS_HEADER_SIZE]
+			record := x.readRawBuf[:pktSz+tlssl.TLS_HEADER_SIZE]
+			// DEBUG
+			if record[0] == byte(tlssl.ContentTypeAlert) {
+				x.readRawBuf = x.readRawBuf[pktSz+tlssl.TLS_HEADER_SIZE:]
+				x.eofRead = true
+				break
+			}
+			// DEBUG
+
 			plainText, err := x.specRead.DecryptRec(record)
 			if err != nil {
 				if !x.debugMode {
@@ -113,10 +122,11 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 				// Discard record even if decryption fails (debug mode),
 				// to keep processing
 				x.lg.Error("Error decrypting TLS record: ", err)
-				x.lg.Debugf("Raw: %x", x.rawBuf[:pktSz+tlssl.TLS_HEADER_SIZE])
+				x.lg.Debugf("Raw: %x",
+					x.readRawBuf[:pktSz+tlssl.TLS_HEADER_SIZE])
 			}
 
-			x.rawBuf = x.rawBuf[pktSz+tlssl.TLS_HEADER_SIZE:]
+			x.readRawBuf = x.readRawBuf[pktSz+tlssl.TLS_HEADER_SIZE:]
 			if plainText != nil {
 				x.readBuf.Write(plainText)
 			}
@@ -128,6 +138,8 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 
 func (x *xTLSConn) Write(p []byte) (int, error) {
 
+	var offset int
+
 	if len(p) == 0 {
 		return 0, nil
 	}
@@ -138,19 +150,43 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 		return 0, err
 	}
 
-	return x.rawConn.Write(record)
+	fmt.Printf("Record: %x\n", record)
+	offset = 0
+	counter := 0 // just for debug purposes
+	maximus := len(p)
+	for {
+		if offset >= maximus {
+			break
+		}
+
+		if x.eofWrite {
+			return 0, io.ErrClosedPipe
+		}
+
+		sent, err := x.rawConn.Write(p[offset:])
+		if err != nil {
+			return 0, err
+		}
+
+		offset += sent
+		counter++
+	}
+
+	x.lg.Infof("Counter: %v", counter)
+	return offset, nil
 }
 
 func (x *xTLSConn) Close() error {
 
-	record, err := x.specWrite.EncryptRec(tlssl.ContentTypeAlert, _CloseNotify_)
+	fmt.Println("CHEQUEAR SI OPEN Y SI SI ENVIAR CLOSENOTIFY")
+	/*record, err := x.specWrite.EncryptRec(tlssl.ContentTypeAlert, _CloseNotify_)
 	if err != nil {
 		x.lg.Warnf("Error encrypting close notify record: %v", err)
 	} else {
 		if _, err := x.rawConn.Write(record); err != nil {
 			x.lg.Warnf("Error writing close notify record: %v", err)
 		}
-	}
+	}*/
 
 	return x.rawConn.Close()
 }

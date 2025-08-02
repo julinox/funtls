@@ -2,15 +2,10 @@ package main
 
 import (
 	"bufio"
-	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"strings"
-	"time"
 
 	"github.com/julinox/funtls/server"
 	"github.com/julinox/funtls/tlssl/modulos"
@@ -39,10 +34,11 @@ func main() {
 		return
 	}
 
-	realidad(hearit)
+	curly(hearit)
+	//openssl(hearit)
 }
 
-func realidad(conn net.Conn) {
+func curly(conn net.Conn) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
@@ -77,87 +73,18 @@ func realidad(conn net.Conn) {
 	conn.Write(body)
 }
 
-// -------------------------------------------------------------------------------
-func basico(conn net.Conn) {
-
-	var buf bytes.Buffer
-	tmp := make([]byte, 1024)
-	data := []byte("HTTP/1.1 200 OK\r\n" +
-		"Content-Type: text/plain\r\n" +
-		"Content-Length: 13\r\n" +
-		"Connection: close\r\n" +
-		"\r\n" +
-		"Hello, world!")
-
-	for {
-		n, err := conn.Read(tmp)
-		if err != nil {
-			fmt.Printf("error leyendo: %s\n", err)
-			return
-		}
-
-		buf.Write(tmp[:n])
-
-		// Simple check: look for the end of HTTP headers (\r\n\r\n)
-		if bytes.Contains(buf.Bytes(), []byte("\r\n\r\n")) {
-			break
-		}
-	}
-
-	fmt.Printf("LEIDO: %s\n", buf.Bytes())
-	conn.Write(data)
-}
-
-func handleClient(conn net.Conn) {
-
-	var contentLength int
+func openssl(conn net.Conn) {
 
 	defer conn.Close()
+	fmt.Println("conexión establecida desde:", conn.RemoteAddr())
 	reader := bufio.NewReader(conn)
-	for {
-		line, err := reader.ReadString('\n')
-		if err != nil {
-			fmt.Printf("error leyendo headers: %s\n", err)
-			return
-		}
-		if line == "\r\n" {
-			break
-		}
-
-		// Buscar Content-Length
-		if strings.HasPrefix(strings.ToLower(line), "content-length:") {
-			val := strings.TrimSpace(strings.SplitN(line, ":", 2)[1])
-			contentLength, _ = strconv.Atoi(val)
-		}
-	}
-
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n" +
-		"Content-Type: text/plain\r\n" +
-		"Content-Length: 0\r\n" +
-		"\r\n"))
-	return
-	if contentLength == 0 {
-		fmt.Println(">> No se especificó Content-Length. Nada que leer.")
+	line, err := reader.ReadString('\n')
+	if err != nil && err != io.EOF {
+		fmt.Println("error leyendo:", err)
 		return
 	}
 
-	// Leer el body exacto
-	body := make([]byte, contentLength)
-	if _, err := io.ReadFull(reader, body); err != nil {
-		fmt.Printf("error leyendo body: %s\n", err)
-		return
-	}
-
-	fmt.Printf(">> Recibido %d bytes\n", len(body))
-	h := sha256.Sum256(body)
-	fmt.Printf(">> SHA-256 del body: %s\n", hex.EncodeToString(h[:]))
-	fmt.Println()
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n" +
-		"Content-Type: text/plain\r\n" +
-		"Content-Length: 0\r\n" +
-		"\r\n"))
-	//fmt.Println(">> Respuesta enviada al cliente.")
-	time.Sleep(1 * time.Second) // Esperar un segundo antes de cerrar la conexión
+	fmt.Printf("cliente dijo: %q\n", line)
 }
 
 // go build -gcflags="all=-N -l" -o funtls

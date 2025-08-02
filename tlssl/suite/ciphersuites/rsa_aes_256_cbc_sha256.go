@@ -64,7 +64,7 @@ func (x *x0x003D) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
 func (x *x0x003D) MacMe(data, hashKey []byte) ([]byte, error) {
 
 	if len(hashKey) != x.Info().KeySizeHMAC {
-		return nil, fmt.Errorf("nil/empty MAC Key")
+		return nil, fmt.Errorf("invalid hash key size (%v)", x.Name())
 	}
 
 	hmacHash := hmac.New(sha256.New, hashKey)

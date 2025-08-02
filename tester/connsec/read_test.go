@@ -1,4 +1,4 @@
-package tlscon
+package connsec
 
 import (
 	"fmt"
