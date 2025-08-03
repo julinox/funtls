@@ -18,6 +18,7 @@ import (
 
 type xConn struct {
 	net.Conn
+	count  int
 	buffer []byte
 }
 
@@ -39,9 +40,9 @@ func TestTLSWrite(t *testing.T) {
 		return
 	}
 
-	n, err := newTConn.Write([]byte("1234567890"))
+	n, err := newTConn.Write([]byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A})
 	if err != nil {
-		t.Errorf("Error writing to TLSConn: %v", err)
+		t.Errorf("Error writing to TLSConn (Bytes Writenn: %v): %v", n, err)
 		return
 	}
 
@@ -50,7 +51,6 @@ func TestTLSWrite(t *testing.T) {
 
 func createCSpec(st suite.Suite, keys *tlssl.Keys) cipherspec.CipherSpec {
 
-	fmt.Printf("MacSZ: %v | ActualKeySz: %v\n", st.Info().KeySizeHMAC, len(keys.Hkey))
 	return cipherspec.NewCipherSpec(st, keys, tlssl.MODE_MTE)
 }
 
@@ -88,8 +88,19 @@ func strToHex(str string) []byte {
 
 func (x *xConn) Write(b []byte) (int, error) {
 
+	if x.count == 3 {
+		return 0, fmt.Errorf("Simulated error on write")
+	}
+
+	fmt.Println("Llamada:", x.count)
+	x.count++
 	//return x.Write1(b)
-	return x.WriteMax3(b)
+	//return x.Write3(b)
+	return x.WriteN(b)
+}
+
+func (x *xConn) WriteN(b []byte) (int, error) {
+	return len(b), nil
 }
 
 func (x *xConn) Write1(b []byte) (int, error) {
@@ -98,7 +109,7 @@ func (x *xConn) Write1(b []byte) (int, error) {
 	return 1, nil
 }
 
-func (x *xConn) WriteMax3(b []byte) (int, error) {
+func (x *xConn) Write3(b []byte) (int, error) {
 
 	var offset int
 

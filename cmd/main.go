@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 
 	"github.com/julinox/funtls/server"
@@ -34,8 +35,9 @@ func main() {
 		return
 	}
 
-	curly(hearit)
+	//curly(hearit)
 	//openssl(hearit)
+	fileDownload(hearit)
 }
 
 func curly(conn net.Conn) {
@@ -85,6 +87,40 @@ func openssl(conn net.Conn) {
 	}
 
 	fmt.Printf("cliente dijo: %q\n", line)
+}
+
+func fileDownload(conn net.Conn) {
+	defer conn.Close()
+
+	// Leer y descartar el request
+	reader := bufio.NewReader(conn)
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil || line == "\r\n" {
+			break
+		}
+	}
+
+	// Abrir archivo binario
+	file, err := os.Open("/home/usery/ungb.bin")
+	if err != nil {
+		fmt.Fprintf(conn, "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n")
+		return
+	}
+	defer file.Close()
+
+	// Obtener tamaño
+	info, _ := file.Stat()
+	size := info.Size()
+
+	// Enviar headers
+	fmt.Fprintf(conn, "HTTP/1.1 200 OK\r\n"+
+		"Content-Type: application/octet-stream\r\n"+
+		"Content-Length: %d\r\n"+
+		"Connection: close\r\n\r\n", size)
+
+	// Enviar archivo
+	io.Copy(conn, file)
 }
 
 // go build -gcflags="all=-N -l" -o funtls

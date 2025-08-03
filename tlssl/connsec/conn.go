@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"time"
 
@@ -12,8 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// const _MaxTLSRecordSize_ = 16384
-const _MaxTLSRecordSize_ = 3
+const _MaxTLSRecordSize_ = 16384
 
 var _CloseNotify_ = []byte{0x01, 0x00}
 
@@ -22,23 +22,21 @@ type TLSConn struct {
 	SpecRead  cipherspec.CipherSpec
 	SpecWrite cipherspec.CipherSpec
 	Lg        *logrus.Logger
-	DebugMode bool // ignore fatal errors like decoding errors
+	DebugMode bool //ignore encript/decript errors
 }
 
 // bytes.Buffer behaves like a stream buffer (i.e mantains an internal index
 // and do the "unbuffer" when needed)
 type xTLSConn struct {
-	debugMode   bool
-	eofRead     bool
-	eofWrite    bool
-	rawConn     net.Conn
-	readRawBuf  []byte
-	writeRawBuf []byte
-	readBuf     bytes.Buffer
-	writeBuf    bytes.Buffer
-	lg          *logrus.Logger
-	specRead    cipherspec.CipherSpec
-	specWrite   cipherspec.CipherSpec
+	debugMode  bool
+	eofRead    bool
+	eofWrite   bool
+	rawConn    net.Conn
+	readRawBuf []byte
+	readBuf    bytes.Buffer
+	lg         *logrus.Logger
+	specRead   cipherspec.CipherSpec
+	specWrite  cipherspec.CipherSpec
 }
 
 func NewTLSConn(tc *TLSConn) (net.Conn, error) {
@@ -115,14 +113,12 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 
 			plainText, err := x.specRead.DecryptRec(record)
 			if err != nil {
+				x.lg.Error("Error decrypting TLS record: ", err)
 				if !x.debugMode {
 					return 0, err
 				}
 
-				// Discard record even if decryption fails (debug mode),
-				// to keep processing
-				x.lg.Error("Error decrypting TLS record: ", err)
-				x.lg.Debugf("Raw: %x",
+				x.lg.Debugf("RawRead: %x",
 					x.readRawBuf[:pktSz+tlssl.TLS_HEADER_SIZE])
 			}
 
@@ -138,42 +134,60 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 
 func (x *xTLSConn) Write(p []byte) (int, error) {
 
-	var offset int
-
 	if len(p) == 0 {
 		return 0, nil
 	}
 
-	record, err := x.specWrite.EncryptRec(tlssl.ContentTypeApplicationData, p)
-	if err != nil {
-		x.lg.Errorf("Error encrypting TLS record: %v", err)
-		return 0, err
-	}
-
-	fmt.Printf("Record: %x\n", record)
-	offset = 0
-	counter := 0 // just for debug purposes
-	maximus := len(p)
+	inf := 0
+	sent := 0
+	sup := _MaxTLSRecordSize_
 	for {
-		if offset >= maximus {
+		if sup > len(p) {
+			sup = len(p)
+		}
+
+		if inf >= len(p) {
 			break
 		}
 
-		if x.eofWrite {
-			return 0, io.ErrClosedPipe
-		}
-
-		sent, err := x.rawConn.Write(p[offset:])
+		record, err := x.specWrite.EncryptRec(tlssl.ContentTypeApplicationData, p[inf:sup])
 		if err != nil {
-			return 0, err
+			x.lg.Errorf("Error encrypting TLS record: %v", err)
+			if !x.debugMode {
+				return 0, err
+			}
+
+			record = nil
+			x.lg.Debugf("RawWrite: %x", p[inf:sup])
 		}
 
-		offset += sent
-		counter++
+		// Write the encrypted record to the underlying connection
+		offset := 0
+		for {
+			if record == nil {
+				break
+			}
+
+			if offset >= len(record) {
+				sent += len(p[inf:sup])
+				break
+			}
+
+			n, err := x.rawConn.Write(record[offset:])
+			if err != nil {
+				x.lg.Errorf("Error writing TLS record: %v", err)
+				return sent, err
+			}
+
+			offset += n
+		}
+
+		//fmt.Printf("Escribiendo: %x | REC: %x\n", p[inf:sup], record)
+		inf = sup
+		sup += _MaxTLSRecordSize_
 	}
 
-	x.lg.Infof("Counter: %v", counter)
-	return offset, nil
+	return sent, nil
 }
 
 func (x *xTLSConn) Close() error {
@@ -209,4 +223,43 @@ func (x *xTLSConn) LocalAddr() net.Addr {
 
 func (x *xTLSConn) RemoteAddr() net.Addr {
 	return x.rawConn.RemoteAddr()
+}
+
+// Since the TLS record size is limited to 16K, we will
+// pack the data into multiple TLS records if necessary.
+func packTLSRecords(p []byte, cs cipherspec.CipherSpec) ([]byte, error) {
+
+	var buffer []byte
+
+	if len(p) <= 0 || cs == nil {
+		return buffer, nil
+	}
+
+	limI := 0
+	limS := _MaxTLSRecordSize_
+	if len(p) < _MaxTLSRecordSize_ {
+		limS = len(p)
+	}
+
+	rounds := math.Ceil(float64(len(p)) / float64(_MaxTLSRecordSize_))
+	for i := 0; i < int(rounds); i++ {
+		data, err := cs.EncryptRec(tlssl.ContentTypeApplicationData,
+			p[limI:limS])
+		if err != nil {
+			return nil, err
+		}
+
+		buffer = append(buffer, data...)
+		if limI >= len(p) {
+			break
+		}
+
+		limI += _MaxTLSRecordSize_
+		limS += _MaxTLSRecordSize_
+		if limS > len(p) {
+			limS = len(p)
+		}
+	}
+
+	return buffer, nil
 }
