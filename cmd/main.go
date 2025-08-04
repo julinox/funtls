@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/julinox/funtls/server"
 	"github.com/julinox/funtls/tlssl/modulos"
@@ -37,7 +38,59 @@ func main() {
 
 	//curly(hearit)
 	//openssl(hearit)
-	fileDownload(hearit)
+	//fileDownload(hearit)
+	custom(hearit)
+	//closing(hearit)
+}
+
+func closing(conn net.Conn) {
+
+	conn.SetDeadline(time.Now().Add(2 * time.Second))
+	buf := make([]byte, 512)
+	n, err := conn.Read(buf)
+	if err != nil {
+		fmt.Printf("Error leyendo: %v\n", err)
+		return
+	}
+
+	fmt.Printf("CN? %x\n", buf[:n])
+	conn.Close()
+}
+
+func custom(conn net.Conn) {
+
+	defer conn.Close()
+	b := make([]byte, 2)
+	n, err := io.ReadFull(conn, b)
+	if err != nil || b[0] != 0xFE || b[1] != 0xFF {
+		fmt.Println("Trigger inválido o error leyendo")
+		return
+	}
+
+	fmt.Println("Trigger OK, enviando archivo...")
+	f, err := os.Open("/home/usery/unmb.bin")
+	if err != nil {
+		fmt.Printf("Error abriendo archivo: %v\n", err)
+		return
+	}
+
+	written, err := io.Copy(conn, f)
+	if err != nil {
+		fmt.Printf("Error enviando archivo: %v\n", err)
+		return
+	}
+
+	fmt.Printf("Archivo enviado (%d bytes). Esperando cierre del cliente...\n", written)
+	buf := make([]byte, 512)
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+	n, err = conn.Read(buf)
+	if err == nil && n > 0 && buf[0] == 0x15 {
+		fmt.Println("Recibido close_notify del cliente.")
+	} else {
+		fmt.Println("Cierre del cliente no detectado (timeout o no-alert).")
+	}
+
+	conn.SetReadDeadline(time.Time{}) // limpiar deadline
 }
 
 func curly(conn net.Conn) {

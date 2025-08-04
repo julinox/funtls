@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"time"
 
@@ -31,6 +30,7 @@ type xTLSConn struct {
 	debugMode  bool
 	eofRead    bool
 	eofWrite   bool
+	peerClose  bool
 	rawConn    net.Conn
 	readRawBuf []byte
 	readBuf    bytes.Buffer
@@ -70,7 +70,10 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 			break
 		}
 
-		// Verifico si hay una alerta activa
+		if x.peerClose {
+			x.Close()
+		}
+
 		if x.eofRead {
 			return 0, io.EOF
 		}
@@ -103,13 +106,10 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 			}
 
 			record := x.readRawBuf[:pktSz+tlssl.TLS_HEADER_SIZE]
-			// DEBUG
 			if record[0] == byte(tlssl.ContentTypeAlert) {
-				x.readRawBuf = x.readRawBuf[pktSz+tlssl.TLS_HEADER_SIZE:]
-				x.eofRead = true
+				x.handleAlert(record)
 				break
 			}
-			// DEBUG
 
 			plainText, err := x.specRead.DecryptRec(record)
 			if err != nil {
@@ -138,6 +138,10 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 		return 0, nil
 	}
 
+	if x.eofWrite {
+		return 0, io.ErrClosedPipe
+	}
+
 	inf := 0
 	sent := 0
 	sup := _MaxTLSRecordSize_
@@ -150,7 +154,8 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 			break
 		}
 
-		record, err := x.specWrite.EncryptRec(tlssl.ContentTypeApplicationData, p[inf:sup])
+		record, err := x.specWrite.EncryptRec(tlssl.ContentTypeApplicationData,
+			p[inf:sup])
 		if err != nil {
 			x.lg.Errorf("Error encrypting TLS record: %v", err)
 			if !x.debugMode {
@@ -161,7 +166,6 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 			x.lg.Debugf("RawWrite: %x", p[inf:sup])
 		}
 
-		// Write the encrypted record to the underlying connection
 		offset := 0
 		for {
 			if record == nil {
@@ -182,7 +186,6 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 			offset += n
 		}
 
-		//fmt.Printf("Escribiendo: %x | REC: %x\n", p[inf:sup], record)
 		inf = sup
 		sup += _MaxTLSRecordSize_
 	}
@@ -192,17 +195,34 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 
 func (x *xTLSConn) Close() error {
 
-	fmt.Println("CHEQUEAR SI OPEN Y SI SI ENVIAR CLOSENOTIFY")
-	/*record, err := x.specWrite.EncryptRec(tlssl.ContentTypeAlert, _CloseNotify_)
+	defer x.rawConn.Close()
+	x.eofWrite = true
+	record, err := x.specWrite.EncryptRec(tlssl.ContentTypeAlert, _CloseNotify_)
 	if err != nil {
 		x.lg.Warnf("Error encrypting close notify record: %v", err)
-	} else {
-		if _, err := x.rawConn.Write(record); err != nil {
-			x.lg.Warnf("Error writing close notify record: %v", err)
-		}
-	}*/
+		return err
+	}
 
-	return x.rawConn.Close()
+	// Theorically we should always send a close_notify alert but if the peer
+	// is not waiting for it then doing so will trigger a reset on the
+	// connection (which is ok, but we want to avoid it if possible). Optimal
+	// solution would be to check for write half to be open but i couldn't find
+	// a way to do it with net.Conn interface.
+	if !x.peerClose {
+		_, err = x.rawConn.Write(record)
+		x.rawConn.SetReadDeadline(time.Now().Add(2 * time.Second))
+		buf := make([]byte, 512)
+		fmt.Println("Esperando respuesta del peer...")
+		n, _ := x.rawConn.Read(buf)
+		if n >= tlssl.TLS_HEADER_SIZE && buf[0] == 0x15 {
+			x.eofRead = true
+			x.peerClose = true
+		}
+
+		x.rawConn.SetReadDeadline(time.Time{})
+	}
+
+	return err
 }
 
 func (x *xTLSConn) SetDeadline(t time.Time) error {
@@ -225,41 +245,21 @@ func (x *xTLSConn) RemoteAddr() net.Addr {
 	return x.rawConn.RemoteAddr()
 }
 
-// Since the TLS record size is limited to 16K, we will
-// pack the data into multiple TLS records if necessary.
-func packTLSRecords(p []byte, cs cipherspec.CipherSpec) ([]byte, error) {
+func (x *xTLSConn) handleAlert(record []byte) {
 
-	var buffer []byte
-
-	if len(p) <= 0 || cs == nil {
-		return buffer, nil
+	x.eofRead = true
+	pt, err := x.specRead.DecryptRec(record)
+	if err != nil {
+		x.lg.Error("Error decrypting alert record: ", err)
+		return
 	}
 
-	limI := 0
-	limS := _MaxTLSRecordSize_
-	if len(p) < _MaxTLSRecordSize_ {
-		limS = len(p)
+	// is it a close_notify alert?
+	if len(pt) == 2 && pt[0] == 0x01 && pt[1] == 0x00 {
+		x.lg.Warn("Received close_notify alert from peer")
+		x.peerClose = true
+		return
 	}
 
-	rounds := math.Ceil(float64(len(p)) / float64(_MaxTLSRecordSize_))
-	for i := 0; i < int(rounds); i++ {
-		data, err := cs.EncryptRec(tlssl.ContentTypeApplicationData,
-			p[limI:limS])
-		if err != nil {
-			return nil, err
-		}
-
-		buffer = append(buffer, data...)
-		if limI >= len(p) {
-			break
-		}
-
-		limI += _MaxTLSRecordSize_
-		limS += _MaxTLSRecordSize_
-		if limS > len(p) {
-			limS = len(p)
-		}
-	}
-
-	return buffer, nil
+	x.lg.Warnf("Received alert record: %x", pt)
 }
