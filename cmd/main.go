@@ -38,8 +38,8 @@ func main() {
 
 	//curly(hearit)
 	//openssl(hearit)
-	//fileDownload(hearit)
-	custom(hearit)
+	fileDownload(hearit)
+	//custom(hearit)
 	//closing(hearit)
 }
 
@@ -68,7 +68,7 @@ func custom(conn net.Conn) {
 	}
 
 	fmt.Println("Trigger OK, enviando archivo...")
-	f, err := os.Open("/home/usery/unmb.bin")
+	f, err := os.Open("/home/usery/ungb.bin")
 	if err != nil {
 		fmt.Printf("Error abriendo archivo: %v\n", err)
 		return

@@ -150,13 +150,9 @@ func (x *xCS) macintosh(t tlssl.ContentTypeType, data []byte) ([]byte, error) {
 		return nil, fmt.Errorf("invalid ContentType(%v): %d", myself, t)
 	}
 
-	macTLSHeader.ContentType = tlssl.ContentTypeApplicationData
+	macTLSHeader.ContentType = t
 	macTLSHeader.Version = tlssl.TLS_VERSION1_2
 	macTLSHeader.Len = len(data)
-	if x.macMode == tlssl.MODE_MTE {
-		macTLSHeader.ContentType = t
-	}
-
 	macData = append(macData, seqNumToBytes(x.seqNum)...)
 	macData = append(macData, tlssl.TLSHeadPacket(&macTLSHeader)...)
 	macData = append(macData, data...)

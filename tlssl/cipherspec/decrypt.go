@@ -90,6 +90,7 @@ func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 	if x.seqNum == 0 {
 		plainText = plainText[x.cipherSuite.Info().IVSize:]
 	}
+
 	computedMAC, err := x.macintosh(tRec.Header.ContentType, plainText)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", myself, err)
@@ -103,9 +104,47 @@ func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 }
 
 func (x *xCS) decryptETM(tRec *tlssl.TLSRecord) ([]byte, error) {
-	return nil, nil
+
+	var sCtx suite.SuiteContext
+
+	myself := systema.MyName()
+	if len(tRec.Msg) < x.cipherSuite.Info().IVSize+
+		x.cipherSuite.Info().HashSize {
+		return nil, fmt.Errorf("Record shorter than IV+Hash size: %v", myself)
+	}
+
+	givenMAC := tRec.Msg[len(tRec.Msg)-x.cipherSuite.Info().HashSize:]
+	record := tRec.Msg[:len(tRec.Msg)-x.cipherSuite.Info().HashSize]
+	if x.seqNum == 0 {
+		sCtx.IV = x.keys.IV
+		sCtx.Data = record
+	} else {
+		sCtx.IV = tRec.Msg[:x.cipherSuite.Info().IVSize]
+		sCtx.Data = record[x.cipherSuite.Info().IVSize:]
+	}
+
+	computedMAC, err := x.macintosh(tRec.Header.ContentType, record)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", myself, err)
+	}
+
+	if !hmac.Equal(givenMAC, computedMAC) {
+		return nil, fmt.Errorf("MAC mismatch(%v)", myself)
+	}
+
+	sCtx.Key = x.keys.Key
+	clearText, err := x.cipherSuite.CipherNot(&sCtx)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", myself, err)
+	}
+
+	if x.seqNum == 0 {
+		return clearText[x.cipherSuite.Info().IVSize:], nil
+	}
+
+	return clearText, nil
 }
 
 func (x *xCS) decryptAEAD(tRec *tlssl.TLSRecord) ([]byte, error) {
-	return nil, nil
+	return nil, fmt.Errorf("decryptAEAD not implemented yet")
 }

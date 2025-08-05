@@ -64,6 +64,10 @@ func (x *xCS) encryptMTE(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 	}
 
 	iv, err := generateIVNonce(x.cipherSuite.Info().IVSize)
+	if err != nil {
+		return nil, fmt.Errorf("generateIVNonce(%v): %v", myself, err)
+	}
+
 	if x.seqNum == 0 {
 		sCtx.IV = x.keys.IV
 		sCtx.Data = append(sCtx.Data, iv...)
@@ -92,12 +96,54 @@ func (x *xCS) encryptMTE(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 
 func (x *xCS) encryptETM(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 
-	fmt.Println("CBC ETM")
-	return nil, nil
+	var err error
+	var fragment []byte
+	var sCtx suite.SuiteContext
+
+	myself := systema.MyName()
+	if len(pt) == 0 {
+		return nil, fmt.Errorf("empty plaintext (%v)", myself)
+	}
+
+	iv, err := generateIVNonce(x.cipherSuite.Info().IVSize)
+	if err != nil {
+		return nil, fmt.Errorf("generateIVNonce(%v): %v", myself, err)
+	}
+
+	if x.seqNum == 0 {
+		sCtx.IV = x.keys.IV
+		sCtx.Data = append(sCtx.Data, iv...)
+	} else {
+		sCtx.IV = iv
+		fragment = append(fragment, iv...)
+	}
+
+	sCtx.Key = x.keys.Key
+	sCtx.Data = append(sCtx.Data, pt...)
+	ciphered, err := x.cipherSuite.Cipher(&sCtx)
+	if err != nil {
+		return nil, fmt.Errorf("Ciphering(%v): %v", myself, err)
+	}
+
+	fragment = append(fragment, ciphered...)
+	mac, err := x.macintosh(ct, fragment)
+	if err != nil {
+		return nil, fmt.Errorf("macOS(%v): %v", myself, err)
+	}
+
+	//fragment = append(fragment, ciphered...)
+	fragment = append(fragment, mac...)
+	header := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
+		ContentType: ct,
+		Version:     tlssl.TLS_VERSION1_2,
+		Len:         len(fragment),
+	})
+
+	//fmt.Printf("HASTA AHORA: %x\n", )
+	//return nil, fmt.Errorf("encryptETM not implemented yet")
+	return append(header, fragment...), nil
 }
 
 func (x *xCS) encryptAEAD() ([]byte, error) {
-
-	fmt.Println("AEAD")
-	return nil, nil
+	return nil, fmt.Errorf("encryptAEAD not implemented yet")
 }

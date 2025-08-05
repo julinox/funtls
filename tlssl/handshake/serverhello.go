@@ -86,6 +86,16 @@ func (x *xServerHello) Handle() error {
 	x.ctx.SetBuffer(SERVERHELLO, append(header, serverHelloBuf...))
 	x.ctx.SetBuffer(SERVERRANDOM, random)
 	x.ctx.AppendOrder(SERVERHELLO)
+
+	// Encrypt-then-MAC extension
+	// This should be set in extensions's LoadData() method
+	// but the extension interface does not have access to
+	// the TLSContext
+	if x.ctx.GetExtension(0x0016) {
+		x.ctx.SetMacMode(tlssl.MODE_ETM)
+		x.tCtx.Lg.Info("Encrypt-then-MAC extension enabled")
+	}
+
 	x.nextState = CERTIFICATE
 	return nil
 }
@@ -156,6 +166,7 @@ func (x *xServerHello) extensions(cliMsg *MsgHello) []byte {
 		}
 
 		extsBuffer = append(extsBuffer, auxBuffer...)
+		x.ctx.SetExtension(ext.ID())
 	}
 
 	// Force renegotiation info

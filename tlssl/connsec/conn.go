@@ -254,12 +254,18 @@ func (x *xTLSConn) handleAlert(record []byte) {
 		return
 	}
 
-	// is it a close_notify alert?
-	if len(pt) == 2 && pt[0] == 0x01 && pt[1] == 0x00 {
-		x.lg.Warn("Received close_notify alert from peer")
-		x.peerClose = true
+	if len(pt) != 2 {
+		x.lg.Errorf("Received unknown alert record: %x", pt)
 		return
 	}
 
-	x.lg.Warnf("Received alert record: %x", pt)
+	// is it a close_notify alert?
+	if pt[0] == 0x01 && pt[1] == 0x00 {
+		x.lg.Warn("Received close_notify alert from peer")
+		x.peerClose = true
+		return
+	} else {
+		x.lg.Errorf("Received Alert: %v - %v", tlssl.TLSLevels[pt[0]],
+			tlssl.TLSAlerts[pt[1]])
+	}
 }

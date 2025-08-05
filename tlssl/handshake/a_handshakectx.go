@@ -56,6 +56,7 @@ type xHandhsakeContextData struct {
 	specClient         cipherspec.CipherSpec
 	specServer         cipherspec.CipherSpec
 	completed          bool
+	extensions         map[uint16]bool
 }
 
 type xHandhsakeContext struct {
@@ -81,6 +82,8 @@ type HandShakeContext interface {
 	GetCipherSpec(int) cipherspec.CipherSpec
 	SetTransitionStage(int)
 	GetTransitionStage() int
+	SetExtension(uint16)
+	GetExtension(uint16) bool
 	GetComms() net.Conn
 	Order() []int
 	AppendOrder(int) error
@@ -110,6 +113,7 @@ func NewHandShakeContext(lg *logrus.Logger, coms net.Conn) HandShakeContext {
 	newContext.data.expected |= CHANGECIPHERSPEC
 	newContext.data.expected |= FINISHED
 	newContext.data.macMode = tlssl.MODE_MTE
+	newContext.data.extensions = make(map[uint16]bool)
 	return &newContext
 }
 
@@ -293,6 +297,22 @@ func (x *xHandhsakeContext) GetCipherSpec(who int) cipherspec.CipherSpec {
 
 func (x *xHandhsakeContext) GetTransitionStage() int {
 	return x.data.transitionStage
+}
+
+func (x *xHandhsakeContext) SetExtension(extID uint16) {
+
+	if _, exists := x.data.extensions[extID]; !exists {
+		x.data.extensions[extID] = true
+	}
+}
+
+func (x *xHandhsakeContext) GetExtension(extID uint16) bool {
+
+	if _, exists := x.data.extensions[extID]; exists {
+		return true
+	}
+
+	return false
 }
 
 func (x *xHandhsakeContext) GetComms() net.Conn {
