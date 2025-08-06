@@ -126,6 +126,7 @@ func initTLSSuites(lg *logrus.Logger) (mx.ModTLSSuite, error) {
 	supportedSuites := []suite.Suite{
 		ciphersuites.NewAES_256_CBC_SHA(),
 		ciphersuites.NewAES_256_CBC_SHA256(),
+		ciphersuites.NewDHE_RSA_AES_128_GCM_SHA256(),
 	}
 
 	for _, suite := range supportedSuites {
@@ -137,6 +138,7 @@ func initTLSSuites(lg *logrus.Logger) (mx.ModTLSSuite, error) {
 		lg.Info("Suite registered: ", suite.Name())
 	}
 
+	tSuite.SetTax(ciphersuites.NewDHE_RSA_AES_128_GCM_SHA256().ID())
 	return tSuite, nil
 }
 

@@ -89,7 +89,16 @@ func (x *xModTLSSuite) RegisterSuite(cs css.Suite) error {
 	return nil
 }
 
+// Tax means imposition so in this context
+// it means that only the suite with this ID will be used
 func (x *xModTLSSuite) SetTax(tax uint16) {
+
+	if x.IsSupported(tax) == false {
+		x.lg.Warnf("Suite (TAX) '%v' unsupported", css.CipherSuiteNames[tax])
+		return
+	}
+
+	x.lg.Infof("Set(TAX) Suite: %v", css.CipherSuiteNames[tax])
 	x.tax = tax
 }
 
