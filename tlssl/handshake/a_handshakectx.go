@@ -8,6 +8,7 @@ import (
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/cipherspec"
+	"github.com/julinox/funtls/tlssl/suite/dhe"
 
 	"github.com/sirupsen/logrus"
 )
@@ -54,7 +55,7 @@ type xHandhsakeContextData struct {
 	expected           int
 	order              []int
 	extensions         map[uint16]bool
-	dhePms             *tlssl.DHEPms
+	dhePms             *dhe.DHEPms
 	keys               *tlssl.SessionKeys
 	specClient         cipherspec.CipherSpec
 	specServer         cipherspec.CipherSpec
@@ -85,8 +86,8 @@ type HandShakeContext interface {
 	GetTransitionStage() int
 	SetExtension(uint16)
 	GetExtension(uint16) bool
-	SetDHEPms(*tlssl.DHEPms)
-	GetDHEPms() *tlssl.DHEPms
+	SetDHEPms(*dhe.DHEPms)
+	GetDHEPms() *dhe.DHEPms
 	GetComms() net.Conn
 	Order() []int
 	AppendOrder(int) error
@@ -318,11 +319,11 @@ func (x *xHandhsakeContext) GetExtension(extID uint16) bool {
 	return false
 }
 
-func (x *xHandhsakeContext) SetDHEPms(pms *tlssl.DHEPms) {
+func (x *xHandhsakeContext) SetDHEPms(pms *dhe.DHEPms) {
 	x.data.dhePms = pms
 }
 
-func (x *xHandhsakeContext) GetDHEPms() *tlssl.DHEPms {
+func (x *xHandhsakeContext) GetDHEPms() *dhe.DHEPms {
 	return x.data.dhePms
 }
 

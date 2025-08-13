@@ -34,7 +34,7 @@ func (x *xServerKeyExchange) Next() (int, error) {
 
 func (x *xServerKeyExchange) Handle() error {
 
-	dhePms, err := tlssl.NewDHEPms()
+	/*dhePms, err := tlssl.NewDHEPms()
 	if err != nil {
 		return err
 	}
@@ -43,7 +43,7 @@ func (x *xServerKeyExchange) Handle() error {
 	_, err = tlssl.EncodeDHE(dhePms)
 	if err != nil {
 		return err
-	}
+	}*/
 
 	return fmt.Errorf("ServerKeyExchange not implemented yet")
 	if x.tCtx.OptClientAuth {
