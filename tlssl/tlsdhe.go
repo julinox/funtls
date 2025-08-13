@@ -1,4 +1,4 @@
-package ciphersuites
+package tlssl
 
 import (
 	"crypto/rand"
@@ -42,13 +42,51 @@ var ffdhe2048_g = []byte{0x02}
 var ffdhe2048_p_number = new(big.Int).SetBytes(ffdhe2048_p)
 var ffdhe2048_g_number = new(big.Int).SetBytes(ffdhe2048_g)
 
-type DHEParams struct {
-	P  *big.Int // prime number
-	G  *big.Int // generator
-	Ys *big.Int // public key
+type DHEPms struct {
+	X *big.Int // private value
+	Y *big.Int // public value
 }
 
-func ComputePrivateDH() (*big.Int, error) {
+func NewDHEPms() (*DHEPms, error) {
+
+	var err error
+	var newPms DHEPms
+
+	newPms.X, err = computePrivateDH()
+	if err != nil {
+		return nil, fmt.Errorf("computePrivateDH: %v", err)
+	}
+
+	newPms.Y = computePublicDH(newPms.X)
+	if newPms.Y == nil {
+		return nil, fmt.Errorf("computePublicDH returned nil")
+	}
+
+	return &newPms, nil
+}
+
+func EncodeDHE(pms *DHEPms) ([]byte, error) {
+
+	var buffer []byte
+
+	if pms == nil || pms.X == nil || pms.Y == nil {
+		return nil, fmt.Errorf("nil DHE parameters")
+	}
+
+	buffer = append(buffer, numberEncode(ffdhe2048_p_number)...)
+	buffer = append(buffer, numberEncode(ffdhe2048_g_number)...)
+	buffer = append(buffer, numberEncode(pms.Y)...)
+	if len(buffer) == 0 {
+		return nil, fmt.Errorf("encoded DHE parameters are empty")
+	}
+
+	return buffer, nil
+}
+
+// Generates a private key for Diffie-Hellman key exchange
+// This function generates a random integer in the range [2, p-2]
+// where p is the prime number used in the Diffie-Hellman key exchange.
+func computePrivateDH() (*big.Int, error) {
 
 	xs, err := rand.Int(rand.Reader, new(big.Int).Sub(ffdhe2048_p_number,
 		big.NewInt(2)))
@@ -60,28 +98,13 @@ func ComputePrivateDH() (*big.Int, error) {
 	return xs, nil
 }
 
-func ComputePublicDH(xs *big.Int) *big.Int {
+func computePublicDH(xs *big.Int) *big.Int {
 	return new(big.Int).Exp(ffdhe2048_g_number, xs, ffdhe2048_p_number)
 }
 
-func (x *DHEParams) Encode() ([]byte, error) {
-
-	var buffer []byte
-
-	if x.P == nil || x.G == nil || x.Ys == nil {
-		return nil, fmt.Errorf("DHE parameters are not fully set")
-	}
-
-	buffer = append(buffer, numberEncode(x.P)...)
-	buffer = append(buffer, numberEncode(x.G)...)
-	buffer = append(buffer, numberEncode(x.Ys)...)
-	if len(buffer) == 0 {
-		return nil, fmt.Errorf("encoded DHE parameters are empty")
-	}
-
-	return buffer, nil
-}
-
+// encodes a big.Int number into a byte slice.
+// The format is [2 bytes length] [number bytes].
+// The length is the number of bytes in the number
 func numberEncode(number *big.Int) []byte {
 
 	var buffer []byte
@@ -100,5 +123,3 @@ func numberEncode(number *big.Int) []byte {
 	copy(buffer[2:], bytes)
 	return buffer
 }
-
-// [1 byte hash] [1 byte sig] [2 bytes len] [firma]

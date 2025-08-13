@@ -6,6 +6,7 @@ import (
 
 var ExtensionName = map[uint16]string{
 	0x0000: "server_name",
+	0x000A: "supported_groups",
 	0x000D: "signature_algorithms",
 	0x0016: "encrypt_then_mac",
 	0x0023: "session_ticket",
@@ -18,7 +19,7 @@ type Extension interface {
 	ID() uint16
 	Name() string
 	PrintRaw([]byte) string
-	PacketServerHelo(interface{}) ([]byte, error)
+	PacketServerHelo(any) ([]byte, error)
 	LoadData([]byte, int) (interface{}, error)
 }
 

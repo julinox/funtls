@@ -26,6 +26,6 @@ func (x xExtSessionTicket) PrintRaw(data []byte) string {
 	return "0x00 0x23(ExtID) 0x00 0x00(ExtLen)"
 }
 
-func (x xExtSessionTicket) PacketServerHelo(data interface{}) ([]byte, error) {
+func (x xExtSessionTicket) PacketServerHelo(data any) ([]byte, error) {
 	return []byte{0x00, 0x23, 0x00, 0x00}, nil
 }

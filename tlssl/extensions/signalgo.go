@@ -1,8 +1,6 @@
 package extensions
 
-import (
-	"github.com/julinox/funtls/systema"
-)
+import "fmt"
 
 const (
 	ECDSA_SECP256R1_SHA256 = 0x0403
@@ -62,9 +60,14 @@ func (x xExtSignAlgo) LoadData(data []byte, sz int) (interface{}, error) {
 
 	var offset uint16 = 2
 	var newData ExtSignAlgoData
+
+	if len(data) < 2 || len(data) != sz || len(data)%2 != 0 {
+		return nil, fmt.Errorf("invalid datalen for extension %v", x.Name())
+	}
+
 	newData.Len = uint16(data[0])<<8 | uint16(data[1])/2
 	if len(data) < int(newData.Len) {
-		return nil, systema.ErrInvalidData
+		return nil, fmt.Errorf("data len mismatch for extension %v", x.Name())
 	}
 
 	newData.Algos = make([]uint16, 0)
@@ -77,14 +80,22 @@ func (x xExtSignAlgo) LoadData(data []byte, sz int) (interface{}, error) {
 	return &newData, nil
 }
 
+func (x *xExtSignAlgo) PacketServerHelo(data any) ([]byte, error) {
+	return nil, nil
+}
+
 func (x xExtSignAlgo) PrintRaw(data []byte) string {
 
 	var length int
 	var newStr string = "{"
 	var offset uint16 = 2
 
+	if len(data) < 2 || len(data)%2 != 0 {
+		return "{}"
+	}
+
 	length = int(data[0])<<8 | int(data[1])/2
-	if len(data) < length {
+	if len(data[offset:])/2 != length {
 		return "Invalid Data"
 	}
 
@@ -106,8 +117,4 @@ func (x xExtSignAlgo) PrintRaw(data []byte) string {
 
 	newStr += "}"
 	return newStr
-}
-
-func (x *xExtSignAlgo) PacketServerHelo(data interface{}) ([]byte, error) {
-	return nil, nil
 }

@@ -26,6 +26,6 @@ func (x xExtEncryptMac) PrintRaw(data []byte) string {
 	return "0x00 0x16(ExtID) 0x00 0x00(ExtLen)"
 }
 
-func (x xExtEncryptMac) PacketServerHelo(data interface{}) ([]byte, error) {
+func (x xExtEncryptMac) PacketServerHelo(data any) ([]byte, error) {
 	return []byte{0x00, 0x16, 0x00, 0x00}, nil
 }

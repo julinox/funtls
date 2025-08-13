@@ -84,7 +84,7 @@ func (x xExtSNI) PrintRaw(data []byte) string {
 	return str + "]"
 }
 
-func (x xExtSNI) PacketServerHelo(data interface{}) ([]byte, error) {
+func (x xExtSNI) PacketServerHelo(data any) ([]byte, error) {
 	return nil, nil
 }
 

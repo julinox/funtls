@@ -149,6 +149,7 @@ func initExtensions(lg *logrus.Logger) *ex.Extensions {
 	extns.Register(ex.NewExtSNI())
 	extns.Register(ex.NewExtRenegotiation())
 	extns.Register(ex.NewExtEncryptThenMac())
+	extns.Register(ex.NewExtSupportedGroups())
 	return extns
 }
 

@@ -90,7 +90,7 @@ func (x *xServerHello) Handle() error {
 	// Encrypt-then-MAC extension
 	// This should be set in extensions's LoadData() method
 	// but the extension interface does not have access to
-	// the TLSContext
+	// the Handshake context
 	if x.ctx.GetExtension(0x0016) {
 		x.ctx.SetMacMode(tlssl.MODE_ETM)
 		x.tCtx.Lg.Info("Encrypt-then-MAC extension enabled")
@@ -149,7 +149,7 @@ func (x *xServerHello) extensions(cliMsg *MsgHello) []byte {
 
 		// This should never happen
 		if ext == nil || extData == nil {
-			x.tCtx.Lg.Warnf("Packet Extension(%v) not found",
+			x.tCtx.Lg.Warnf("nil (or missing data) for Extension: %v",
 				ex.ExtensionName[extID])
 			continue
 		}

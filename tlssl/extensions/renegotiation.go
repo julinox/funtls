@@ -26,6 +26,6 @@ func (x xExtRenegotiation) PrintRaw(data []byte) string {
 	return "0xFF 0x01(ExtID) 0x00 0x00(ExtLen)"
 }
 
-func (x xExtRenegotiation) PacketServerHelo(data interface{}) ([]byte, error) {
+func (x xExtRenegotiation) PacketServerHelo(data any) ([]byte, error) {
 	return []byte{0xFF, 0x01, 0x00, 0x01, 0x00}, nil
 }

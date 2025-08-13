@@ -47,16 +47,17 @@ type xHandhsakeContextData struct {
 	prf                prfData
 	serverCert         *x509.Certificate
 	msgHello           *MsgHello
+	completed          bool
 	cipherSuite        uint16
 	macMode            int
 	transitionStage    int
-	order              []int
 	expected           int
+	order              []int
+	extensions         map[uint16]bool
+	dhePms             *tlssl.DHEPms
 	keys               *tlssl.SessionKeys
 	specClient         cipherspec.CipherSpec
 	specServer         cipherspec.CipherSpec
-	completed          bool
-	extensions         map[uint16]bool
 }
 
 type xHandhsakeContext struct {
@@ -84,6 +85,8 @@ type HandShakeContext interface {
 	GetTransitionStage() int
 	SetExtension(uint16)
 	GetExtension(uint16) bool
+	SetDHEPms(*tlssl.DHEPms)
+	GetDHEPms() *tlssl.DHEPms
 	GetComms() net.Conn
 	Order() []int
 	AppendOrder(int) error
@@ -313,6 +316,14 @@ func (x *xHandhsakeContext) GetExtension(extID uint16) bool {
 	}
 
 	return false
+}
+
+func (x *xHandhsakeContext) SetDHEPms(pms *tlssl.DHEPms) {
+	x.data.dhePms = pms
+}
+
+func (x *xHandhsakeContext) GetDHEPms() *tlssl.DHEPms {
+	return x.data.dhePms
 }
 
 func (x *xHandhsakeContext) GetComms() net.Conn {

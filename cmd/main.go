@@ -36,9 +36,9 @@ func main() {
 		return
 	}
 
-	//curly(hearit)
+	curly(hearit)
 	//openssl(hearit)
-	fileDownload(hearit)
+	//fileDownload(hearit)
 	//custom(hearit)
 	//closing(hearit)
 }

@@ -34,12 +34,23 @@ func (x *xServerKeyExchange) Next() (int, error) {
 
 func (x *xServerKeyExchange) Handle() error {
 
+	dhePms, err := tlssl.NewDHEPms()
+	if err != nil {
+		return err
+	}
+
+	x.ctx.SetDHEPms(dhePms)
+	_, err = tlssl.EncodeDHE(dhePms)
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("ServerKeyExchange not implemented yet")
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 	} else {
 		x.nextState = SERVERHELLODONE
 	}
 
-	fmt.Println("I AM: ", x.Name())
 	return nil
 }
