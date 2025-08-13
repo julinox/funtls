@@ -1,49 +1,10 @@
 package extensions
 
-import "fmt"
+import (
+	"fmt"
 
-const (
-	// RFC 7919 - Finite Field Diffie-Hellman Ephemeral
-	FFDHE2048 = 0x0100
-	FFDHE3072 = 0x0101
-	FFDHE4096 = 0x0102
-	FFDHE6144 = 0x0103
-	FFDHE8192 = 0x0104
-
-	// RFC 7748 - Elliptic Curves
-	X25519 = 0x001D
-	X448   = 0x001E
-
-	// RFC 4492 / RFC 8422 - Named Curves
-	SECP256R1 = 0x0017
-	SECP384R1 = 0x0018
-	SECP521R1 = 0x0019
-
-	// RFC 3526 / RFC 7919 Appendix A - MODP Groups
-	MODP2048 = 0x000E
-	MODP3072 = 0x000F
-	MODP4096 = 0x0010
-	MODP6144 = 0x0011
-	MODP8192 = 0x0012
+	"github.com/julinox/funtls/tlssl/names"
 )
-
-var SupportedGroups = map[uint16]string{
-	0x000E: "modp2048",
-	0x000F: "modp3072",
-	0x0010: "modp4096",
-	0x0011: "modp6144",
-	0x0012: "modp8192",
-	0x0017: "secp256r1",
-	0x0018: "secp384r1",
-	0x0019: "secp521r1",
-	0x001D: "x25519",
-	0x001E: "x448",
-	0x0100: "ffdhe2048",
-	0x0101: "ffdhe3072",
-	0x0102: "ffdhe4096",
-	0x0103: "ffdhe6144",
-	0x0104: "ffdhe8192",
-}
 
 type ExtSupportedGroupsData struct {
 	Len    uint16
@@ -111,7 +72,7 @@ func (x *xExtSuppdGroups) PrintRaw(data []byte) string {
 
 	for i := 0; i < length; i++ {
 		id := uint16(data[offset])<<8 | uint16(data[offset+1])
-		grp := SupportedGroups[id]
+		grp := names.SupportedGroups[id]
 		if grp == "" {
 			grp = "*"
 		}

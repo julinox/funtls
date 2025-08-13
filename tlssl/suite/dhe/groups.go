@@ -4,6 +4,11 @@ import (
 	"math/big"
 )
 
+type dheGroup struct {
+	p *big.Int
+	g *big.Int
+}
+
 var ffdhe2048_g = []byte{0x02}
 
 var ffdhe2048_p = []byte{
@@ -62,3 +67,15 @@ var ffdhe2048_g_number = new(big.Int).SetBytes(ffdhe2048_g)
 var ffdhe2048_p_number = new(big.Int).SetBytes(ffdhe2048_p)
 var modp2048_g_number = new(big.Int).SetBytes(modp2048_g)
 var modp2048_p_number = new(big.Int).SetBytes(modp2048_p)
+
+// The groups supported by this implementation.
+var supportedGroupList = map[uint16]*dheGroup{
+	0x0100: &dheGroup{
+		p: ffdhe2048_p_number,
+		g: ffdhe2048_g_number,
+	},
+	0x000E: &dheGroup{
+		p: modp2048_p_number,
+		g: modp2048_g_number,
+	},
+}

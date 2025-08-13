@@ -20,6 +20,7 @@ import (
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -221,7 +222,7 @@ func algoToName(varr, algo uint16) string {
 		return fmt.Sprintf("%s(0x%04X)", suite.CipherSuiteNames[algo], algo)
 
 	case 0x000D:
-		return fmt.Sprintf("%s(0x%04X)", ex.SignHashAlgorithms[algo], algo)
+		return fmt.Sprintf("%s(0x%04X)", names.SignHashAlgorithms[algo], algo)
 	}
 
 	return "unknown_algorithm_name_or_type"

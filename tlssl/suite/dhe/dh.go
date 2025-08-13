@@ -8,39 +8,49 @@ import (
 )
 
 type DHEPms struct {
-	X *big.Int // private value
-	Y *big.Int // public value
+	P       *big.Int
+	G       *big.Int
+	Public  *big.Int
+	Private *big.Int
 }
 
-func NewDHEPms() (*DHEPms, error) {
+func NewDHEPms(ps []uint16) (*DHEPms, error) {
 
 	var err error
 	var newPms DHEPms
 
-	newPms.X, err = computePrivateDH()
+	newPms.Private, err = computePrivateDH()
 	if err != nil {
 		return nil, fmt.Errorf("computePrivateDH: %v", err)
 	}
 
-	newPms.Y = computePublicDH(newPms.X)
-	if newPms.Y == nil {
+	newPms.Public = computePublicDH(newPms.Private)
+	if newPms.Public == nil {
 		return nil, fmt.Errorf("computePublicDH returned nil")
 	}
 
-	return &newPms, nil
+	for _, p := range ps {
+		if pg, exists := supportedGroupList[p]; exists {
+			newPms.P = pg.p
+			newPms.G = pg.g
+			return &newPms, nil
+		}
+	}
+
+	return nil, fmt.Errorf("no supported group found for %v", ps)
 }
 
-func EncodeDHE(pms *DHEPms) ([]byte, error) {
+func (x *DHEPms) Encode() ([]byte, error) {
 
 	var buffer []byte
 
-	if pms == nil || pms.X == nil || pms.Y == nil {
+	if x.P == nil || x.G == nil || x.Private == nil || x.Public == nil {
 		return nil, fmt.Errorf("nil DHE parameters")
 	}
 
-	buffer = append(buffer, numberEncode(ffdhe2048_p_number)...)
-	buffer = append(buffer, numberEncode(ffdhe2048_g_number)...)
-	buffer = append(buffer, numberEncode(pms.Y)...)
+	buffer = append(buffer, numberEncode(x.P)...)
+	buffer = append(buffer, numberEncode(x.G)...)
+	buffer = append(buffer, numberEncode(x.Public)...)
 	if len(buffer) == 0 {
 		return nil, fmt.Errorf("encoded DHE parameters are empty")
 	}

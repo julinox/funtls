@@ -12,7 +12,7 @@ import (
 	"strings"
 
 	"github.com/julinox/funtls/systema"
-	ex "github.com/julinox/funtls/tlssl/extensions"
+	"github.com/julinox/funtls/tlssl/names"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
@@ -219,15 +219,15 @@ func (p *pki) setSignAlgoSupport() {
 	switch pub := p.certChain[0].PublicKey.(type) {
 	case *rsa.PublicKey:
 		// RSA PKCS1
-		p.saSupport[ex.RSA_PKCS1_SHA256] = true
-		p.saSupport[ex.RSA_PKCS1_SHA384] = true
-		p.saSupport[ex.RSA_PKCS1_SHA512] = true
+		p.saSupport[names.RSA_PKCS1_SHA256] = true
+		p.saSupport[names.RSA_PKCS1_SHA384] = true
+		p.saSupport[names.RSA_PKCS1_SHA512] = true
 
 		// RSA-PSS
 		if pub.Size() >= 256 {
-			p.saSupport[ex.RSA_PSS_RSAE_SHA256] = true
-			p.saSupport[ex.RSA_PSS_RSAE_SHA384] = true
-			p.saSupport[ex.RSA_PSS_RSAE_SHA512] = true
+			p.saSupport[names.RSA_PSS_RSAE_SHA256] = true
+			p.saSupport[names.RSA_PSS_RSAE_SHA384] = true
+			p.saSupport[names.RSA_PSS_RSAE_SHA512] = true
 		}
 	}
 }
@@ -329,7 +329,7 @@ func printSASupport(saSupport map[uint16]bool, separator string) string {
 	total := len(saSupport)
 	for sa, supported := range saSupport {
 		if supported {
-			result += ex.SignHashAlgorithms[sa]
+			result += names.SignHashAlgorithms[sa]
 			count++
 			if count < total {
 				result += separator

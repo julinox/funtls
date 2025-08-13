@@ -9,6 +9,7 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/cipherspec"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
 
@@ -265,7 +266,7 @@ func (x *xTLSConn) handleAlert(record []byte) {
 		x.peerClose = true
 		return
 	} else {
-		x.lg.Errorf("Received Alert: %v - %v", tlssl.TLSLevels[pt[0]],
-			tlssl.TLSAlerts[pt[1]])
+		x.lg.Errorf("Received Alert: %v - %v", names.TLSLevels[pt[0]],
+			names.TLSAlerts[pt[1]])
 	}
 }
