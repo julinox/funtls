@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl/names"
@@ -70,7 +71,7 @@ func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 	for _, p := range certs {
 		newPki, err := newMod.Load(p)
 		if err != nil {
-			newMod.lg.Error("error loading PKI: ", p.PathCert)
+			newMod.lg.Errorf("error loading PKI (%v): %v", p.PathCert, err)
 			continue
 		}
 
@@ -112,11 +113,18 @@ func (m *_xModCerts) Load(ptr *CertInfo) (*pki, error) {
 		return nil, fmt.Errorf("certificate and private key mismatch")
 	}
 
+	if err = certPreFlight(chain); err != nil {
+		return nil, fmt.Errorf("certificate pre-flight check failed: %w", err)
+	}
+
 	newPki.san = make(map[string]bool)
 	newPki.cn = chain[0].Subject.CommonName
 	newPki.key = key
 	newPki.certChain = chain
-	newPki.setSignAlgoSupport()
+	if err = newPki.setSignAlgoSupport(); err != nil {
+		return nil, err
+	}
+
 	newPki.san[newPki.cn] = true
 	for _, san := range chain[0].DNSNames {
 		newPki.san[san] = true
@@ -213,23 +221,59 @@ func (m *_xModCerts) Print() string {
 	return str
 }
 
-func (p *pki) setSignAlgoSupport() {
+// PKCS#1 v1.5 vs. RSA-PSS
+//
+// - PKCS#1 v1.5 (rsa_pkcs1_*): the "classic" RSA signature padding, widely used
+//   in TLS 1.2 and earlier.
+//
+// - RSA-PSS (rsa_pss_*): a modern RSA signature scheme (Probabilistic Signature
+//   Scheme). It adds randomized padding and is provably secure under stronger
+//   assumptions. Mandatory in TLS 1.3, optional in TLS 1.2.
+//
+// Public key type in the certificate defines what is possible:
+//
+// - If the certificate contains a normal RSA key (OID rsaEncryption):
+//   * It can be used with PKCS#1 v1.5 (rsa_pkcs1_*).
+//   * It can also be used with PSS (rsa_pss_rsae_*).
+//
+// - If the certificate contains an RSA-PSS key (OID rsassaPss):
+//   * It can only be used with PSS (rsa_pss_pss_*).
+//   * PKCS#1 v1.5 is not allowed.
+//
+// In other words, the cert itself does not declare "I am pkcs1" or "I am pss".
+// The cert just fixes the key type. From that, TLS derives which signature
+// schemes are valid.
+
+func (p *pki) setSignAlgoSupport() error {
 
 	p.saSupport = make(map[uint16]bool)
-	switch pub := p.certChain[0].PublicKey.(type) {
+	leaf := p.certChain[0]
+	if leaf == nil || leaf.PublicKey == nil {
+		return fmt.Errorf("invalid certificate or public key")
+	}
+
+	if leaf.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
+		return fmt.Errorf("certificate does not allow digital signatures")
+	}
+
+	switch pub := leaf.PublicKey.(type) {
 	case *rsa.PublicKey:
-		// RSA PKCS1
+		if pub.Size() < 128 {
+			return fmt.Errorf("RSA public key size less than 128 bytes")
+		}
+
 		p.saSupport[names.RSA_PKCS1_SHA256] = true
 		p.saSupport[names.RSA_PKCS1_SHA384] = true
 		p.saSupport[names.RSA_PKCS1_SHA512] = true
+		p.saSupport[names.RSA_PSS_RSAE_SHA256] = true
+		p.saSupport[names.RSA_PSS_RSAE_SHA384] = true
 
-		// RSA-PSS
-		if pub.Size() >= 256 {
-			p.saSupport[names.RSA_PSS_RSAE_SHA256] = true
-			p.saSupport[names.RSA_PSS_RSAE_SHA384] = true
+		if pub.Size() >= 130 {
 			p.saSupport[names.RSA_PSS_RSAE_SHA512] = true
 		}
 	}
+
+	return nil
 }
 
 func loadCertificate(path string) ([]*x509.Certificate, error) {
@@ -319,6 +363,69 @@ func validateKeyPair(cert *x509.Certificate, key crypto.PrivateKey) bool {
 	}
 
 	return false
+}
+
+func certPreFlight(chain []*x509.Certificate) error {
+
+	if len(chain) == 0 {
+		return fmt.Errorf("empty certificate chain")
+	}
+
+	leaf := chain[0]
+	if leaf == nil || leaf.PublicKey == nil {
+		return fmt.Errorf("invalid leaf certificate")
+	}
+
+	if leaf.IsCA {
+		return fmt.Errorf("leaf certificate is a CA certificate")
+	}
+
+	now := time.Now()
+	if now.Before(leaf.NotBefore) {
+		return fmt.Errorf("leaf certificate not valid yet")
+	}
+
+	if now.After(leaf.NotAfter) {
+		return fmt.Errorf("leaf certificate expired")
+	}
+
+	for i := 0; i+1 < len(chain); i++ {
+		child, parent := chain[i], chain[i+1]
+		if !parent.IsCA {
+			return fmt.Errorf("parent certificate is not a CA certificate")
+		}
+
+		if parent.KeyUsage != 0 &&
+			(parent.KeyUsage&x509.KeyUsageCertSign) == 0 {
+			return fmt.Errorf("parent certificate does not allow signing")
+		}
+
+		if now.Before(parent.NotBefore) || now.After(parent.NotAfter) {
+			return fmt.Errorf("intermediate '%v' not valid at current time",
+				parent.Subject.CommonName)
+		}
+
+		if err := child.CheckSignatureFrom(parent); err != nil {
+			return fmt.Errorf("bad signature: child %v ← parent %v: %v",
+				child.Subject.CommonName, parent.Subject.CommonName, err)
+		}
+	}
+
+	if len(leaf.ExtKeyUsage) > 0 {
+		ok := false
+		for _, eku := range leaf.ExtKeyUsage {
+			if eku == x509.ExtKeyUsageServerAuth {
+				ok = true
+				break
+			}
+		}
+
+		if !ok {
+			return fmt.Errorf("leaf doesn't have 'ExtKeyUsageServerAuth'")
+		}
+	}
+
+	return nil
 }
 
 func printSASupport(saSupport map[uint16]bool, separator string) string {

@@ -8,10 +8,12 @@ import (
 )
 
 type DHEPms struct {
-	P       *big.Int
-	G       *big.Int
-	Public  *big.Int
-	Private *big.Int
+	GroupID   uint16
+	GroupName string
+	P         *big.Int
+	G         *big.Int
+	Public    *big.Int
+	Private   *big.Int
 }
 
 func NewDHEPms(ps []uint16) (*DHEPms, error) {
@@ -33,6 +35,8 @@ func NewDHEPms(ps []uint16) (*DHEPms, error) {
 		if pg, exists := supportedGroupList[p]; exists {
 			newPms.P = pg.p
 			newPms.G = pg.g
+			newPms.GroupID = pg.id
+			newPms.GroupName = pg.name
 			return &newPms, nil
 		}
 	}
@@ -56,6 +60,12 @@ func (x *DHEPms) Encode() ([]byte, error) {
 	}
 
 	return buffer, nil
+}
+
+func (x *DHEPms) Name() string {
+
+	//switch x.
+	return ""
 }
 
 // Generates a private key for Diffie-Hellman key exchange

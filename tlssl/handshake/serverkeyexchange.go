@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl"
+	ex "github.com/julinox/funtls/tlssl/extensions"
+	"github.com/julinox/funtls/tlssl/suite/dhe"
 )
 
 type xServerKeyExchange struct {
@@ -34,17 +36,22 @@ func (x *xServerKeyExchange) Next() (int, error) {
 
 func (x *xServerKeyExchange) Handle() error {
 
-	/*dhePms, err := tlssl.NewDHEPms()
-	if err != nil {
-		return err
+	data := x.ctx.GetMsgHello().Extensions[0x000A]
+	if data == nil {
+		return fmt.Errorf("%v: no ServerKeyExchange data found", x.Name())
 	}
 
-	x.ctx.SetDHEPms(dhePms)
-	_, err = tlssl.EncodeDHE(dhePms)
-	if err != nil {
-		return err
-	}*/
+	rd, ok := data.(*ex.ExtSupportedGroupsData)
+	if !ok {
+		return fmt.Errorf("%v: invalid ServerKeyExchange data type", x.Name())
+	}
 
+	pp, err := dhe.NewDHEPms(rd.Groups)
+	if err != nil {
+		return fmt.Errorf("NewDHEPms (%v): %v", x.Name(), err)
+	}
+
+	x.tCtx.Lg.Infof("EL Grupo: %v", pp.GroupName)
 	return fmt.Errorf("ServerKeyExchange not implemented yet")
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST

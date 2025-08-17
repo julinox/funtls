@@ -2,11 +2,15 @@ package dhe
 
 import (
 	"math/big"
+
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 type dheGroup struct {
-	p *big.Int
-	g *big.Int
+	id   uint16
+	name string
+	p    *big.Int
+	g    *big.Int
 }
 
 var ffdhe2048_g = []byte{0x02}
@@ -70,12 +74,16 @@ var modp2048_p_number = new(big.Int).SetBytes(modp2048_p)
 
 // The groups supported by this implementation.
 var supportedGroupList = map[uint16]*dheGroup{
-	0x0100: &dheGroup{
-		p: ffdhe2048_p_number,
-		g: ffdhe2048_g_number,
+	names.FFDHE2048: {
+		id:   0x0100,
+		name: names.SupportedGroups[names.FFDHE2048],
+		p:    ffdhe2048_p_number,
+		g:    ffdhe2048_g_number,
 	},
-	0x000E: &dheGroup{
-		p: modp2048_p_number,
-		g: modp2048_g_number,
+	names.MODP2048: {
+		id:   0x000E,
+		name: names.SupportedGroups[names.MODP2048],
+		p:    modp2048_p_number,
+		g:    modp2048_g_number,
 	},
 }
