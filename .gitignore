@@ -1,6 +1,6 @@
 *.ignore
 certs/
-pki/
+pki*/
 .vscode
 *.key
 *.pem

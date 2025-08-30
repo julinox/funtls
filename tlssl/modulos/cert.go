@@ -6,6 +6,8 @@ import (
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -262,6 +264,11 @@ func (p *pki) setSignAlgoSupport() error {
 			return fmt.Errorf("RSA public key size less than 128 bytes")
 		}
 
+		if isRSAPSSPublicKey(leaf.RawSubjectPublicKeyInfo) {
+			fmt.Println("---------------------- ES PSSSSSS ------------------")
+			return fmt.Errorf("RSA-PSS public key found, but RSA-PSS is not supported in this implementation")
+		}
+
 		p.saSupport[names.RSA_PKCS1_SHA256] = true
 		p.saSupport[names.RSA_PKCS1_SHA384] = true
 		p.saSupport[names.RSA_PKCS1_SHA512] = true
@@ -426,6 +433,21 @@ func certPreFlight(chain []*x509.Certificate) error {
 	}
 
 	return nil
+}
+
+func isRSAPSSPublicKey(spki []byte) bool {
+
+	pss := asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 10}
+	var aux struct {
+		Algo   pkix.AlgorithmIdentifier
+		BitStr asn1.BitString
+	}
+
+	if _, err := asn1.Unmarshal(spki, &aux); err != nil {
+		return false
+	}
+
+	return aux.Algo.Algorithm.Equal(pss)
 }
 
 func printSASupport(saSupport map[uint16]bool, separator string) string {
