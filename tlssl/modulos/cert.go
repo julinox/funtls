@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/julinox/funtls/systema"
+	fcrypto "github.com/julinox/funtls/tlssl/crypto"
 	"github.com/julinox/funtls/tlssl/names"
 
 	"github.com/sirupsen/logrus"
@@ -106,12 +107,12 @@ func (m *_xModCerts) Load(ptr *CertInfo) (*pki, error) {
 		return nil, fmt.Errorf("no certificate found")
 	}
 
-	key, err := loadPrivateKey(ptr.PathKey)
+	key, err := loadPrivateKey2(ptr.PathKey)
 	if err != nil {
 		return nil, err
 	}
 
-	if !validateKeyPair(chain[0], key) {
+	if !validateKeyPair(chain[0], key.PrivKey) {
 		return nil, fmt.Errorf("certificate and private key mismatch")
 	}
 
@@ -314,6 +315,30 @@ func loadCertificate(path string) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
+func loadPrivateKey2(path string) (*fcrypto.PrivateKey, error) {
+
+	if path == "nil" {
+		return nil, fmt.Errorf("empty path")
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	block, _ := pem.Decode(data)
+	if block == nil {
+		return nil, fmt.Errorf("failed to parse PEM block")
+	}
+
+	kk, err := fcrypto.ParsePKCS8PrivateKeyPSS(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return kk, nil
+}
+
 func loadPrivateKey(path string) (crypto.PrivateKey, error) {
 
 	if path == "" {
@@ -363,6 +388,9 @@ func validateKeyPair(cert *x509.Certificate, key crypto.PrivateKey) bool {
 
 	switch keyT := key.(type) {
 	case *rsa.PrivateKey:
+		//fmt.Printf("%x\n", keyT.PublicKey)
+		//fmt.Println()
+		fmt.Printf("%x\n", cert.PublicKey)
 		return keyT.PublicKey.Equal(cert.PublicKey)
 
 	case *ecdsa.PrivateKey:

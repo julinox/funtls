@@ -25,7 +25,7 @@
 // necessary, and performs strict validation on parameters (e.g., ensuring that
 // algorithm parameters are NULL where required).
 
-package tlssl
+package crypto
 
 import (
 	"crypto/x509"
@@ -52,9 +52,14 @@ type PssParams struct {
 	TrailerField         int
 }
 
-type PKCS8PSSKey struct {
+/*type PKCS8PSSKeyy struct {
 	PrivateKey any
 	Pss        *PssParams
+}*/
+
+type PrivateKey struct {
+	PrivKey any
+	PSS     *PssParams
 }
 
 type AlgorithmIdentifier struct {
@@ -75,10 +80,11 @@ type pkcs8 struct {
 	PrivateKey []byte
 }
 
-func ParsePKCS8PrivateKeyPSS(data []byte) (*PKCS8PSSKey, error) {
+// func ParsePKCS8PrivateKeyPSS(data []byte) (*PKCS8PSSKey, error) {
+func ParsePKCS8PrivateKeyPSS(data []byte) (*PrivateKey, error) {
 
 	var p8 pkcs8
-	var key PKCS8PSSKey
+	var key PrivateKey
 	var asn1Pss asn1PSSParams
 
 	_, err := asn1.Unmarshal(data, &p8)
@@ -87,24 +93,24 @@ func ParsePKCS8PrivateKeyPSS(data []byte) (*PKCS8PSSKey, error) {
 	}
 
 	if !p8.Algo.Algorithm.Equal(oidRSAPSS) {
-		key.PrivateKey, err = x509.ParsePKCS8PrivateKey(data)
+		key.PrivKey, err = x509.ParsePKCS8PrivateKey(data)
 		if err != nil {
 			return nil, err
 		}
 
-		key.Pss = nil
+		key.PSS = nil
 		return &key, nil
 	}
 
 	err = nil
-	key.PrivateKey, err = x509.ParsePKCS1PrivateKey(p8.PrivateKey)
+	key.PrivKey, err = x509.ParsePKCS1PrivateKey(p8.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
 
 	// Lets get PSS params
 	if len(p8.Algo.Parameters.FullBytes) == 0 {
-		key.Pss = &PssParams{
+		key.PSS = &PssParams{
 			HashAlgorithm:        oidSHA1,
 			MaskGenAlgorithm:     oidMGF1,
 			MaskGenAlgorithmHash: oidSHA1,
@@ -120,7 +126,7 @@ func ParsePKCS8PrivateKeyPSS(data []byte) (*PKCS8PSSKey, error) {
 		return nil, err
 	}
 
-	key.Pss, err = setPssParams(&asn1Pss)
+	key.PSS, err = setPssParams(&asn1Pss)
 	if err != nil {
 		return nil, err
 	}

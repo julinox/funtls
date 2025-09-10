@@ -10,17 +10,28 @@ import (
 	"time"
 
 	"github.com/julinox/funtls/server"
+	fcrypto "github.com/julinox/funtls/tlssl/crypto"
 	"github.com/julinox/funtls/tlssl/modulos"
 )
 
 func main() {
+
+	gg := "/data/seagate/codigo/golang/workspace/funtls/cmd/pki2/server1chain.pem"
+	_, err := fcrypto.POe(gg)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+}
+
+func main2() {
 
 	lg := server.InitDefaultLogger()
 	srv, err := server.FunTLServe(&server.FunTLSCfg{
 		Logger: lg,
 		Certs: []*modulos.CertInfo{
 			{
-				PathCert: "./pki2/server1chain.pem",
+				PathCert: "./pki/server1chain.pem",
 				PathKey:  "./pki2/server1key.pem",
 			},
 		},
