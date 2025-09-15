@@ -3,7 +3,6 @@ package modulos
 import (
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -107,7 +106,7 @@ func (m *_xModCerts) Load(ptr *CertInfo) (*pki, error) {
 		return nil, fmt.Errorf("no certificate found")
 	}
 
-	key, err := loadPrivateKey2(ptr.PathKey)
+	key, err := loadPrivateKey(ptr.PathKey)
 	if err != nil {
 		return nil, err
 	}
@@ -229,10 +228,24 @@ func (m *_xModCerts) Print() string {
 // - PKCS#1 v1.5 (rsa_pkcs1_*): the "classic" RSA signature padding, widely used
 //   in TLS 1.2 and earlier.
 //
-// - RSA-PSS (rsa_pss_*): a modern RSA signature scheme (Probabilistic Signature
-//   Scheme). It adds randomized padding and is provably secure under stronger
-//   assumptions. Mandatory in TLS 1.3, optional in TLS 1.2.
+// - RSA-PSS (rsa_pss_*): a modern RSA signature scheme (Probabilistic
+//   Signature Scheme). It adds randomized padding and is provably secure
+//   under stronger assumptions. Mandatory in TLS 1.3, optional in TLS 1.2.
 //
+// A PSS certificate explicitly declares that the key must be used only for
+// RSA-PSS signatures, and includes exact PSS parameters: hash algorithm,
+// MGF1, hash, salt length, etc.
+//
+// In contrast, a "normal" RSA certificate does not include any parameters
+// and does not specify any signature scheme — it can be used with either
+// PKCS#1 v1.5 or PSS, and when PSS is used the choice of parameters is
+// deferred to the protocol (e.g., TLS).
+
+// Both certificates may contain structurally identical RSA keys (modulus + exponent).
+// The difference lies purely in intent and constraints declared in the certificate.
+// While applications are expected to enforce these usage rules, nothing cryptographically
+// prevents extracting the key and using it for encryption or non-PSS signing.
+
 // Public key type in the certificate defines what is possible:
 //
 // - If the certificate contains a normal RSA key (OID rsaEncryption):
@@ -242,10 +255,6 @@ func (m *_xModCerts) Print() string {
 // - If the certificate contains an RSA-PSS key (OID rsassaPss):
 //   * It can only be used with PSS (rsa_pss_pss_*).
 //   * PKCS#1 v1.5 is not allowed.
-//
-// In other words, the cert itself does not declare "I am pkcs1" or "I am pss".
-// The cert just fixes the key type. From that, TLS derives which signature
-// schemes are valid.
 
 func (p *pki) setSignAlgoSupport() error {
 
@@ -266,8 +275,7 @@ func (p *pki) setSignAlgoSupport() error {
 		}
 
 		if isRSAPSSPublicKey(leaf.RawSubjectPublicKeyInfo) {
-			fmt.Println("---------------------- ES PSSSSSS ------------------")
-			return fmt.Errorf("RSA-PSS public key found, but RSA-PSS is not supported in this implementation")
+			return fmt.Errorf("RSA-PSS public key found (not supported)")
 		}
 
 		p.saSupport[names.RSA_PKCS1_SHA256] = true
@@ -301,7 +309,8 @@ func loadCertificate(path string) ([]*x509.Certificate, error) {
 		}
 
 		if block.Type == "CERTIFICATE" {
-			cert, err := x509.ParseCertificate(block.Bytes)
+			//cert, err := x509.ParseCertificate(block.Bytes)
+			cert, err := fcrypto.ParseCertificatePSS(block.Bytes)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse certificate: %w", err)
 			}
@@ -315,7 +324,9 @@ func loadCertificate(path string) ([]*x509.Certificate, error) {
 	return certs, nil
 }
 
-func loadPrivateKey2(path string) (*fcrypto.PrivateKey, error) {
+func loadPrivateKey(path string) (*fcrypto.PrivateKey, error) {
+
+	var pKey *fcrypto.PrivateKey
 
 	if path == "nil" {
 		return nil, fmt.Errorf("empty path")
@@ -331,53 +342,23 @@ func loadPrivateKey2(path string) (*fcrypto.PrivateKey, error) {
 		return nil, fmt.Errorf("failed to parse PEM block")
 	}
 
-	kk, err := fcrypto.ParsePKCS8PrivateKeyPSS(block.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	return kk, nil
-}
-
-func loadPrivateKey(path string) (crypto.PrivateKey, error) {
-
-	if path == "" {
-		return nil, fmt.Errorf("empty path")
-	}
-
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-
-	block, _ := pem.Decode(data)
-	if block == nil {
-		return nil, fmt.Errorf("failed to parse PEM block")
-	}
-
 	switch block.Type {
 	case "RSA PRIVATE KEY":
-		return x509.ParsePKCS1PrivateKey(block.Bytes)
-
 	case "EC PRIVATE KEY":
-		return x509.ParseECPrivateKey(block.Bytes)
-
 	case "PRIVATE KEY":
-		key, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-		if err != nil {
-			return nil, err
-		}
+		//pKey.PrivKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+		//pKey.PrivKey, err = x509.ParseECPrivateKey(block.Bytes)
+		pKey, err = fcrypto.ParsePKCS8PrivateKeyPSS(block.Bytes)
 
-		switch key := key.(type) {
-		case *rsa.PrivateKey, *ecdsa.PrivateKey, ed25519.PrivateKey:
-			return key, nil
-
-		default:
-			return nil, fmt.Errorf("unknown private key type")
-		}
+	default:
+		return nil, fmt.Errorf("unsupported private key type: %s", block.Type)
 	}
 
-	return nil, fmt.Errorf("unsupported private key type: %s", block.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	return pKey, nil
 }
 
 func validateKeyPair(cert *x509.Certificate, key crypto.PrivateKey) bool {
@@ -388,9 +369,6 @@ func validateKeyPair(cert *x509.Certificate, key crypto.PrivateKey) bool {
 
 	switch keyT := key.(type) {
 	case *rsa.PrivateKey:
-		//fmt.Printf("%x\n", keyT.PublicKey)
-		//fmt.Println()
-		fmt.Printf("%x\n", cert.PublicKey)
 		return keyT.PublicKey.Equal(cert.PublicKey)
 
 	case *ecdsa.PrivateKey:

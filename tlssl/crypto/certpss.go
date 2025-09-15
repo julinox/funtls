@@ -16,21 +16,14 @@ type SubjectPublicKeyInfo struct {
 type TbsCert struct {
 	Version      asn1.RawValue `asn1:"optional,tag:0,explicit"`
 	SerialNumber asn1.RawValue
-	//Signature    asn1.RawValue
-	Signature AlgorithmIdentifier
-	Issuer    asn1.RawValue
-	Validity  asn1.RawValue
-	Subject   asn1.RawValue
-	SubPKInfo SubjectPublicKeyInfo
+	Signature    AlgorithmIdentifier
+	Issuer       asn1.RawValue
+	Validity     asn1.RawValue
+	Subject      asn1.RawValue
+	SubPKInfo    SubjectPublicKeyInfo
 }
 
-type x509Cert struct {
-	Tbs     TbsCert
-	SigAlgo asn1.RawValue
-	SigVal  asn1.RawValue
-}
-
-func POe(path string) (any, error) {
+func ParseCertificate1(path string) (any, error) {
 
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -48,7 +41,6 @@ func POe(path string) (any, error) {
 
 	_, err = ParseCertificatePSS(block.Bytes)
 	if err != nil {
-		fmt.Println("Error parsing certificate:", err)
 		return nil, err
 	}
 
@@ -57,8 +49,6 @@ func POe(path string) (any, error) {
 
 func ParseCertificatePSS(der []byte) (*x509.Certificate, error) {
 
-	//var pk rsa.PublicKey
-	//var auxCert x509Cert
 	var newCert *x509.Certificate
 	var spk SubjectPublicKeyInfo
 
@@ -73,31 +63,12 @@ func ParseCertificatePSS(der []byte) (*x509.Certificate, error) {
 
 	_, err = asn1.Unmarshal(newCert.RawSubjectPublicKeyInfo, &spk)
 	if err != nil {
-		fmt.Println("Error unmarshaling SPKI:", err)
-		return nil, err
+		return nil, fmt.Errorf("error unmarshaling SPKI: %v", err)
 	}
 
 	if !spk.Algo.Algorithm.Equal(oidRSAPSS) {
-		return newCert, nil
+		return newCert, fmt.Errorf("Unsupported public key algorithm")
 	}
 
-	fmt.Printf("Cert uses RSA-PSS with params: %v\n", spk.Algo.Parameters)
-	fmt.Printf("spki1: %x\n", spk.Algo.Algorithm)
-	fmt.Printf("spki2: %x\n", oidRSAPSS)
-	/*fmt.Printf("ADSA %v\n", newCert.PublicKeyAlgorithm)
-	fmt.Printf("%x\n", newCert.RawSubjectPublicKeyInfo)
-	dataCopy := make([]byte, len(der))
-	copy(dataCopy, der)
-	_, err = asn1.Unmarshal(dataCopy, &auxCert)
-	if err != nil {
-		return nil, err
-	}
-
-	pkk := auxCert.Tbs.SubPKInfo.SubjectPublicKeyBit.Bytes
-	_, err = asn1.Unmarshal(pkk, &pk)
-	if err != nil {
-		return nil, err
-	}*/
-
-	return newCert, nil
+	return nil, fmt.Errorf("Actually, PSS certs not supported")
 }

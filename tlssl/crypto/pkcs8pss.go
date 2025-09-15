@@ -52,11 +52,6 @@ type PssParams struct {
 	TrailerField         int
 }
 
-/*type PKCS8PSSKeyy struct {
-	PrivateKey any
-	Pss        *PssParams
-}*/
-
 type PrivateKey struct {
 	PrivKey any
 	PSS     *PssParams

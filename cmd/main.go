@@ -14,17 +14,17 @@ import (
 	"github.com/julinox/funtls/tlssl/modulos"
 )
 
-func main() {
+func main3() {
 
 	gg := "/data/seagate/codigo/golang/workspace/funtls/cmd/pki2/server1chain.pem"
-	_, err := fcrypto.POe(gg)
+	_, err := fcrypto.ParseCertificate1(gg)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 }
 
-func main2() {
+func main() {
 
 	lg := server.InitDefaultLogger()
 	srv, err := server.FunTLServe(&server.FunTLSCfg{
@@ -32,7 +32,7 @@ func main2() {
 		Certs: []*modulos.CertInfo{
 			{
 				PathCert: "./pki/server1chain.pem",
-				PathKey:  "./pki2/server1key.pem",
+				PathKey:  "./pki/server1key.pem",
 			},
 		},
 	})
