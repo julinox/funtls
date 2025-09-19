@@ -16,25 +16,21 @@ import (
 	"github.com/julinox/funtls/systema"
 	fcrypto "github.com/julinox/funtls/tlssl/crypto"
 	"github.com/julinox/funtls/tlssl/names"
+	"github.com/julinox/funtls/tlssl/suite"
 
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 )
 
-type ModCerts interface {
-	Name() string
-	Print() string
-	CNs() []string
-	Load(*CertInfo) (*pki, error)
-	Get(string) *x509.Certificate
-	GetCertChain(string) []*x509.Certificate
-	GetByCriteria(uint16, string) *x509.Certificate
-	GetCertKey(*x509.Certificate) crypto.PrivateKey
-}
-
 type CertInfo struct {
 	PathCert string
 	PathKey  string
+}
+
+type CertOpts struct {
+	Sni         string
+	Sa          uint16
+	CipherSuite uint16
 }
 
 type pki struct {
@@ -45,9 +41,80 @@ type pki struct {
 	certChain []*x509.Certificate // 0 is the leaf
 }
 
+type ModCerts interface {
+	Name() string
+	Print() string
+	CNs() []string
+	Load(*CertInfo) (*pki, error)
+	Get(string) *x509.Certificate
+	GetB(*CertOpts) (*x509.Certificate, error)
+	GetCertChain(string) []*x509.Certificate
+	GetByCriteria(uint16, string) *x509.Certificate
+	GetCertKey(*x509.Certificate) crypto.PrivateKey
+}
+
 type _xModCerts struct {
 	lg     *logrus.Logger
 	pkInfo []*pki
+}
+
+type kxSign struct {
+	Kx  uint16
+	Sig uint16
+}
+
+func pepitos(cs uint16) (*kxSign, error) {
+
+	var kxs kxSign
+
+	val, ok := suite.CipherSuiteNames[cs]
+	if !ok || val == "" {
+		return nil, fmt.Errorf("unknown cipher suite: 0x%04X", cs)
+	}
+
+	parts := strings.Split(val, "_WITH_")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid cipher suite format: %s", val)
+	}
+
+	parts = strings.Split(parts[0], "_")
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("invalid cipher suite format: %s", val)
+	}
+
+	kx := parts[1]
+	sig := parts[1]
+	if len(parts) > 2 {
+		sig = parts[2]
+	}
+
+	switch kx {
+	case "RSA":
+		kxs.Kx = names.KX_RSA
+	case "DHE":
+		kxs.Kx = names.KX_DHE
+	case "DH":
+		kxs.Kx = names.KX_DH
+	case "ECDHE":
+		kxs.Kx = names.KX_ECDHE
+	case "ECDH":
+		kxs.Kx = names.KX_ECDH
+	default:
+		return nil, fmt.Errorf("unknown key exchange algorithm: %s", kx)
+	}
+
+	switch sig {
+	case "RSA":
+		kxs.Sig = names.SIG_RSA
+	case "DSS":
+		kxs.Sig = names.SIG_DSS
+	case "ECDSA":
+		kxs.Sig = names.SIG_ECDSA
+	default:
+		return nil, fmt.Errorf("unknown signature algorithm: %s", sig)
+	}
+
+	return &kxs, nil
 }
 
 // Load all certificates and private keys
@@ -87,6 +154,24 @@ func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 	}
 
 	return &newMod, nil
+}
+
+func (m *_xModCerts) GetB(opts *CertOpts) (*x509.Certificate, error) {
+
+	var err error
+	var xks *kxSign
+
+	if opts == nil || opts.CipherSuite == 0 {
+		return nil, fmt.Errorf("invalid cert options")
+	}
+
+	xks, err = pepitos(opts.CipherSuite)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("%v | %v\n", xks.Kx, xks.Sig)
+	return nil, fmt.Errorf("not implemented GETB")
 }
 
 func (m *_xModCerts) Name() string {
@@ -283,7 +368,6 @@ func (p *pki) setSignAlgoSupport() error {
 		p.saSupport[names.RSA_PKCS1_SHA512] = true
 		p.saSupport[names.RSA_PSS_RSAE_SHA256] = true
 		p.saSupport[names.RSA_PSS_RSAE_SHA384] = true
-
 		if pub.Size() >= 130 {
 			p.saSupport[names.RSA_PSS_RSAE_SHA512] = true
 		}

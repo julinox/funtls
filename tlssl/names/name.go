@@ -1,6 +1,20 @@
 package names
 
 const (
+	KX_RSA = iota + 1
+	KX_DHE
+	KX_DH
+	KX_ECDHE
+	KX_ECDH
+)
+
+const (
+	SIG_RSA = iota + 10
+	SIG_DSS
+	SIG_ECDSA
+)
+
+const (
 	ECDSA_SECP256R1_SHA256 = 0x0403
 	ECDSA_SECP384R1_SHA384 = 0x0503
 	ECDSA_SECP521R1_SHA512 = 0x0603

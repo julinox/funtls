@@ -71,6 +71,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 
 	fun.tCtx.Exts = initExtensions(fun.tCtx.Lg)
 	fun.tCtx.OptClientAuth = initClientAuthOpt()
+	cfg.ListeningPort = os.Getenv(_ENV_LISTENING_PORT_)
 	if cfg.ListeningPort == "" {
 		cfg.ListeningPort = _DEFAULT_PORT_
 	}

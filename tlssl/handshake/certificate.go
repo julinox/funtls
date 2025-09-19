@@ -73,6 +73,11 @@ func (x *xCertificate) certificateServer() error {
 	cNames = append(cNames, getClientSAN(helloMsg.Extensions[0x0000])...)
 	saAlgos := getClientSuppAlgos(helloMsg.Extensions[0x000D])
 
+	_, err := x.tCtx.Certs.GetB(nil)
+	if err != nil {
+		return fmt.Errorf("no certificates loaded(%v): %v", x.Name(), err)
+	}
+
 	// Brute force. Why ???
 	// Might return multiples choices? Dont remember why
 	for _, cn := range cNames {
