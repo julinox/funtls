@@ -15,6 +15,32 @@ const (
 )
 
 const (
+	CIPHER_AES = iota + 20
+	CIPHER_CHACHA20
+	CIPHER_3DES
+	CIPHER_RC4
+)
+
+const (
+	MAC_HMAC = iota + 30
+	MAC_AEAD
+)
+
+const (
+	HASH_SHA1 = iota + 40
+	HASH_SHA256
+	HASH_SHA384
+	HASH_SHA512
+	HASH_MD5
+)
+
+const (
+	CIPHER_STREAM = iota + 50
+	CIPHER_CBC
+	CIPHER_AEAD
+)
+
+const (
 	ECDSA_SECP256R1_SHA256 = 0x0403
 	ECDSA_SECP384R1_SHA384 = 0x0503
 	ECDSA_SECP521R1_SHA512 = 0x0603
@@ -29,6 +55,11 @@ const (
 	RSA_PSS_RSAE_SHA256    = 0x0804
 	RSA_PSS_RSAE_SHA384    = 0x0805
 	RSA_PSS_RSAE_SHA512    = 0x0806
+	SHA224_ECDSA           = 0x0303
+	SHA224_RSA             = 0x0301
+	SHA224_DSA             = 0x0301
+	SHA384_DSA             = 0x0502
+	SHA512_DSA             = 0x0602
 )
 
 const (
@@ -89,6 +120,8 @@ var SignHashAlgorithms = map[uint16]string{
 	RSA_PKCS1_SHA256:       "rsa_pkcs1_sha256",
 	RSA_PKCS1_SHA384:       "rsa_pkcs1_sha384",
 	RSA_PKCS1_SHA512:       "rsa_pkcs1_sha512",
+	SHA224_ECDSA:           "sha224_ecdsa",
+	SHA224_RSA:             "sha224_rsa",
 }
 
 var TLSAlerts = map[uint8]string{

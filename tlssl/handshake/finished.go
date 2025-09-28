@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl"
-	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 const _VERIFY_DATA_LABEL_CLIENT = "client finished"
@@ -198,7 +198,7 @@ func (x *xFinished) calculateVD(hskMsgs []byte, label string) ([]byte, error) {
 		return nil, fmt.Errorf("error getting TLS Suite(%v)", x.Name())
 	}
 
-	keyMake, err := tlssl.NewKeymaker(suite.SHA256, 32)
+	keyMake, err := tlssl.NewKeymaker(names.HASH_SHA256, 32)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Keymaker(%v)", x.Name())
 	}

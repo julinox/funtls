@@ -5,6 +5,7 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/cipherspec"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -117,7 +118,7 @@ func (x *xChangeCipherSpec) masterSecreto() error {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
 
-	keyMaker, err := tlssl.NewKeymaker(suite.SHA256, _MASTER_SECRET_SIZE_)
+	keyMaker, err := tlssl.NewKeymaker(names.HASH_SHA256, _MASTER_SECRET_SIZE_)
 	if err != nil {
 		return fmt.Errorf("NewKeymaker error(%v): %v", x.Name(), err)
 	}
@@ -161,7 +162,7 @@ func (x *xChangeCipherSpec) sessionKeys() error {
 	}
 
 	blockLen := 2 * (stInfo.KeySizeHMAC + stInfo.KeySize + stInfo.IVSize)
-	kMake, err := tlssl.NewKeymaker(suite.SHA256, blockLen)
+	kMake, err := tlssl.NewKeymaker(names.HASH_SHA256, blockLen)
 	if err != nil {
 		return fmt.Errorf("nil Keymaker object(%v)", x.Name())
 	}

@@ -3,6 +3,7 @@ package modulos
 import (
 	"crypto"
 	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rsa"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -17,7 +18,6 @@ import (
 	fcrypto "github.com/julinox/funtls/tlssl/crypto"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
-
 	"github.com/sirupsen/logrus"
 	"golang.org/x/exp/maps"
 )
@@ -28,9 +28,9 @@ type CertInfo struct {
 }
 
 type CertOpts struct {
-	Sni         string
-	Sa          uint16
-	CipherSuite uint16
+	Sni    string
+	SA     []uint16
+	CsInfo *suite.SuiteInfo
 }
 
 type pki struct {
@@ -47,7 +47,7 @@ type ModCerts interface {
 	CNs() []string
 	Load(*CertInfo) (*pki, error)
 	Get(string) *x509.Certificate
-	GetB(*CertOpts) (*x509.Certificate, error)
+	GetHSCert(*CertOpts) (*x509.Certificate, error)
 	GetCertChain(string) []*x509.Certificate
 	GetByCriteria(uint16, string) *x509.Certificate
 	GetCertKey(*x509.Certificate) crypto.PrivateKey
@@ -56,65 +56,6 @@ type ModCerts interface {
 type _xModCerts struct {
 	lg     *logrus.Logger
 	pkInfo []*pki
-}
-
-type kxSign struct {
-	Kx  uint16
-	Sig uint16
-}
-
-func pepitos(cs uint16) (*kxSign, error) {
-
-	var kxs kxSign
-
-	val, ok := suite.CipherSuiteNames[cs]
-	if !ok || val == "" {
-		return nil, fmt.Errorf("unknown cipher suite: 0x%04X", cs)
-	}
-
-	parts := strings.Split(val, "_WITH_")
-	if len(parts) != 2 {
-		return nil, fmt.Errorf("invalid cipher suite format: %s", val)
-	}
-
-	parts = strings.Split(parts[0], "_")
-	if len(parts) < 2 {
-		return nil, fmt.Errorf("invalid cipher suite format: %s", val)
-	}
-
-	kx := parts[1]
-	sig := parts[1]
-	if len(parts) > 2 {
-		sig = parts[2]
-	}
-
-	switch kx {
-	case "RSA":
-		kxs.Kx = names.KX_RSA
-	case "DHE":
-		kxs.Kx = names.KX_DHE
-	case "DH":
-		kxs.Kx = names.KX_DH
-	case "ECDHE":
-		kxs.Kx = names.KX_ECDHE
-	case "ECDH":
-		kxs.Kx = names.KX_ECDH
-	default:
-		return nil, fmt.Errorf("unknown key exchange algorithm: %s", kx)
-	}
-
-	switch sig {
-	case "RSA":
-		kxs.Sig = names.SIG_RSA
-	case "DSS":
-		kxs.Sig = names.SIG_DSS
-	case "ECDSA":
-		kxs.Sig = names.SIG_ECDSA
-	default:
-		return nil, fmt.Errorf("unknown signature algorithm: %s", sig)
-	}
-
-	return &kxs, nil
 }
 
 // Load all certificates and private keys
@@ -145,8 +86,9 @@ func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 		}
 
 		newMod.pkInfo = append(newMod.pkInfo, newPki)
-		newMod.lg.Infof("Certificate loaded: %s",
-			newPki.certChain[0].Subject.CommonName)
+		newMod.lg.Infof("Certificate loaded: %s (PKA: %s)",
+			newPki.certChain[0].Subject.CommonName,
+			newPki.certChain[0].PublicKeyAlgorithm.String())
 	}
 
 	if len(newMod.pkInfo) <= 0 {
@@ -156,22 +98,26 @@ func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 	return &newMod, nil
 }
 
-func (m *_xModCerts) GetB(opts *CertOpts) (*x509.Certificate, error) {
+// Match certificate by CipherSuite, SNI and Signature Algorithm
+func (m *_xModCerts) GetHSCert(opts *CertOpts) (*x509.Certificate, error) {
 
-	var err error
-	var xks *kxSign
+	var certo *x509.Certificate
 
-	if opts == nil || opts.CipherSuite == 0 {
-		return nil, fmt.Errorf("invalid cert options")
+	for _, i := range m.pkInfo {
+		if getHSCertKX(opts.CsInfo, i.certChain[0]) &&
+			getHSCertSign(opts.CsInfo, i.certChain[0]) &&
+			getHSCertSni(opts.Sni, i.certChain[0]) {
+			for _, sa := range opts.SA {
+				fmt.Printf("%v | %v\n", names.SignHashAlgorithms[sa],
+					i.saSupport[sa])
+
+			}
+			certo = i.certChain[0]
+			break
+		}
 	}
 
-	xks, err = pepitos(opts.CipherSuite)
-	if err != nil {
-		return nil, err
-	}
-
-	fmt.Printf("%v | %v\n", xks.Kx, xks.Sig)
-	return nil, fmt.Errorf("not implemented GETB")
+	return certo, nil
 }
 
 func (m *_xModCerts) Name() string {
@@ -206,7 +152,7 @@ func (m *_xModCerts) Load(ptr *CertInfo) (*pki, error) {
 
 	newPki.san = make(map[string]bool)
 	newPki.cn = chain[0].Subject.CommonName
-	newPki.key = key
+	newPki.key = key.PrivKey
 	newPki.certChain = chain
 	if err = newPki.setSignAlgoSupport(); err != nil {
 		return nil, err
@@ -334,13 +280,12 @@ func (m *_xModCerts) Print() string {
 // Public key type in the certificate defines what is possible:
 //
 // - If the certificate contains a normal RSA key (OID rsaEncryption):
-//   * It can be used with PKCS#1 v1.5 (rsa_pkcs1_*).
-//   * It can also be used with PSS (rsa_pss_rsae_*).
+//   - It can be used with PKCS#1 v1.5 (rsa_pkcs1_*).
+//   - It can also be used with PSS (rsa_pss_rsae_*).
 //
 // - If the certificate contains an RSA-PSS key (OID rsassaPss):
-//   * It can only be used with PSS (rsa_pss_pss_*).
-//   * PKCS#1 v1.5 is not allowed.
-
+//   - It can only be used with PSS (rsa_pss_pss_*).
+//   - PKCS#1 v1.5 is not allowed.
 func (p *pki) setSignAlgoSupport() error {
 
 	p.saSupport = make(map[uint16]bool)
@@ -349,18 +294,19 @@ func (p *pki) setSignAlgoSupport() error {
 		return fmt.Errorf("invalid certificate or public key")
 	}
 
-	if leaf.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
-		return fmt.Errorf("certificate does not allow digital signatures")
-	}
-
-	switch pub := leaf.PublicKey.(type) {
-	case *rsa.PublicKey:
-		if pub.Size() < 128 {
-			return fmt.Errorf("RSA public key size less than 128 bytes")
-		}
-
+	switch leaf.PublicKeyAlgorithm {
+	case x509.RSA:
 		if isRSAPSSPublicKey(leaf.RawSubjectPublicKeyInfo) {
 			return fmt.Errorf("RSA-PSS public key found (not supported)")
+		}
+
+		aux, ok := leaf.PublicKey.(*rsa.PublicKey)
+		if !ok {
+			return fmt.Errorf("invalid RSA public key type")
+		}
+
+		if aux.Size() < 128 {
+			return fmt.Errorf("RSA public key size less than 128 bytes")
 		}
 
 		p.saSupport[names.RSA_PKCS1_SHA256] = true
@@ -368,8 +314,24 @@ func (p *pki) setSignAlgoSupport() error {
 		p.saSupport[names.RSA_PKCS1_SHA512] = true
 		p.saSupport[names.RSA_PSS_RSAE_SHA256] = true
 		p.saSupport[names.RSA_PSS_RSAE_SHA384] = true
-		if pub.Size() >= 130 {
-			p.saSupport[names.RSA_PSS_RSAE_SHA512] = true
+		p.saSupport[names.RSA_PSS_RSAE_SHA512] = true
+		p.saSupport[names.SHA224_RSA] = true
+
+	case x509.DSA:
+		p.saSupport[names.SHA224_DSA] = true
+		p.saSupport[names.SHA384_DSA] = true
+		p.saSupport[names.SHA512_DSA] = true
+
+	case x509.ECDSA:
+		if pub, ok := leaf.PublicKey.(*ecdsa.PublicKey); ok {
+			switch pub.Curve {
+			case elliptic.P256():
+				p.saSupport[names.ECDSA_SECP256R1_SHA256] = true
+			case elliptic.P384():
+				p.saSupport[names.ECDSA_SECP384R1_SHA384] = true
+			case elliptic.P521():
+				p.saSupport[names.ECDSA_SECP521R1_SHA512] = true
+			}
 		}
 	}
 
@@ -393,7 +355,6 @@ func loadCertificate(path string) ([]*x509.Certificate, error) {
 		}
 
 		if block.Type == "CERTIFICATE" {
-			//cert, err := x509.ParseCertificate(block.Bytes)
 			cert, err := fcrypto.ParseCertificatePSS(block.Bytes)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse certificate: %w", err)
@@ -430,8 +391,6 @@ func loadPrivateKey(path string) (*fcrypto.PrivateKey, error) {
 	case "RSA PRIVATE KEY":
 	case "EC PRIVATE KEY":
 	case "PRIVATE KEY":
-		//pKey.PrivKey, err = x509.ParsePKCS1PrivateKey(block.Bytes)
-		//pKey.PrivKey, err = x509.ParseECPrivateKey(block.Bytes)
 		pKey, err = fcrypto.ParsePKCS8PrivateKeyPSS(block.Bytes)
 
 	default:
@@ -523,6 +482,83 @@ func certPreFlight(chain []*x509.Certificate) error {
 	}
 
 	return nil
+}
+
+func getHSCertKX(info *suite.SuiteInfo, cert *x509.Certificate) bool {
+
+	if info == nil || cert == nil {
+		return false
+	}
+
+	switch info.KeyExchange {
+	case names.KX_RSA:
+		if cert.KeyUsage&x509.KeyUsageKeyEncipherment == 0 ||
+			cert.PublicKeyAlgorithm != x509.RSA {
+			return false
+		}
+	case names.KX_DHE:
+	case names.KX_ECDHE:
+		break
+	default:
+		return false
+	}
+
+	return true
+}
+
+func getHSCertSign(info *suite.SuiteInfo, cert *x509.Certificate) bool {
+
+	if info == nil || cert == nil {
+		return false
+	}
+
+	// For RSA key exchange theres no signature in the handshake
+	if info.KeyExchange != names.KX_RSA &&
+		cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
+		return false
+	}
+
+	switch info.Auth {
+	case names.SIG_RSA:
+		if cert.PublicKeyAlgorithm != x509.RSA {
+			return false
+		}
+	case names.SIG_DSS:
+		if cert.PublicKeyAlgorithm != x509.DSA {
+			return false
+		}
+	case names.SIG_ECDSA:
+		if cert.PublicKeyAlgorithm != x509.ECDSA {
+			return false
+		}
+	default:
+		return false
+	}
+
+	return true
+}
+
+func getHSCertSni(sni string, cert *x509.Certificate) bool {
+
+	if cert == nil {
+		return false
+	}
+
+	if sni == "" {
+		return true
+	}
+
+	for _, n := range cert.DNSNames {
+		if strings.EqualFold(n, sni) {
+			return true
+		}
+	}
+
+	if strings.EqualFold(cert.Subject.CommonName, sni) {
+		return true
+	}
+
+	return false
 }
 
 func isRSAPSSPublicKey(spki []byte) bool {

@@ -7,7 +7,7 @@ import (
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl"
-	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 const _PMS_SIZE_ = 48
@@ -103,10 +103,10 @@ func (x *xClientKeyExchange) preMasterSecret(cPms []byte) ([]byte, error) {
 	}
 
 	switch cs.Info().KeyExchange {
-	case suite.RSA:
+	case names.KX_RSA:
 		return x.preMasterSecretRSA(cPms)
 
-	case suite.DHE:
+	case names.KX_DHE:
 		return x.preMasterSecretDHE(cPms)
 	}
 

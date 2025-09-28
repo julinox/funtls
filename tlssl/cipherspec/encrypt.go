@@ -5,6 +5,7 @@ import (
 
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -13,7 +14,7 @@ func (x *xCS) encryptRec(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 	var err error
 	var record []byte
 
-	if x.cipherSuite.Info().CipherType == suite.CIPHER_CBC {
+	if x.cipherSuite.Info().CipherType == names.CIPHER_CBC {
 		switch x.macMode {
 		case tlssl.MODE_MTE:
 			record, err = x.encryptMTE(ct, pt)
@@ -25,7 +26,7 @@ func (x *xCS) encryptRec(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 			return nil, fmt.Errorf("unsupported macMode: %v", x.macMode)
 		}
 
-	} else if x.cipherSuite.Info().CipherType == suite.CIPHER_AEAD {
+	} else if x.cipherSuite.Info().CipherType == names.CIPHER_AEAD {
 		record, err = x.encryptAEAD()
 
 	} else {
@@ -131,7 +132,6 @@ func (x *xCS) encryptETM(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 		return nil, fmt.Errorf("macOS(%v): %v", myself, err)
 	}
 
-	//fragment = append(fragment, ciphered...)
 	fragment = append(fragment, mac...)
 	header := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
 		ContentType: ct,
@@ -139,8 +139,6 @@ func (x *xCS) encryptETM(ct tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 		Len:         len(fragment),
 	})
 
-	//fmt.Printf("HASTA AHORA: %x\n", )
-	//return nil, fmt.Errorf("encryptETM not implemented yet")
 	return append(header, fragment...), nil
 }
 

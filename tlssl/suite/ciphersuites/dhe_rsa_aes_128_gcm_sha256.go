@@ -3,6 +3,7 @@ package ciphersuites
 import (
 	"fmt"
 
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -24,16 +25,16 @@ func (x *x0x009E) Name() string {
 func (x *x0x009E) Info() *suite.SuiteInfo {
 
 	return &suite.SuiteInfo{
-		Mac:         suite.HMAC,
-		CipherType:  suite.CIPHER_AEAD,
-		Hash:        suite.SHA256,
+		Mac:         names.MAC_HMAC,
+		CipherType:  names.CIPHER_AEAD,
+		Hash:        names.HASH_SHA256,
 		HashSize:    32,
-		Cipher:      suite.AES,
+		Cipher:      names.CIPHER_AES,
 		KeySize:     16,
 		KeySizeHMAC: 32,
 		IVSize:      12,
-		Auth:        suite.RSA,
-		KeyExchange: suite.DHE,
+		Auth:        names.SIG_RSA,
+		KeyExchange: names.KX_DHE,
 	}
 }
 

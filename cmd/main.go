@@ -54,6 +54,10 @@ func main() {
 				PathCert: "./pki/server1chain.pem",
 				PathKey:  "./pki/server1key.pem",
 			},
+			/*{
+				PathCert: "./pki3/server1chain.pem",
+				PathKey:  "./pki3/server1key.pem",
+			},*/
 		},
 	})
 
@@ -67,9 +71,9 @@ func main() {
 		return
 	}
 
-	curly(hearit)
+	//curly(hearit)
 	//openssl(hearit)
-	//fileDownload(hearit)
+	fileDownload(hearit)
 	//custom(hearit)
 	//closing(hearit)
 }
@@ -186,7 +190,7 @@ func fileDownload(conn net.Conn) {
 	}
 
 	// Abrir archivo binario
-	file, err := os.Open("/home/usery/ungb.bin")
+	file, err := os.Open("/home/usery/unmb.bin")
 	if err != nil {
 		fmt.Fprintf(conn, "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n")
 		return

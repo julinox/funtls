@@ -7,6 +7,7 @@ import (
 
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -23,7 +24,7 @@ func (x *xCS) decryptRec(record []byte) ([]byte, error) {
 		return nil, fmt.Errorf("TLSRecordMe error: %v", err)
 	}
 
-	if x.cipherSuite.Info().CipherType == suite.CIPHER_CBC {
+	if x.cipherSuite.Info().CipherType == names.CIPHER_CBC {
 		switch x.macMode {
 		case tlssl.MODE_MTE:
 			opaque, err = x.decryptMTE(tRec)
@@ -35,7 +36,7 @@ func (x *xCS) decryptRec(record []byte) ([]byte, error) {
 			return nil, fmt.Errorf("unsupported macMode: %v", x.macMode)
 		}
 
-	} else if x.cipherSuite.Info().CipherType == suite.CIPHER_AEAD {
+	} else if x.cipherSuite.Info().CipherType == names.CIPHER_AEAD {
 		opaque, err = x.decryptAEAD(tRec)
 
 	} else {

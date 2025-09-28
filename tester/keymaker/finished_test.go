@@ -9,7 +9,7 @@ import (
 
 	"github.com/julinox/funtls/tester"
 	"github.com/julinox/funtls/tlssl"
-	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,7 +47,7 @@ func TestSuiteFinished(t *testing.T) {
 
 func theKeymaker() tlssl.TheKeyMaker {
 
-	km, err := tlssl.NewKeymaker(suite.SHA256, 32)
+	km, err := tlssl.NewKeymaker(names.HASH_SHA256, 32)
 	if err != nil {
 		// Abort
 		os.Exit(1)

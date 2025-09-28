@@ -6,13 +6,14 @@ import (
 	"crypto/sha1"
 	"fmt"
 
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
 type x0x0035 struct {
 }
 
-func NewAES_256_CBC_SHA() suite.Suite {
+func New_RSA_AES_256_CBC_SHA() suite.Suite {
 	return &x0x0035{}
 }
 
@@ -25,17 +26,18 @@ func (x *x0x0035) Name() string {
 }
 
 func (x *x0x0035) Info() *suite.SuiteInfo {
+
 	return &suite.SuiteInfo{
-		Mac:         suite.HMAC,
-		CipherType:  suite.CIPHER_CBC,
-		Hash:        suite.SHA1,
+		Mac:         names.MAC_HMAC,
+		CipherType:  names.CIPHER_CBC,
+		Hash:        names.HASH_SHA1,
 		HashSize:    sha1.Size,
-		Cipher:      suite.AES,
+		Cipher:      names.CIPHER_AES,
 		KeySize:     32,
 		KeySizeHMAC: 20,
 		IVSize:      aes.BlockSize,
-		Auth:        suite.RSA,
-		KeyExchange: suite.RSA,
+		Auth:        names.SIG_RSA,
+		KeyExchange: names.KX_RSA,
 	}
 }
 

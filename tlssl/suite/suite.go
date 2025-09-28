@@ -2,29 +2,8 @@ package suite
 
 import (
 	"fmt"
-)
 
-// Names for ciphers, hash functions, and key exchange algorithms
-const (
-	AES = iota + 1
-	CHACHA20
-
-	HMAC
-	POLY1305
-
-	SHA1
-	SHA256
-	SHA384
-
-	RSA
-	DHE
-)
-
-// Cipher Types
-const (
-	CIPHER_STREAM = iota + 1
-	CIPHER_CBC
-	CIPHER_AEAD
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 type SuiteContext struct {
@@ -44,7 +23,7 @@ type SuiteInfo struct {
 	KeySizeHMAC int
 	IVSize      int
 	KeyExchange int
-	Auth        int
+	Auth        int // Signature algorithm
 }
 
 type Suite interface {
@@ -79,34 +58,38 @@ func (info *SuiteInfo) Print() string {
 	str += fmt.Sprintf("KeySize: %d\n", info.KeySize)
 	str += fmt.Sprintf("KeySizeHMAC: %d\n", info.KeySizeHMAC)
 	str += fmt.Sprintf("IVSize: %d\n", info.IVSize)
+	str += fmt.Sprintf("Auth: %s\n", signatureToString(info.Auth))
 	str += fmt.Sprintf("KeyExchange: %s",
 		keyExchangeToString(info.KeyExchange))
 	return str
 }
 
-func modeToString(cipherType int) string {
+func keyExchangeToString(keyExchange int) string {
 
-	switch cipherType {
-	case CIPHER_STREAM:
-		return "STREAM"
-	case CIPHER_CBC:
-		return "CBC"
-	case CIPHER_AEAD:
-		return "AEAD"
+	switch keyExchange {
+	case names.KX_RSA:
+		return "RSA"
+	case names.KX_ECDHE:
+		return "ECDHE"
+	case names.KX_ECDH:
+		return "ECDH"
+	case names.KX_DH:
+		return "DH"
+	case names.KX_DHE:
+		return "DHE"
 	}
 
 	return "Unknown"
 }
 
-func hashToString(hash int) string {
-
-	switch hash {
-	case SHA1:
-		return "SHA1"
-	case SHA256:
-		return "SHA256"
-	case SHA384:
-		return "SHA384"
+func signatureToString(signature int) string {
+	switch signature {
+	case names.SIG_RSA:
+		return "RSA"
+	case names.SIG_DSS:
+		return "DSA"
+	case names.SIG_ECDSA:
+		return "ECDSA"
 	}
 
 	return "Unknown"
@@ -115,22 +98,46 @@ func hashToString(hash int) string {
 func cipherToString(cipher int) string {
 
 	switch cipher {
-	case AES:
+	case names.CIPHER_AES:
 		return "AES"
-	case CHACHA20:
+	case names.CIPHER_CHACHA20:
 		return "CHACHA20"
+	case names.CIPHER_3DES:
+		return "3DES"
+	case names.CIPHER_RC4:
+		return "RC4"
 	}
 
 	return "Unknown"
 }
 
-func keyExchangeToString(keyExchange int) string {
+func hashToString(hash int) string {
 
-	switch keyExchange {
-	case RSA:
-		return "RSA"
-	case DHE:
-		return "DHE"
+	switch hash {
+	case names.HASH_SHA1:
+		return "SHA1"
+	case names.HASH_SHA256:
+		return "SHA256"
+	case names.HASH_SHA384:
+		return "SHA384"
+	case names.HASH_SHA512:
+		return "SHA512"
+	case names.HASH_MD5:
+		return "MD5"
+	}
+
+	return "Unknown"
+}
+
+func modeToString(cipherType int) string {
+
+	switch cipherType {
+	case names.CIPHER_STREAM:
+		return "STREAM"
+	case names.CIPHER_CBC:
+		return "CBC"
+	case names.CIPHER_AEAD:
+		return "AEAD"
 	}
 
 	return "Unknown"

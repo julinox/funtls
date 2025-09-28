@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/julinox/funtls/tlssl"
-	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 func TestPRFSha2(t *testing.T) {
@@ -13,7 +13,7 @@ func TestPRFSha2(t *testing.T) {
 	// AES256-CBC | sha256 = 32, KeyLen = 32, IV = 16 bytes
 	// SessionKeys = 2 * (32 + 32 + 16) = 160 bytes
 
-	pf, err := tlssl.NewKeymaker(suite.SHA256, 160)
+	pf, err := tlssl.NewKeymaker(names.HASH_SHA256, 160)
 	if err != nil {
 		t.Error(err)
 	}
@@ -32,7 +32,7 @@ func TestPRFSha3(t *testing.T) {
 	// AES256-CBC | sha384 = 48, KeyLen = 32, IV = 16 bytes
 	// SessionKeys = 2 * (48 + 32 + 16) = 192 bytes
 
-	pf, err := tlssl.NewKeymaker(suite.SHA384, 192)
+	pf, err := tlssl.NewKeymaker(names.HASH_SHA384, 192)
 	if err != nil {
 		t.Error(err)
 	}

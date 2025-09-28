@@ -7,7 +7,8 @@ import (
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
-	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/modulos"
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 type xCertificate struct {
@@ -73,11 +74,22 @@ func (x *xCertificate) certificateServer() error {
 	cNames = append(cNames, getClientSAN(helloMsg.Extensions[0x0000])...)
 	saAlgos := getClientSuppAlgos(helloMsg.Extensions[0x000D])
 
-	_, err := x.tCtx.Certs.GetB(nil)
+	cOps := &modulos.CertOpts{
+		SA:     saAlgos,
+		CsInfo: cs.Info(),
+	}
+
+	gg, err := x.tCtx.Certs.GetHSCert(cOps)
 	if err != nil {
 		return fmt.Errorf("no certificates loaded(%v): %v", x.Name(), err)
 	}
 
+	if gg != nil {
+		fmt.Printf("Certficado HS: %s(%s)\n", gg.Subject.CommonName, gg.PublicKeyAlgorithm.String())
+	}
+
+	// DEBUG
+	//return fmt.Errorf("%v: no certificate found", x.Name())
 	// Brute force. Why ???
 	// Might return multiples choices? Dont remember why
 	for _, cn := range cNames {
@@ -105,7 +117,7 @@ func (x *xCertificate) certificateServer() error {
 	x.ctx.SetBuffer(CERTIFICATE, append(header, certificateBuff...))
 	x.ctx.AppendOrder(CERTIFICATE)
 
-	if cs.Info().KeyExchange == suite.DHE {
+	if cs.Info().KeyExchange == names.KX_DHE {
 		x.nextState = SERVERKEYEXCHANGE
 
 	} else if x.tCtx.OptClientAuth {

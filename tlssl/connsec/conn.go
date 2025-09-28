@@ -213,7 +213,6 @@ func (x *xTLSConn) Close() error {
 		_, err = x.rawConn.Write(record)
 		x.rawConn.SetReadDeadline(time.Now().Add(2 * time.Second))
 		buf := make([]byte, 512)
-		fmt.Println("Esperando respuesta del peer...")
 		n, _ := x.rawConn.Read(buf)
 		if n >= tlssl.TLS_HEADER_SIZE && buf[0] == 0x15 {
 			x.eofRead = true

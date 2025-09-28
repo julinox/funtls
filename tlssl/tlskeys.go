@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"hash"
 
-	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
 
@@ -47,8 +47,9 @@ func NewKeymaker(hashingAlgorithm, blockLen int) (TheKeyMaker, error) {
 	var km xKeyMake
 
 	switch hashingAlgorithm {
-	case suite.SHA256:
-		km.hashAlgo = suite.SHA256
+	//case suite.SHA256:
+	case names.HASH_SHA256:
+		km.hashAlgo = names.HASH_SHA256
 		if blockLen < _SHA256_LEN_BYTES {
 			return nil, fmt.Errorf("block len too short for SHA256")
 		}
@@ -79,7 +80,7 @@ func (x *xKeyMake) pHash(secret, seed []byte) []byte {
 	}
 
 	switch x.hashAlgo {
-	case suite.SHA256:
+	case names.HASH_SHA256:
 		return x.shamir(secret, seed, sha256.New)
 	}
 
