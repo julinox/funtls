@@ -10,39 +10,8 @@ import (
 	"time"
 
 	"github.com/julinox/funtls/server"
-	fcrypto "github.com/julinox/funtls/tlssl/crypto"
 	"github.com/julinox/funtls/tlssl/modulos"
 )
-
-func main3() {
-
-	gg := "/data/seagate/codigo/golang/workspace/funtls/cmd/pki2/server1chain.pem"
-	_, err := fcrypto.ParseCertificate1(gg)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-}
-
-/*func main6() {
-
-	var suites = []uint16{
-		0x0035, // TLS_RSA_WITH_AES_256_CBC_SHA           → KX=RSA,     SIG=RSA
-		0x009E, // TLS_DHE_RSA_WITH_AES_128_GCM_SHA256     → KX=DHE,     SIG=RSA
-		0x0032, // TLS_DHE_DSS_WITH_AES_128_CBC_SHA        → KX=DHE,     SIG=DSS
-		0xC009, // TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA    → KX=ECDHE,   SIG=ECDSA
-		0xC014, // TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA      → KX=ECDHE,   SIG=RSA
-		0xC003, // TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA     → KX=ECDH,    SIG=ECDSA
-		0xC00A, // TLS_ECDH_RSA_WITH_AES_256_CBC_SHA       → KX=ECDH,    SIG=RSA
-		0x0030, // TLS_DH_RSA_WITH_3DES_EDE_CBC_SHA        → KX=DH,      SIG=RSA
-		0x0031, // TLS_DH_DSS_WITH_3DES_EDE_CBC_SHA        → KX=DH,      SIG=DSS
-	}
-
-	for _, cs := range suites {
-		modulos.Pepito(cs)
-		break
-	}
-}*/
 
 func main() {
 
@@ -71,9 +40,9 @@ func main() {
 		return
 	}
 
-	//curly(hearit)
+	curly(hearit)
 	//openssl(hearit)
-	fileDownload(hearit)
+	//fileDownload(hearit)
 	//custom(hearit)
 	//closing(hearit)
 }

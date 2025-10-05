@@ -47,9 +47,8 @@ type ModCerts interface {
 	CNs() []string
 	Load(*CertInfo) (*pki, error)
 	Get(string) *x509.Certificate
-	GetHSCert(*CertOpts) (*x509.Certificate, error)
+	GetHSCert(*CertOpts) []*x509.Certificate
 	GetCertChain(string) []*x509.Certificate
-	GetByCriteria(uint16, string) *x509.Certificate
 	GetCertKey(*x509.Certificate) crypto.PrivateKey
 }
 
@@ -96,28 +95,6 @@ func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 	}
 
 	return &newMod, nil
-}
-
-// Match certificate by CipherSuite, SNI and Signature Algorithm
-func (m *_xModCerts) GetHSCert(opts *CertOpts) (*x509.Certificate, error) {
-
-	var certo *x509.Certificate
-
-	for _, i := range m.pkInfo {
-		if getHSCertKX(opts.CsInfo, i.certChain[0]) &&
-			getHSCertSign(opts.CsInfo, i.certChain[0]) &&
-			getHSCertSni(opts.Sni, i.certChain[0]) {
-			for _, sa := range opts.SA {
-				fmt.Printf("%v | %v\n", names.SignHashAlgorithms[sa],
-					i.saSupport[sa])
-
-			}
-			certo = i.certChain[0]
-			break
-		}
-	}
-
-	return certo, nil
 }
 
 func (m *_xModCerts) Name() string {
@@ -190,25 +167,24 @@ func (m *_xModCerts) Get(cn string) *x509.Certificate {
 	return nil
 }
 
-// Criterias are Signature Algorithm (0 means no criteria) and
-// CN (Common name) or DNS name (empty string means no name)
-// Returns the first certificate found when no criteria is used
-func (m *_xModCerts) GetByCriteria(sa uint16, cn string) *x509.Certificate {
+// Match certificate by CipherSuite (KX, Sign), SNI and Signature Algorithm
+func (m *_xModCerts) GetHSCert(opts *CertOpts) []*x509.Certificate {
 
-	var certCopy x509.Certificate
-
-	for _, pki := range m.pkInfo {
-		if sa != 0 && (!pki.saSupport[sa]) {
+	for _, i := range m.pkInfo {
+		kx := getHSCertKX(opts.CsInfo, i.certChain[0])
+		sign := getHSCertSign(opts.CsInfo, i.certChain[0])
+		sni := getHSCertSni(opts.Sni, i.certChain[0])
+		if !kx || !sign || !sni {
+			m.lg.Debugf("CertUnMatch %v - kx:%v, sign:%v, sni:%v",
+				i.certChain[0].Subject.CommonName, kx, sign, sni)
 			continue
 		}
 
-		// 'cn' is in the SAN list (set at Load)
-		if cn != "" && !pki.san[cn] {
-			continue
+		for _, sa := range opts.SA {
+			if i.saSupport[sa] {
+				return i.certChain
+			}
 		}
-
-		certCopy = *pki.certChain[0]
-		return &certCopy
 	}
 
 	return nil
@@ -496,7 +472,9 @@ func getHSCertKX(info *suite.SuiteInfo, cert *x509.Certificate) bool {
 			cert.PublicKeyAlgorithm != x509.RSA {
 			return false
 		}
+	case names.KX_DH:
 	case names.KX_DHE:
+	case names.KX_ECDH:
 	case names.KX_ECDHE:
 		break
 	default:

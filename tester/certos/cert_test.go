@@ -1,6 +1,7 @@
 package certos
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -26,9 +27,19 @@ func TestMe(t *testing.T) {
 	//var suiteInfo SuiteInfo
 
 	//cNames := []string{"server2.funssl.dev", "localhost"}
-	saAlgos := []uint16{0x403, 0x503, 0x603, 0x807, 0x808, 0x809, 0x80a, 0x80b,
-		0x804, 0x805, 0x806, 0x401, 0x501, 0x601, 0x303, 0x301, 0x302, 0x402,
-		0x502, 0x602}
+	/*saAlgos := []uint16{0x403, 0x503, 0x603, 0x807, 0x808, 0x809, 0x80a, 0x80b,
+	0x804, 0x805, 0x806, 0x401, 0x501, 0x601, 0x303, 0x301, 0x302, 0x402,
+	0x502, 0x602}*/
+	saAlgos := []uint16{
+		names.ECDSA_SECP256R1_SHA256,
+		names.ECDSA_SECP384R1_SHA384,
+		names.ECDSA_SECP521R1_SHA512,
+		names.RSA_PSS_PSS_SHA256,
+		names.RSA_PKCS1_SHA512,
+		//names.RSA_PKCS1_SHA256,
+		//names.RSA_PKCS1_SHA384,
+		names.SHA224_ECDSA,
+	}
 
 	modC := modCert()
 	if modC == nil {
@@ -37,6 +48,8 @@ func TestMe(t *testing.T) {
 	}
 
 	opts.Sni = ""
+	//opts.Sni = "pepito.com"
+	//opts.Sni = "server1.funssl.dev"
 	opts.SA = saAlgos
 	opts.CsInfo = &suite.SuiteInfo{
 		Mac:         names.MAC_HMAC,
@@ -48,10 +61,16 @@ func TestMe(t *testing.T) {
 		KeySizeHMAC: 32,
 		IVSize:      aes.BlockSize,
 		Auth:        names.SIG_ECDSA,
-		KeyExchange: names.KX_ECDHE,
+		KeyExchange: names.KX_DHE,
 	}
 
-	modC.GetHSCert(&opts)
+	chain := modC.GetHSCert(&opts)
+	if len(chain) == 0 {
+		t.Log("No certo")
+		return
+	}
+
+	fmt.Printf("Match: %v\n", chain[0].Subject.CommonName)
 }
 
 func modCert() mx.ModCerts {
@@ -60,8 +79,8 @@ func modCert() mx.ModCerts {
 	cfg := &server.FunTLSCfg{
 		Certs: []*mx.CertInfo{
 			{
-				PathCert: "/data/seagate/codigo/golang/workspace/funtls/cmd/pki/server1chain.pem",
-				PathKey:  "/data/seagate/codigo/golang/workspace/funtls/cmd/pki/server1key.pem",
+				PathCert: "/data/seagate/codigo/golang/workspace/funtls/cmd/pki3/server1chain.pem",
+				PathKey:  "/data/seagate/codigo/golang/workspace/funtls/cmd/pki3/server1key.pem",
 			},
 		},
 	}

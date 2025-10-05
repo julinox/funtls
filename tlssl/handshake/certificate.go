@@ -51,8 +51,6 @@ func (x *xCertificate) Handle() error {
 	}
 }
 
-// Choose certifcate list to send. Extensions ServerName and
-// SignatureAlgorithms are used to select one
 // The first certificate in the list is the end-entity certificate used in the
 // handshake. This is followed by any intermediate certificates that form the
 // chain. Typically, the root certificate is omitted because the client should
@@ -60,7 +58,7 @@ func (x *xCertificate) Handle() error {
 // is not recommended for the client to do so.
 func (x *xCertificate) certificateServer() error {
 
-	var certs []*x509.Certificate
+	var certChain []*x509.Certificate
 
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
@@ -79,36 +77,13 @@ func (x *xCertificate) certificateServer() error {
 		CsInfo: cs.Info(),
 	}
 
-	gg, err := x.tCtx.Certs.GetHSCert(cOps)
-	if err != nil {
-		return fmt.Errorf("no certificates loaded(%v): %v", x.Name(), err)
+	certChain = x.tCtx.Certs.GetHSCert(cOps)
+	if len(certChain) == 0 {
+		return fmt.Errorf("no certificate match for CS '%v'", cs.Name())
 	}
 
-	if gg != nil {
-		fmt.Printf("Certficado HS: %s(%s)\n", gg.Subject.CommonName, gg.PublicKeyAlgorithm.String())
-	}
-
-	// DEBUG
-	//return fmt.Errorf("%v: no certificate found", x.Name())
-	// Brute force. Why ???
-	// Might return multiples choices? Dont remember why
-	for _, cn := range cNames {
-		for _, sa := range saAlgos {
-			if cert := x.tCtx.Certs.GetByCriteria(sa, cn); cert != nil {
-				certs = append(certs, cert)
-				break
-			}
-		}
-	}
-
-	if len(certs) == 0 {
-		return fmt.Errorf("%v: no certificate found", x.Name())
-	}
-
-	// Certs
-	x.ctx.SetCert(certs[0])
-	certificateBuff := packetCerts(
-		x.tCtx.Certs.GetCertChain(certs[0].Subject.CommonName))
+	x.ctx.SetCert(certChain[0])
+	certificateBuff := packetCerts(certChain)
 
 	// Headers
 	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeCertificate,

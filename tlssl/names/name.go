@@ -57,7 +57,8 @@ const (
 	RSA_PSS_RSAE_SHA512    = 0x0806
 	SHA224_ECDSA           = 0x0303
 	SHA224_RSA             = 0x0301
-	SHA224_DSA             = 0x0301
+	SHA224_DSA             = 0x0302
+	SHA256_DSA             = 0x402
 	SHA384_DSA             = 0x0502
 	SHA512_DSA             = 0x0602
 )
@@ -122,6 +123,10 @@ var SignHashAlgorithms = map[uint16]string{
 	RSA_PKCS1_SHA512:       "rsa_pkcs1_sha512",
 	SHA224_ECDSA:           "sha224_ecdsa",
 	SHA224_RSA:             "sha224_rsa",
+	SHA224_DSA:             "sha224_dsa",
+	SHA256_DSA:             "sha256_dsa",
+	SHA384_DSA:             "sha384_dsa",
+	SHA512_DSA:             "sha512_dsa",
 }
 
 var TLSAlerts = map[uint8]string{
