@@ -127,7 +127,7 @@ func initTLSSuites(lg *logrus.Logger) (mx.ModTLSSuite, error) {
 	supportedSuites := []suite.Suite{
 		ciphersuites.New_RSA_AES_256_CBC_SHA(),
 		ciphersuites.New_RSA_AES_256_CBC_SHA256(),
-		//ciphersuites.NewDHE_RSA_AES_128_GCM_SHA256(),
+		ciphersuites.NewDHE_RSA_AES_128_GCM_SHA256(),
 	}
 
 	for _, suite := range supportedSuites {
