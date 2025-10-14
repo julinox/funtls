@@ -64,13 +64,15 @@ func (x *xServerHello) Handle() error {
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
 	// Cipher Suite
-
-	cs := x.cipherSuites(msgHello)
-	if len(cs) <= 0 {
-		return fmt.Errorf("no supported cipher suites")
+	cs, err := x.chooseCipherSuite(msgHello)
+	if err != nil {
+		return err
 	}
 
-	serverHelloBuf = append(serverHelloBuf, cs...)
+	serverHelloBuf = append(serverHelloBuf, byte(cs>>8), byte(cs))
+	x.ctx.SetCipherSuite(cs)
+	x.tCtx.Lg.Infof("CipherSuite: %v", suite.CipherSuiteNames[cs])
+
 	// "Compression methods"
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
@@ -117,22 +119,83 @@ func (x *xServerHello) random() ([]byte, error) {
 	return newBuff, nil
 }
 
-func (x *xServerHello) cipherSuites(cliMsg *MsgHello) []byte {
+func pp(data interface{}) []uint16 {
 
-	var cs uint16
-	var newBuff []byte
+	if data == nil {
+		return nil
+	}
 
-	for _, algo := range cliMsg.CipherSuites {
-		if x.tCtx.TLSSuite.IsSupported(algo) {
-			newBuff = append(newBuff, byte(algo>>8), byte(algo))
-			cs = algo
-			break
+	extData, ok := data.(*ex.ExtSignAlgoData)
+	if !ok {
+		return nil
+	}
+
+	return extData.Algos
+}
+
+func getSupportedGroups(cliMsg *MsgHello) []uint16 {
+
+	if cliMsg == nil {
+		return []uint16{}
+	}
+
+	sgAux := cliMsg.Extensions[ex.EXT_SUPPORTED_GROUPS]
+	if sgAux == nil {
+		return []uint16{}
+	}
+
+	sgData, ok := sgAux.(*ex.ExtSupportedGroupsData)
+	if !ok {
+		return []uint16{}
+	}
+
+	return sgData.Groups
+}
+
+func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
+
+	if cliMsg == nil {
+		return []uint16{}
+	}
+
+	saAux := cliMsg.Extensions[ex.EXT_SIGNATURE_ALGORITHMS]
+	if saAux == nil {
+		return []uint16{}
+	}
+
+	saData, ok := saAux.(*ex.ExtSignAlgoData)
+	if !ok {
+		return []uint16{}
+	}
+
+	return saData.Algos
+}
+
+func (x *xServerHello) chooseCipherSuite(cliMsg *MsgHello) (uint16, error) {
+
+	sg := getSupportedGroups(cliMsg)
+	sa := getSignatureAlgorithms(cliMsg)
+	certChains := x.tCtx.Certs.GetAll()
+	for _, cs := range cliMsg.CipherSuites {
+		if x.tCtx.TLSSuite.IsSupported(cs) {
+			gg := x.tCtx.TLSSuite.GetSuite(cs)
+			if gg == nil {
+				continue
+			}
+
+			for _, chain := range certChains {
+				// This should never happen but...
+				if len(chain) == 0 {
+					continue
+				}
+
+				// First element is chain is server certificate
+				gg.AcceptsCert(sg, sa, chain[0])
+			}
 		}
 	}
 
-	x.ctx.SetCipherSuite(cs)
-	x.tCtx.Lg.Tracef("CipherSuite: %v", suite.CipherSuiteNames[cs])
-	return newBuff
+	return 0, fmt.Errorf("No ciphersuites match for the given clientHello")
 }
 
 func (x *xServerHello) extensions(cliMsg *MsgHello) []byte {

@@ -13,6 +13,15 @@ var ExtensionName = map[uint16]string{
 	0xFF01: "renegotiation_info",
 }
 
+const (
+	EXT_SERVER_NAME          = 0x0000
+	EXT_SUPPORTED_GROUPS     = 0x000A
+	EXT_SIGNATURE_ALGORITHMS = 0x000D
+	EXT_ENCRYPT_THEN_MAC     = 0x0016
+	EXT_SESSION_TICKET       = 0x0023
+	EXT_RENEGOTIATION_INFO   = 0xFF01
+)
+
 type ExtLoadFN func([]byte, int) (interface{}, error)
 
 type Extension interface {

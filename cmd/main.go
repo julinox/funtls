@@ -20,8 +20,8 @@ func main() {
 		Logger: lg,
 		Certs: []*modulos.CertInfo{
 			{
-				PathCert: "./pki/server1chain.pem",
-				PathKey:  "./pki/server1key.pem",
+				PathCert: "./pki3/server1chain.pem",
+				PathKey:  "./pki3/server1key.pem",
 			},
 			/*{
 				PathCert: "./pki3/server1chain.pem",

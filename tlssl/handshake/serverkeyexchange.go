@@ -36,6 +36,7 @@ func (x *xServerKeyExchange) Next() (int, error) {
 
 func (x *xServerKeyExchange) Handle() error {
 
+	// Extension 0x000A = supported_groups
 	data := x.ctx.GetMsgHello().Extensions[0x000A]
 	if data == nil {
 		return fmt.Errorf("%v: no ServerKeyExchange data found", x.Name())

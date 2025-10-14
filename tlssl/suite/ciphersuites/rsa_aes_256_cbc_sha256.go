@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/hmac"
 	"crypto/sha256"
+	"crypto/x509"
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl/names"
@@ -13,7 +14,7 @@ import (
 type x0x003D struct {
 }
 
-func New_RSA_AES_256_CBC_SHA256() suite.Suite {
+func NewRsaAes256CbcSha256() suite.Suite {
 	return &x0x003D{}
 }
 
@@ -22,7 +23,7 @@ func (x *x0x003D) ID() uint16 {
 }
 
 func (x *x0x003D) Name() string {
-	return "TLS_RSA_WITH_AES_256_CBC_SHA256"
+	return suite.CipherSuiteNames[x.ID()]
 }
 
 func (x *x0x003D) Info() *suite.SuiteInfo {
@@ -83,6 +84,12 @@ func (x *x0x003D) HashMe(data []byte) ([]byte, error) {
 	hasher := sha256.New()
 	hasher.Write(data)
 	return hasher.Sum(nil), nil
+}
+
+func (x *x0x003D) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
+
+	fmt.Printf("%v | %v | %v | %v\n", x.Name(), sg, sa, cert.Subject.CommonName)
+	return false
 }
 
 func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {

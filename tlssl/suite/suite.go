@@ -1,6 +1,7 @@
 package suite
 
 import (
+	"crypto/x509"
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl/names"
@@ -34,6 +35,7 @@ type Suite interface {
 	CipherNot(*SuiteContext) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error) // (data, hashkey)
 	HashMe([]byte) ([]byte, error)
+	AcceptsCert([]uint16, []uint16, *x509.Certificate) bool
 }
 
 func (sc *SuiteContext) Print() string {

@@ -29,6 +29,7 @@ type CertInfo struct {
 
 type CertOpts struct {
 	Sni    string
+	SG     []uint16
 	SA     []uint16
 	CsInfo *suite.SuiteInfo
 }
@@ -47,6 +48,7 @@ type ModCerts interface {
 	CNs() []string
 	Load(*CertInfo) (*pki, error)
 	Get(string) *x509.Certificate
+	GetAll() [][]*x509.Certificate
 	GetHSCert(*CertOpts) []*x509.Certificate
 	GetCertChain(string) []*x509.Certificate
 	GetCertKey(*x509.Certificate) crypto.PrivateKey
@@ -167,12 +169,23 @@ func (m *_xModCerts) Get(cn string) *x509.Certificate {
 	return nil
 }
 
+func (m *_xModCerts) GetAll() [][]*x509.Certificate {
+
+	var chains [][]*x509.Certificate
+
+	for _, cc := range m.pkInfo {
+		chains = append(chains, cc.certChain)
+	}
+
+	return chains
+}
+
 // Match certificate by CipherSuite (KX, Sign), SNI and Signature Algorithm
 func (m *_xModCerts) GetHSCert(opts *CertOpts) []*x509.Certificate {
 
 	for _, i := range m.pkInfo {
-		kx := getHSCertKX(opts.CsInfo, i.certChain[0])
-		sign := getHSCertSign(opts.CsInfo, i.certChain[0])
+		kx := getHSCertKX(opts, i.certChain[0])
+		sign := getHSCertSign(opts, i.certChain[0])
 		sni := getHSCertSni(opts.Sni, i.certChain[0])
 		if !kx || !sign || !sni {
 			m.lg.Debugf("CertUnMatch %v - kx:%v, sign:%v, sni:%v",
@@ -458,62 +471,6 @@ func certPreFlight(chain []*x509.Certificate) error {
 	}
 
 	return nil
-}
-
-func getHSCertKX(info *suite.SuiteInfo, cert *x509.Certificate) bool {
-
-	if info == nil || cert == nil {
-		return false
-	}
-
-	switch info.KeyExchange {
-	case names.KX_RSA:
-		if cert.KeyUsage&x509.KeyUsageKeyEncipherment == 0 ||
-			cert.PublicKeyAlgorithm != x509.RSA {
-			return false
-		}
-	case names.KX_DH:
-	case names.KX_DHE:
-	case names.KX_ECDH:
-	case names.KX_ECDHE:
-		break
-	default:
-		return false
-	}
-
-	return true
-}
-
-func getHSCertSign(info *suite.SuiteInfo, cert *x509.Certificate) bool {
-
-	if info == nil || cert == nil {
-		return false
-	}
-
-	// For RSA key exchange theres no signature in the handshake
-	if info.KeyExchange != names.KX_RSA &&
-		cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
-		return false
-	}
-
-	switch info.Auth {
-	case names.SIG_RSA:
-		if cert.PublicKeyAlgorithm != x509.RSA {
-			return false
-		}
-	case names.SIG_DSS:
-		if cert.PublicKeyAlgorithm != x509.DSA {
-			return false
-		}
-	case names.SIG_ECDSA:
-		if cert.PublicKeyAlgorithm != x509.ECDSA {
-			return false
-		}
-	default:
-		return false
-	}
-
-	return true
 }
 
 func getHSCertSni(sni string, cert *x509.Certificate) bool {

@@ -71,29 +71,18 @@ const (
 	FFDHE6144 = 0x0103
 	FFDHE8192 = 0x0104
 
-	// RFC 7748 - Elliptic Curves
+	// RFC 7748 - Montgomery Curves (for ECDH)
 	X25519 = 0x001D
 	X448   = 0x001E
 
-	// RFC 4492 / RFC 8422 - Named Curves
+	// RFC 4492 (TLS ECC) - Named Curves (NIST P-curves)
+	SECP224R1 = 0x0015
 	SECP256R1 = 0x0017
 	SECP384R1 = 0x0018
 	SECP521R1 = 0x0019
-
-	// RFC 3526 / RFC 7919 Appendix A - MODP Groups
-	MODP2048 = 0x000E
-	MODP3072 = 0x000F
-	MODP4096 = 0x0010
-	MODP6144 = 0x0011
-	MODP8192 = 0x0012
 )
 
 var SupportedGroups = map[uint16]string{
-	MODP2048:  "modp2048",
-	MODP3072:  "modp3072",
-	MODP4096:  "modp4096",
-	MODP6144:  "modp6144",
-	MODP8192:  "modp8192",
 	SECP256R1: "secp256r1",
 	SECP384R1: "secp384r1",
 	SECP521R1: "secp521r1",

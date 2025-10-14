@@ -1,6 +1,7 @@
 package ciphersuites
 
 import (
+	"crypto/x509"
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl/names"
@@ -10,7 +11,7 @@ import (
 type x0x009E struct {
 }
 
-func NewDHE_RSA_AES_128_GCM_SHA256() suite.Suite {
+func NewDheRsaAes128GcmSha256() suite.Suite {
 	return &x0x009E{}
 }
 
@@ -19,7 +20,7 @@ func (x *x0x009E) ID() uint16 {
 }
 
 func (x *x0x009E) Name() string {
-	return "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256"
+	return suite.CipherSuiteNames[x.ID()]
 }
 
 func (x *x0x009E) Info() *suite.SuiteInfo {
@@ -52,4 +53,10 @@ func (x *x0x009E) MacMe(data, hashKey []byte) ([]byte, error) {
 
 func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E HashMe not implemented")
+}
+
+func (x *x0x009E) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
+
+	fmt.Printf("%v | %v | %v | %v\n", x.Name(), sg, sa, cert.Subject.CommonName)
+	return false
 }
