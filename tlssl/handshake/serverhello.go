@@ -175,14 +175,15 @@ func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
 // uses static (EC)DH or ephemeral (EC)DHE. That is defined by the CS.
 // In static (EC)DH, the same long-term private key is reused in every KX.
 // This implies:
-// - The server must already possess the long-term (EC)DH private key
-// - The certificate public key must correspond to that static key
-// Therefore, the cert must include KeyUsage keyAgreement for static (EC)DH.
+//   - The server must already possess the long-term (EC)DH private key
+//   - Since the private key is already know then ServerKeyExchange step
+//     is not needed (on the contrary ephimeral requires SKE)
+//   - The certificate public key must correspond to that static private key
+//   - The cert need 'KeyUsage keyAgreement0 for static (EC)DH (like RSA)
 //
 // In (EC)DHE, the server generates a fresh ephemeral key per handshake,
 // and the certificate is only used to sign the ServerKeyExchange parameters.
 // KeyAgreement is not required; DigitalSignature is enough.
-
 func (x *xServerHello) chooseCertAndCS(cliMsg *MsgHello) (uint16, error) {
 
 	sg := getSupportedGroups(cliMsg)
