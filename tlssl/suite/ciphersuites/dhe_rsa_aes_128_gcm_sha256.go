@@ -6,13 +6,18 @@ import (
 
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
+	"github.com/julinox/funtls/tlssl/suite/dh"
 )
 
 type x0x009E struct {
+	dhe dh.DiffieHellman
 }
 
 func NewDheRsaAes128GcmSha256() suite.Suite {
-	return &x0x009E{}
+
+	return &x0x009E{
+		dhe: dh.NewModDHClassic(),
+	}
 }
 
 func (x *x0x009E) ID() uint16 {
@@ -55,8 +60,13 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E HashMe not implemented")
 }
 
+// Cumple el KX con un grupo dentro de SG?
+// Fallback para el KX?
+// Sino hay SG entonces no hay ECC para la firma xq SG es quien habilita las curvas
+// Puede firmar el handshake usando un algoritmo de SA?
+// Esta firmado por un algoritmo de entre SA?
 func (x *x0x009E) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
 
-	fmt.Printf("%v | %v | %v | %v\n", x.Name(), sg, sa, cert.Subject.CommonName)
-	return false
+	fmt.Printf("%v | %v | %v | %v\n", x.Name(), len(sg), len(sa), cert.Subject.CommonName)
+	return true
 }

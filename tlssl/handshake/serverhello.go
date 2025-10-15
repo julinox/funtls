@@ -64,7 +64,7 @@ func (x *xServerHello) Handle() error {
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
 	// Cipher Suite
-	cs, err := x.chooseCipherSuite(msgHello)
+	cs, err := x.chooseCertAndCS(msgHello)
 	if err != nil {
 		return err
 	}
@@ -119,20 +119,6 @@ func (x *xServerHello) random() ([]byte, error) {
 	return newBuff, nil
 }
 
-func pp(data interface{}) []uint16 {
-
-	if data == nil {
-		return nil
-	}
-
-	extData, ok := data.(*ex.ExtSignAlgoData)
-	if !ok {
-		return nil
-	}
-
-	return extData.Algos
-}
-
 func getSupportedGroups(cliMsg *MsgHello) []uint16 {
 
 	if cliMsg == nil {
@@ -171,7 +157,33 @@ func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
 	return saData.Algos
 }
 
-func (x *xServerHello) chooseCipherSuite(cliMsg *MsgHello) (uint16, error) {
+// Its important to know that the choosing of the cipher suite is tighly
+// coupled with the choosing of the certificate.
+//
+// Rules/Anotations for choosing certificate (regarding a CS):
+// * If KX with ECDH then SG list is required, and cert's curve must match
+// one from the list. Note that when signing is required (ServerKeyExchange)
+// and the CS requires an EC signing algorithm then the same curve choosed
+// for KX must appears among the list of SignatureAlgorithms
+//
+// * For classic Diffie-Hellman no SG list is required (since it has fallback)
+//
+// * The cert must be signed by one of the algorithms within the SA list
+// but its not a requierement to be same choosed for KX
+//
+// A certificate by itself does not define whether the Key Exchange (KX)
+// uses static (EC)DH or ephemeral (EC)DHE. That is defined by the CS.
+// In static (EC)DH, the same long-term private key is reused in every KX.
+// This implies:
+// - The server must already possess the long-term (EC)DH private key
+// - The certificate public key must correspond to that static key
+// Therefore, the cert must include KeyUsage keyAgreement for static (EC)DH.
+//
+// In (EC)DHE, the server generates a fresh ephemeral key per handshake,
+// and the certificate is only used to sign the ServerKeyExchange parameters.
+// KeyAgreement is not required; DigitalSignature is enough.
+
+func (x *xServerHello) chooseCertAndCS(cliMsg *MsgHello) (uint16, error) {
 
 	sg := getSupportedGroups(cliMsg)
 	sa := getSignatureAlgorithms(cliMsg)
@@ -190,7 +202,9 @@ func (x *xServerHello) chooseCipherSuite(cliMsg *MsgHello) (uint16, error) {
 				}
 
 				// First element is chain is server certificate
-				gg.AcceptsCert(sg, sa, chain[0])
+				if gg.AcceptsCert(sg, sa, chain[0]) {
+					return cs, nil
+				}
 			}
 		}
 	}

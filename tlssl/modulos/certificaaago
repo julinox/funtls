@@ -9,17 +9,29 @@ import (
 	"github.com/julinox/funtls/tlssl/names"
 )
 
-// A certificate by itself does not define whether the Key Exchange (KX)
-// uses static (EC)DH or ephemeral (EC)DHE. That is defined by the cipher suite.
-// In static (EC)DH, the same long-term private key is reused in every key exchange.
-// This implies:
-// - The server must already possess the long-term (EC)DH private key
-// - The certificate public key must correspond to that static key
-// Therefore, the certificate must include KeyUsage keyAgreement for static (EC)DH.
-//
-// In (EC)DHE, the server generates a fresh ephemeral key per handshake,
-// and the certificate is only used to sign the ServerKeyExchange parameters.
-// KeyAgreement is not required; DigitalSignature is enough.
+// Match certificate by CipherSuite (KX, Sign), SNI and Signature Algorithm
+/*func (m *_xModCerts) GetHSCert(opts *CertOpts) []*x509.Certificate {
+
+	for _, i := range m.pkInfo {
+		kx := getHSCertKX(opts, i.certChain[0])
+		sign := getHSCertSign(opts, i.certChain[0])
+		sni := getHSCertSni(opts.Sni, i.certChain[0])
+		if !kx || !sign || !sni {
+			m.lg.Debugf("CertUnMatch %v - kx:%v, sign:%v, sni:%v",
+				i.certChain[0].Subject.CommonName, kx, sign, sni)
+			continue
+		}
+
+		for _, sa := range opts.SA {
+			if i.saSupport[sa] {
+				return i.certChain
+			}
+		}
+	}
+
+	return nil
+}*/
+
 func getHSCertKX(opts *CertOpts, certo *x509.Certificate) bool {
 
 	if opts == nil || certo == nil {

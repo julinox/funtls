@@ -57,6 +57,6 @@ func (x *x0xC02B) HashMe(data []byte) ([]byte, error) {
 
 func (x *x0xC02B) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
 
-	fmt.Printf("%v | %v | %v | %v\n", x.Name(), sg, sa, cert.Subject.CommonName)
+	fmt.Printf("%v | %v | %v | %v\n", x.Name(), len(sg), len(sa), cert.Subject.CommonName)
 	return false
 }

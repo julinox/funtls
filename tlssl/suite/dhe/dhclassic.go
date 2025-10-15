@@ -1,0 +1,5 @@
+package dhe
+
+func nada() {
+
+}

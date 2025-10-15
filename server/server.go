@@ -11,7 +11,7 @@ import (
 	"github.com/julinox/funtls/tlssl/handshake"
 	mx "github.com/julinox/funtls/tlssl/modulos"
 	"github.com/julinox/funtls/tlssl/suite"
-	"github.com/julinox/funtls/tlssl/suite/ciphersuites"
+	css "github.com/julinox/funtls/tlssl/suite/ciphersuites"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -124,16 +124,16 @@ func initTLSSuites(lg *logrus.Logger) (mx.ModTLSSuite, error) {
 		return nil, err
 	}
 
-	supportedSuites := []suite.Suite{
-		ciphersuites.NewRsaAes256CbcSha(),
-		ciphersuites.NewRsaAes256CbcSha256(),
-		ciphersuites.NewDheRsaAes128GcmSha256(),
-		ciphersuites.NewEcdheEcdsaAes128GcmSha256(),
+	supportedSuites := map[string]suite.Suite{
+		suite.CipherSuiteNames[0x0035]: css.NewRsaAes256CbcSha(),
+		suite.CipherSuiteNames[0x003D]: css.NewRsaAes256CbcSha256(),
+		suite.CipherSuiteNames[0x009E]: css.NewDheRsaAes128GcmSha256(),
+		suite.CipherSuiteNames[0xC02B]: css.NewEcdheEcdsaAes128GcmSha256(),
 	}
 
-	for _, suite := range supportedSuites {
+	for name, suite := range supportedSuites {
 		if err := tSuite.RegisterSuite(suite); err != nil {
-			lg.Error("Suite registry:", err)
+			lg.Errorf("suite '%v' registry failed: %v", name, err)
 			continue
 		}
 

@@ -71,7 +71,7 @@ const (
 	FFDHE6144 = 0x0103
 	FFDHE8192 = 0x0104
 
-	// RFC 7748 - Montgomery Curves (for ECDH)
+	// RFC 7748 - Montgomery Curves
 	X25519 = 0x001D
 	X448   = 0x001E
 

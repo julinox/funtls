@@ -7,7 +7,6 @@ import (
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
-	"github.com/julinox/funtls/tlssl/modulos"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -70,9 +69,9 @@ func (x *xCertificate) certificateServer() error {
 	helloMsg := x.ctx.GetMsgHello()
 	cNames := x.tCtx.Certs.CNs()
 	cNames = append(cNames, getClientSAN(helloMsg.Extensions[0x0000])...)
-	saAlgos := getClientSuppAlgos(helloMsg.Extensions[0x000D])
 
-	cOps := &modulos.CertOpts{
+	/*saAlgos := getClientSuppAlgos(helloMsg.Extensions[0x000D])
+	/*cOps := &modulos.CertOpts{
 		SA:     saAlgos,
 		CsInfo: cs.Info(),
 	}
@@ -80,8 +79,9 @@ func (x *xCertificate) certificateServer() error {
 	certChain = x.tCtx.Certs.GetHSCert(cOps)
 	if len(certChain) == 0 {
 		return fmt.Errorf("no certificate match for CS '%v'", cs.Name())
-	}
+	}*/
 
+	return fmt.Errorf("ACA ESTAMOS!!")
 	x.ctx.SetCert(certChain[0])
 	certificateBuff := packetCerts(certChain)
 

@@ -49,7 +49,6 @@ type ModCerts interface {
 	Load(*CertInfo) (*pki, error)
 	Get(string) *x509.Certificate
 	GetAll() [][]*x509.Certificate
-	GetHSCert(*CertOpts) []*x509.Certificate
 	GetCertChain(string) []*x509.Certificate
 	GetCertKey(*x509.Certificate) crypto.PrivateKey
 }
@@ -178,29 +177,6 @@ func (m *_xModCerts) GetAll() [][]*x509.Certificate {
 	}
 
 	return chains
-}
-
-// Match certificate by CipherSuite (KX, Sign), SNI and Signature Algorithm
-func (m *_xModCerts) GetHSCert(opts *CertOpts) []*x509.Certificate {
-
-	for _, i := range m.pkInfo {
-		kx := getHSCertKX(opts, i.certChain[0])
-		sign := getHSCertSign(opts, i.certChain[0])
-		sni := getHSCertSni(opts.Sni, i.certChain[0])
-		if !kx || !sign || !sni {
-			m.lg.Debugf("CertUnMatch %v - kx:%v, sign:%v, sni:%v",
-				i.certChain[0].Subject.CommonName, kx, sign, sni)
-			continue
-		}
-
-		for _, sa := range opts.SA {
-			if i.saSupport[sa] {
-				return i.certChain
-			}
-		}
-	}
-
-	return nil
 }
 
 func (m *_xModCerts) GetCertKey(cert *x509.Certificate) crypto.PrivateKey {
