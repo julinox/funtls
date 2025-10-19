@@ -36,6 +36,7 @@ type Suite interface {
 	MacMe([]byte, []byte) ([]byte, error) // (data, hashkey)
 	HashMe([]byte) ([]byte, error)
 	AcceptsCert([]uint16, []uint16, *x509.Certificate) bool
+	//AcceptsCert([]uint16, []uint16, *mx.Pki) bool
 }
 
 func (sc *SuiteContext) Print() string {

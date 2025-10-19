@@ -4,6 +4,7 @@ import "math/big"
 
 type DiffieHellman interface {
 	IsGroupSupported(uint16) bool
+	GroupName(uint16) string
 }
 
 var ffdhe2048_g = []byte{0x02}

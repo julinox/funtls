@@ -18,5 +18,9 @@ func NewModDHClassic() DiffieHellman {
 }
 
 func (x *xDHClassic) IsGroupSupported(id uint16) bool {
-	return x.IsGroupSupported(id)
+	return x.supportedGroups[id]
+}
+
+func (x *xDHClassic) GroupName(id uint16) string {
+	return names.SupportedGroups[id]
 }

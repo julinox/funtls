@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/julinox/funtls/tlssl"
+	cc "github.com/julinox/funtls/tlssl/certificate"
 	ex "github.com/julinox/funtls/tlssl/extensions"
 	"github.com/julinox/funtls/tlssl/handshake"
 	mx "github.com/julinox/funtls/tlssl/modulos"
@@ -28,6 +29,7 @@ type FunTLSCfg struct {
 	EnableClientAuth bool
 	Logger           *logrus.Logger
 	Certs            []*mx.CertInfo
+	Certos           []*cc.CertPath
 	ListeningPort    string
 }
 

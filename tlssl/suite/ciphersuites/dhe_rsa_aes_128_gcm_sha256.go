@@ -60,13 +60,38 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E HashMe not implemented")
 }
 
-// Cumple el KX con un grupo dentro de SG?
-// Fallback para el KX?
-// Sino hay SG entonces no hay ECC para la firma xq SG es quien habilita las curvas
-// Puede firmar el handshake usando un algoritmo de SA?
-// Esta firmado por un algoritmo de entre SA?
 func (x *x0x009E) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
 
-	fmt.Printf("%v | %v | %v | %v\n", x.Name(), len(sg), len(sa), cert.Subject.CommonName)
+	if !x.acceptsCertSG(sg) {
+		return false
+	}
+
+	if !x.acceptsCertSA(sa, cert) {
+		return false
+	}
+
+	//fmt.Printf("%v | %v |s %v | %v\n", x.Name(), len(sg), len(sa), cert.Subject.CommonName)
+	return true
+}
+
+func (x *x0x009E) acceptsCertSG(sg []uint16) bool {
+
+	if len(sg) == 0 {
+		return true // Fallback mode for classic DH
+	}
+
+	for _, g := range sg {
+		if x.dhe.IsGroupSupported(g) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (x *x0x009E) acceptsCertSA(sa []uint16, cert *x509.Certificate) bool {
+
+	fmt.Println(cert.SerialNumber)
+	fmt.Println("DAJD AJDSOP JASPOD ASPODJ ASPJPOSA")
 	return true
 }

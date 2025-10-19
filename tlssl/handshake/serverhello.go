@@ -186,9 +186,9 @@ func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
 // KeyAgreement is not required; DigitalSignature is enough.
 func (x *xServerHello) chooseCertAndCS(cliMsg *MsgHello) (uint16, error) {
 
-	sg := getSupportedGroups(cliMsg)
+	/*sg := getSupportedGroups(cliMsg)
 	sa := getSignatureAlgorithms(cliMsg)
-	certChains := x.tCtx.Certs.GetAll()
+	pkis := x.tCtx.Certs.GetAll()
 	for _, cs := range cliMsg.CipherSuites {
 		if x.tCtx.TLSSuite.IsSupported(cs) {
 			gg := x.tCtx.TLSSuite.GetSuite(cs)
@@ -196,9 +196,9 @@ func (x *xServerHello) chooseCertAndCS(cliMsg *MsgHello) (uint16, error) {
 				continue
 			}
 
-			for _, chain := range certChains {
+			for _, p := range pkis {
 				// This should never happen but...
-				if len(chain) == 0 {
+				if len(p.CertChain) == 0 {
 					continue
 				}
 
@@ -206,9 +206,15 @@ func (x *xServerHello) chooseCertAndCS(cliMsg *MsgHello) (uint16, error) {
 				if gg.AcceptsCert(sg, sa, chain[0]) {
 					return cs, nil
 				}
+
+				x.tCtx.Lg.Infof("mismatch CS/Cert: (%v,%v[%v])",
+					suite.CipherSuiteNames[cs],
+					chain[0].Subject.CommonName,
+					chain[0].PublicKeyAlgorithm.String(),
+				)
 			}
 		}
-	}
+	}*/
 
 	return 0, fmt.Errorf("No ciphersuites match for the given clientHello")
 }

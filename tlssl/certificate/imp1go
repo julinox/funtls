@@ -1,4 +1,4 @@
-package modulos
+package certificate
 
 import (
 	"bytes"
@@ -12,48 +12,16 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
+	"maps"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/julinox/funtls/systema"
-	fcrypto "github.com/julinox/funtls/tlssl/crypto"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 )
 
-type CertInfo struct {
-	PathCert string
-	PathKey  string
-}
-
-type Pki struct {
-	Cname     string
-	SaSupport map[uint16]bool
-	San       map[string]bool // Subject Alternative Names
-	Key       crypto.PrivateKey
-	CertChain []*x509.Certificate // 0 is the leaf
-}
-
-type ModCerts interface {
-	Name() string
-	Print() string
-	CNs() []string
-	Load(*CertInfo) (*Pki, error)
-	Get([]byte) *Pki
-	GetAll() []*Pki
-	GetFirstMatch(string, int) *Pki
-	//GetCertChain(string) []*x509.Certificate
-	GetCertKey(*x509.Certificate) crypto.PrivateKey
-}
-
-type _xModCerts struct {
-	lg     *logrus.Logger
-	pkInfo []*Pki
-}
-
-// Load all certificates and private keys
 func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 
 	var newMod _xModCerts
@@ -64,7 +32,7 @@ func NewModCerts(lg *logrus.Logger, certs []*CertInfo) (ModCerts, error) {
 	}
 
 	if len(certs) <= 0 {
-		return nil, fmt.Errorf("empty paths (%s)", myself)
+		return nil, fmt.Errorf("empty certificates(%s)", myself)
 	}
 
 	newMod.lg = lg
