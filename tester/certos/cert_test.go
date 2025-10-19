@@ -1,6 +1,7 @@
 package certos
 
 import (
+	"crypto/x509"
 	"fmt"
 	"os"
 	"testing"
@@ -18,9 +19,17 @@ import (
 func TestEame(t *testing.T) {
 
 	cpki := CertPKI()
-	//cpki.Get(nil)
-	//cpki.Print()
-	fmt.Println(cpki.Print())
+	gg := cpki.GetBy(&cert.CertOpts{
+		//DnsNames: []string{"server1.funssl.dev"},
+		//DnsNames: []string{"server1.funssl.dev"},
+		KeyAlgorithm:  x509.ECDSA,
+		IgnoreExpired: true,
+	})
+
+	if gg != nil {
+		fmt.Printf("---- Cert CNAME ---- | %v\n", gg.Subject.CommonName)
+	}
+	//fmt.Println(cpki.Print())
 }
 
 func CertPKI() cert.CertPKI {

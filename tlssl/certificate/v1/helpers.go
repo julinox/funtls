@@ -100,6 +100,24 @@ func validateKeyPair(cert *x509.Certificate, key any) bool {
 	return false
 }
 
+func certValidity(cert *x509.Certificate) bool {
+
+	if cert == nil {
+		return false
+	}
+
+	now := time.Now()
+	if now.Before(cert.NotBefore) {
+		return false
+	}
+
+	if now.After(cert.NotAfter) {
+		return false
+	}
+
+	return true
+}
+
 func certPreFlight(chain []*x509.Certificate) error {
 
 	if len(chain) == 0 {
@@ -115,13 +133,8 @@ func certPreFlight(chain []*x509.Certificate) error {
 		return fmt.Errorf("leaf certificate is a CA certificate")
 	}
 
-	now := time.Now()
-	if now.Before(leaf.NotBefore) {
-		return fmt.Errorf("leaf certificate not valid yet")
-	}
-
-	if now.After(leaf.NotAfter) {
-		return fmt.Errorf("leaf certificate expired")
+	if !certValidity(leaf) {
+		return fmt.Errorf("leaf certifcate is not valid at current time")
 	}
 
 	for i := 0; i+1 < len(chain); i++ {
@@ -135,7 +148,7 @@ func certPreFlight(chain []*x509.Certificate) error {
 			return fmt.Errorf("parent certificate does not allow signing")
 		}
 
-		if now.Before(parent.NotBefore) || now.After(parent.NotAfter) {
+		if !certValidity(parent) {
 			return fmt.Errorf("intermediate '%v' not valid at current time",
 				parent.Subject.CommonName)
 		}
@@ -186,6 +199,17 @@ func certFingerPrint(cert *x509.Certificate) []byte {
 
 	sum := sha256.Sum256(cert.Raw)
 	return sum[:]
+}
+
+func matchByname(dnsNames []string, certNames map[string]bool) bool {
+
+	for _, name := range dnsNames {
+		if certNames[name] {
+			return true
+		}
+	}
+
+	return false
 }
 
 func printSASupport(saSupport map[uint16]bool, separator string) string {

@@ -57,9 +57,71 @@ func NewV1(lg *logrus.Logger, paths []*cert.CertPath) (cert.CertPKI, error) {
 	return &cPki, nil
 }
 
-func (x *xCertPKI) Get([]byte) *x509.Certificate {
+func (x *xCertPKI) Print() string {
 
-	fmt.Println("dasd ---")
+	var str string
+
+	for i, pki := range x.info {
+		var sans []string
+
+		for s := range maps.Keys(pki.san) {
+			sans = append(sans, s)
+		}
+
+		fp := hexToPointString(pki.fingerPrint[:8])
+		if i < len(x.info)-1 {
+			str += fmt.Sprintf("%s (%v) | %v | %s\n", pki.cname, fp,
+				sans, printSASupport(pki.saSupport, ","))
+		} else {
+			str += fmt.Sprintf("%s (%v) | %v | %s\n", pki.cname, fp,
+				sans, printSASupport(pki.saSupport, ","))
+		}
+	}
+
+	return str
+}
+
+func (x *xCertPKI) Get(fingerprint []byte) *x509.Certificate {
+
+	if len(fingerprint) == 0 {
+		return nil
+	}
+
+	for _, pki := range x.info {
+		fmt.Printf("%v   |   %v", pki.fingerPrint, fingerprint)
+	}
+
+	return nil
+}
+
+// Select certificate that mntches by:
+// - Dns Names (CNAME + SAN)
+// - Public Key Algorithm
+// - Ignore if certificate is expired
+// - Any other parameter in "opts"
+func (x *xCertPKI) GetBy(opts *cert.CertOpts) *x509.Certificate {
+
+	if opts == nil {
+		return nil
+	}
+
+	for _, pki := range x.info {
+		if len(opts.DnsNames) > 0 && !matchByname(opts.DnsNames, pki.san) {
+			continue
+		}
+
+		if opts.KeyAlgorithm != x509.UnknownPublicKeyAlgorithm &&
+			opts.KeyAlgorithm != pki.chain[0].PublicKeyAlgorithm {
+			continue
+		}
+
+		if !opts.IgnoreExpired && !certValidity(pki.chain[0]) {
+			continue
+		}
+
+		return pki.chain[0]
+	}
+
 	return nil
 }
 
@@ -97,33 +159,18 @@ func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 		return nil, err
 	}
 
+	peca.san[peca.cname] = true
+	for _, san := range chain[0].DNSNames {
+		peca.san[san] = true
+	}
+
 	peca.fingerPrint = certFingerPrint(peca.chain[0])
 	x.info = append(x.info, &peca)
 	return peca.chain[0], nil
 }
 
-func (x *xCertPKI) Print() string {
-
-	var str string
-
-	for i, pki := range x.info {
-		var sans []string
-
-		for s := range maps.Keys(pki.san) {
-			sans = append(sans, s)
-		}
-
-		fp := hexToPointString(pki.fingerPrint[:8])
-		if i < len(x.info)-1 {
-			str += fmt.Sprintf("%s (%v) | %v | %s\n", pki.cname, fp,
-				sans, printSASupport(pki.saSupport, ","))
-		} else {
-			str += fmt.Sprintf("%s (%v) | %v | %s\n", pki.cname, fp,
-				sans, printSASupport(pki.saSupport, ","))
-		}
-	}
-
-	return str
+func (x *xCertPKI) FingerPrint(cert *x509.Certificate) []byte {
+	return certFingerPrint(cert)
 }
 
 // PKCS#1 v1.5 vs. RSA-PSS
