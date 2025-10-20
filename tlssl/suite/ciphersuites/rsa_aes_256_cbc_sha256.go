@@ -7,6 +7,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -90,6 +91,10 @@ func (x *x0x003D) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
 
 	fmt.Printf("%v | %v | %v | %v\n", x.Name(), len(sg), len(sa), cert.Subject.CommonName)
 	return false
+}
+
+func (x *x0x003D) AcceptaCert(certPki pki.CertPKI) {
+
 }
 
 func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {

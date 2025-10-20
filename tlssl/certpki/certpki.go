@@ -17,10 +17,9 @@ type CertOpts struct {
 
 type CertPKI interface {
 	Print() string
-	//SaSupport([]uint16) bool
-	Get([]byte) *x509.Certificate
-	GetBy(*CertOpts) *x509.Certificate
-	//GetChain([]byte) []*x509.Certificate
-	Load(*CertPath) (*x509.Certificate, error)
+	SaSupport([]uint16, []byte) bool
+	Get([]byte) []*x509.Certificate
+	GetBy(*CertOpts) []*x509.Certificate
 	FingerPrint(*x509.Certificate) []byte
+	Load(*CertPath) (*x509.Certificate, error)
 }

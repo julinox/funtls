@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/julinox/funtls/tlssl"
-	cc "github.com/julinox/funtls/tlssl/certificate"
+	cc "github.com/julinox/funtls/tlssl/certpki"
 	ex "github.com/julinox/funtls/tlssl/extensions"
 	"github.com/julinox/funtls/tlssl/handshake"
 	mx "github.com/julinox/funtls/tlssl/modulos"

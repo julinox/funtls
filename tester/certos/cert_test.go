@@ -2,13 +2,16 @@ package certos
 
 import (
 	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/julinox/funtls/tester"
-	cert "github.com/julinox/funtls/tlssl/certificate"
-	v1 "github.com/julinox/funtls/tlssl/certificate/v1"
+	cert "github.com/julinox/funtls/tlssl/certpki"
+	v1 "github.com/julinox/funtls/tlssl/certpki/v1"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,21 +21,43 @@ import (
 // the great John Carmack: Why am not using a debugger?
 func TestEame(t *testing.T) {
 
-	cpki := CertPKI()
-	gg := cpki.GetBy(&cert.CertOpts{
+	cpki, lg := CertPKI()
+	chain := cpki.GetBy(&cert.CertOpts{
 		//DnsNames: []string{"server1.funssl.dev"},
 		//DnsNames: []string{"server1.funssl.dev"},
-		KeyAlgorithm:  x509.ECDSA,
+		KeyAlgorithm: x509.ECDSA,
+		//KeyAlgorithm:  x509.RSA,
 		IgnoreExpired: true,
 	})
 
-	if gg != nil {
-		fmt.Printf("---- Cert CNAME ---- | %v\n", gg.Subject.CommonName)
+	if len(chain) == 0 {
+		return
 	}
-	//fmt.Println(cpki.Print())
+
+	fp := cpki.FingerPrint(chain[0])
+	lg.Infof("GetBy() | CNAME %v (%v)", chain[0].Subject.CommonName, hexToPointString(fp[:8]))
+	chain2 := cpki.Get(fp)
+	for _, c := range chain2 {
+		lg.Infof("Get() | %v", c.Subject.CommonName)
+	}
+
+	// SA Support
+	//algoName := names.ECDSA_SECP384R1_SHA384
+	sa := []uint16{
+		names.ECDSA_SECP384R1_SHA384,
+		names.ECDSA_SECP521R1_SHA512,
+		names.RSA_PSS_RSAE_SHA384,
+		names.ECDSA_SECP256R1_SHA256,
+	}
+
+	for _, gg := range sa {
+		fmt.Printf("'%v' supports %v: %v\n", chain2[0].Subject.CommonName,
+			names.SignHashAlgorithms[gg],
+			cpki.SaSupport([]uint16{gg}, fp))
+	}
 }
 
-func CertPKI() cert.CertPKI {
+func CertPKI() (cert.CertPKI, *logrus.Logger) {
 
 	certos := []*cert.CertPath{
 		{
@@ -41,10 +66,21 @@ func CertPKI() cert.CertPKI {
 		},
 	}
 
-	pki, err := v1.NewV1(tester.TestLogger(logrus.TraceLevel), certos)
+	lg := tester.TestLogger(logrus.TraceLevel)
+	pki, err := v1.NewV1(lg, certos)
 	if err != nil {
 		os.Exit(1)
 	}
 
-	return pki
+	return pki, lg
+}
+
+func hexToPointString(value []byte) string {
+
+	parts := make([]string, len(value))
+	for i, b := range value {
+		parts[i] = strings.ToUpper(hex.EncodeToString([]byte{b}))
+	}
+
+	return strings.Join(parts, ":")
 }

@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -10,7 +11,7 @@ import (
 	"maps"
 
 	"github.com/julinox/funtls/systema"
-	cert "github.com/julinox/funtls/tlssl/certificate"
+	cert "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
@@ -73,22 +74,40 @@ func (x *xCertPKI) Print() string {
 			str += fmt.Sprintf("%s (%v) | %v | %s\n", pki.cname, fp,
 				sans, printSASupport(pki.saSupport, ","))
 		} else {
-			str += fmt.Sprintf("%s (%v) | %v | %s\n", pki.cname, fp,
+			str += fmt.Sprintf("%s (%v) | %v | %s", pki.cname, fp,
 				sans, printSASupport(pki.saSupport, ","))
 		}
 	}
 
 	return str
 }
+func (x *xCertPKI) SaSupport(sa []uint16, fingerpint []byte) bool {
 
-func (x *xCertPKI) Get(fingerprint []byte) *x509.Certificate {
+	for _, p := range x.info {
+		if !bytes.Equal(p.fingerPrint, fingerpint) {
+			continue
+		}
+
+		for _, s := range sa {
+			if p.saSupport[s] {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (x *xCertPKI) Get(fingerprint []byte) []*x509.Certificate {
 
 	if len(fingerprint) == 0 {
 		return nil
 	}
 
 	for _, pki := range x.info {
-		fmt.Printf("%v   |   %v", pki.fingerPrint, fingerprint)
+		if bytes.Equal(fingerprint, pki.fingerPrint) {
+			return pki.chain
+		}
 	}
 
 	return nil
@@ -99,7 +118,7 @@ func (x *xCertPKI) Get(fingerprint []byte) *x509.Certificate {
 // - Public Key Algorithm
 // - Ignore if certificate is expired
 // - Any other parameter in "opts"
-func (x *xCertPKI) GetBy(opts *cert.CertOpts) *x509.Certificate {
+func (x *xCertPKI) GetBy(opts *cert.CertOpts) []*x509.Certificate {
 
 	if opts == nil {
 		return nil
@@ -119,7 +138,7 @@ func (x *xCertPKI) GetBy(opts *cert.CertOpts) *x509.Certificate {
 			continue
 		}
 
-		return pki.chain[0]
+		return pki.chain
 	}
 
 	return nil

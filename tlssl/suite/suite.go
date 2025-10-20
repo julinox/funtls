@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -36,7 +37,7 @@ type Suite interface {
 	MacMe([]byte, []byte) ([]byte, error) // (data, hashkey)
 	HashMe([]byte) ([]byte, error)
 	AcceptsCert([]uint16, []uint16, *x509.Certificate) bool
-	//AcceptsCert([]uint16, []uint16, *mx.Pki) bool
+	AcceptaCert(pki.CertPKI)
 }
 
 func (sc *SuiteContext) Print() string {

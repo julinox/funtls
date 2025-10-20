@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 	"github.com/julinox/funtls/tlssl/suite/dh"
@@ -94,4 +95,8 @@ func (x *x0x009E) acceptsCertSA(sa []uint16, cert *x509.Certificate) bool {
 	fmt.Println(cert.SerialNumber)
 	fmt.Println("DAJD AJDSOP JASPOD ASPODJ ASPJPOSA")
 	return true
+}
+
+func (x *x0x009E) AcceptaCert(certPki pki.CertPKI) {
+
 }

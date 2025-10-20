@@ -1,6 +1,7 @@
 package tlssl
 
 import (
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	ex "github.com/julinox/funtls/tlssl/extensions"
 	mx "github.com/julinox/funtls/tlssl/modulos"
 
@@ -20,4 +21,5 @@ type TLSContext struct {
 	TLSSuite      mx.ModTLSSuite
 	Exts          *ex.Extensions
 	OptClientAuth bool // Enable Client Authentication
+	CertPKI       pki.CertPKI
 }

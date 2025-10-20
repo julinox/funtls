@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -58,4 +59,8 @@ func (x *x0xC02B) HashMe(data []byte) ([]byte, error) {
 func (x *x0xC02B) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
 
 	return false
+}
+
+func (x *x0xC02B) AcceptaCert(certPki pki.CertPKI) {
+
 }
