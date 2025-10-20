@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/julinox/funtls/server"
-	"github.com/julinox/funtls/tlssl/modulos"
+	pki "github.com/julinox/funtls/tlssl/certpki"
 )
 
 func main() {
@@ -18,10 +18,10 @@ func main() {
 	lg := server.InitDefaultLogger()
 	srv, err := server.FunTLServe(&server.FunTLSCfg{
 		Logger: lg,
-		Certs: []*modulos.CertInfo{
+		Certos: []*pki.CertPath{
 			{
-				PathCert: "./pki3/server1chain.pem",
-				PathKey:  "./pki3/server1key.pem",
+				ChainPath: "./pki3/server1chain.pem",
+				KeyPath:   "./pki3/server1key.pem",
 			},
 			/*{
 				PathCert: "./pki3/server1chain.pem",

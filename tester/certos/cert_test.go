@@ -3,7 +3,6 @@ package certos
 import (
 	"crypto/x509"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -51,9 +50,15 @@ func TestEame(t *testing.T) {
 	}
 
 	for _, gg := range sa {
-		fmt.Printf("'%v' supports %v: %v\n", chain2[0].Subject.CommonName,
+		lg.Infof("'%v' supports %v: %v", chain2[0].Subject.CommonName,
 			names.SignHashAlgorithms[gg],
 			cpki.SaSupport([]uint16{gg}, fp))
+	}
+
+	// Key
+	key := cpki.GetCertPKey(fp)
+	if key != nil {
+		lg.Info("Key founded")
 	}
 }
 
@@ -67,7 +72,7 @@ func CertPKI() (cert.CertPKI, *logrus.Logger) {
 	}
 
 	lg := tester.TestLogger(logrus.TraceLevel)
-	pki, err := v1.NewV1(lg, certos)
+	pki, err := v1.NewCertPki(lg, certos)
 	if err != nil {
 		os.Exit(1)
 	}

@@ -64,25 +64,19 @@ func (x *xServerHello) Handle() error {
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
 	// Cipher Suite
-	cs, err := x.chooseCertAndCS(msgHello)
+	cs, err := x.chooseCSAndCert(msgHello)
 	if err != nil {
 		return err
 	}
 
 	serverHelloBuf = append(serverHelloBuf, byte(cs>>8), byte(cs))
-	x.ctx.SetCipherSuite(cs)
-	x.tCtx.Lg.Infof("CipherSuite: %v", suite.CipherSuiteNames[cs])
-
 	// "Compression methods"
 	serverHelloBuf = append(serverHelloBuf, 0x00)
-
 	// Extensions
 	serverHelloBuf = append(serverHelloBuf, x.extensions(msgHello)...)
-
 	// Headers
 	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerHello,
 		len(serverHelloBuf))
-
 	// Set server hello buffer and client and server random (which are
 	// needed for the session keys generation)
 	x.ctx.SetBuffer(SERVERHELLO, append(header, serverHelloBuf...))
@@ -90,9 +84,7 @@ func (x *xServerHello) Handle() error {
 	x.ctx.AppendOrder(SERVERHELLO)
 
 	// Encrypt-then-MAC extension
-	// This should be set in extensions's LoadData() method
-	// but the extension interface does not have access to
-	// the Handshake context
+	// Set ETM mode always when the client supports it
 	if x.ctx.GetExtension(0x0016) {
 		x.ctx.SetMacMode(tlssl.MODE_ETM)
 		x.tCtx.Lg.Info("Encrypt-then-MAC extension enabled")
@@ -117,44 +109,6 @@ func (x *xServerHello) random() ([]byte, error) {
 	}
 
 	return newBuff, nil
-}
-
-func getSupportedGroups(cliMsg *MsgHello) []uint16 {
-
-	if cliMsg == nil {
-		return []uint16{}
-	}
-
-	sgAux := cliMsg.Extensions[ex.EXT_SUPPORTED_GROUPS]
-	if sgAux == nil {
-		return []uint16{}
-	}
-
-	sgData, ok := sgAux.(*ex.ExtSupportedGroupsData)
-	if !ok {
-		return []uint16{}
-	}
-
-	return sgData.Groups
-}
-
-func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
-
-	if cliMsg == nil {
-		return []uint16{}
-	}
-
-	saAux := cliMsg.Extensions[ex.EXT_SIGNATURE_ALGORITHMS]
-	if saAux == nil {
-		return []uint16{}
-	}
-
-	saData, ok := saAux.(*ex.ExtSignAlgoData)
-	if !ok {
-		return []uint16{}
-	}
-
-	return saData.Algos
 }
 
 // Its important to know that the choosing of the cipher suite is tighly
@@ -184,37 +138,40 @@ func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
 // In (EC)DHE, the server generates a fresh ephemeral key per handshake,
 // and the certificate is only used to sign the ServerKeyExchange parameters.
 // KeyAgreement is not required; DigitalSignature is enough.
-func (x *xServerHello) chooseCertAndCS(cliMsg *MsgHello) (uint16, error) {
+func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) (uint16, error) {
 
-	/*sg := getSupportedGroups(cliMsg)
-	sa := getSignatureAlgorithms(cliMsg)
-	pkis := x.tCtx.Certs.GetAll()
+	//sg := getSupportedGroups(cliMsg)
+	//sa := getSignatureAlgorithms(cliMsg)
+	certs := x.tCtx.CertPKI.GetAll()
 	for _, cs := range cliMsg.CipherSuites {
-		if x.tCtx.TLSSuite.IsSupported(cs) {
-			gg := x.tCtx.TLSSuite.GetSuite(cs)
-			if gg == nil {
-				continue
-			}
-
-			for _, p := range pkis {
-				// This should never happen but...
-				if len(p.CertChain) == 0 {
-					continue
-				}
-
-				// First element is chain is server certificate
-				if gg.AcceptsCert(sg, sa, chain[0]) {
-					return cs, nil
-				}
-
-				x.tCtx.Lg.Infof("mismatch CS/Cert: (%v,%v[%v])",
-					suite.CipherSuiteNames[cs],
-					chain[0].Subject.CommonName,
-					chain[0].PublicKeyAlgorithm.String(),
-				)
-			}
+		if !x.tCtx.TLSSuite.IsSupported(cs) {
+			continue
 		}
-	}*/
+
+		st := x.tCtx.TLSSuite.GetSuite(cs)
+		if st == nil {
+			continue
+		}
+
+		for _, chain := range certs {
+			x.tCtx.Lg.Infof("CS/Cert: (%v,%v[%v])",
+				suite.CipherSuiteNames[cs],
+				chain[0].Subject.CommonName,
+				chain[0].PublicKeyAlgorithm.String(),
+			)
+			/*if cert[0] {
+				//x.ctx.SetCipherSuite(3)
+				//x.tCtx.Lg.Infof("CipherSuite: %v", suite.CipherSuiteNames[3])
+				return cs, nil
+			}
+
+			x.tCtx.Lg.Infof("mismatch CS/Cert: (%v,%v[%v])",
+				suite.CipherSuiteNames[cs],
+				chain[0].Subject.CommonName,
+				chain[0].PublicKeyAlgorithm.String(),
+			)*/
+		}
+	}
 
 	return 0, fmt.Errorf("No ciphersuites match for the given clientHello")
 }
@@ -262,4 +219,42 @@ func (x *xServerHello) extensions(cliMsg *MsgHello) []byte {
 	extsBuffer = append(extsBuffer, rInfoBuff...)
 	binary.BigEndian.PutUint16(extsBuffer, uint16(len(extsBuffer)-2))
 	return extsBuffer
+}
+
+func getSupportedGroups(cliMsg *MsgHello) []uint16 {
+
+	if cliMsg == nil {
+		return []uint16{}
+	}
+
+	sgAux := cliMsg.Extensions[ex.EXT_SUPPORTED_GROUPS]
+	if sgAux == nil {
+		return []uint16{}
+	}
+
+	sgData, ok := sgAux.(*ex.ExtSupportedGroupsData)
+	if !ok {
+		return []uint16{}
+	}
+
+	return sgData.Groups
+}
+
+func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
+
+	if cliMsg == nil {
+		return []uint16{}
+	}
+
+	saAux := cliMsg.Extensions[ex.EXT_SIGNATURE_ALGORITHMS]
+	if saAux == nil {
+		return []uint16{}
+	}
+
+	saData, ok := saAux.(*ex.ExtSignAlgoData)
+	if !ok {
+		return []uint16{}
+	}
+
+	return saData.Algos
 }

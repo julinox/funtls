@@ -7,7 +7,8 @@ import (
 	"strings"
 
 	"github.com/julinox/funtls/tlssl"
-	cc "github.com/julinox/funtls/tlssl/certpki"
+	pki "github.com/julinox/funtls/tlssl/certpki"
+	v1 "github.com/julinox/funtls/tlssl/certpki/v1"
 	ex "github.com/julinox/funtls/tlssl/extensions"
 	"github.com/julinox/funtls/tlssl/handshake"
 	mx "github.com/julinox/funtls/tlssl/modulos"
@@ -27,10 +28,9 @@ var (
 
 type FunTLSCfg struct {
 	EnableClientAuth bool
-	Logger           *logrus.Logger
-	Certs            []*mx.CertInfo
-	Certos           []*cc.CertPath
 	ListeningPort    string
+	Logger           *logrus.Logger
+	Certos           []*pki.CertPath
 }
 
 type xTLSListener struct {
@@ -59,7 +59,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 	}
 
 	fun.tCtx.Lg = cfg.Logger
-	fun.tCtx.Certs, err = mx.NewModCerts(fun.tCtx.Lg, cfg.Certs)
+	fun.tCtx.CertPKI, err = v1.NewCertPki(fun.tCtx.Lg, cfg.Certos)
 	if err != nil {
 		fun.tCtx.Lg.Error("error loading certificates: ", err)
 		return nil, err

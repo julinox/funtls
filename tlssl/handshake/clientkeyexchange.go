@@ -115,12 +115,7 @@ func (x *xClientKeyExchange) preMasterSecret(cPms []byte) ([]byte, error) {
 
 func (x *xClientKeyExchange) preMasterSecretRSA(cPms []byte) ([]byte, error) {
 
-	ctxCert := x.ctx.GetCert()
-	if ctxCert == nil {
-		return nil, fmt.Errorf("handshakectx nil certificate(%v)", x.Name())
-	}
-
-	privateKey := x.tCtx.Certs.GetCertKey(ctxCert)
+	privateKey := x.tCtx.CertPKI.GetCertPKey(x.ctx.GetCertFingerprint())
 	if privateKey == nil {
 		return nil, fmt.Errorf("cert's private key not found(%v)", x.Name())
 	}

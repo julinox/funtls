@@ -16,10 +16,9 @@ const (
 )
 
 type TLSContext struct {
+	OptClientAuth bool
+	CertPKI       pki.CertPKI
 	Lg            *logrus.Logger
-	Certs         mx.ModCerts
 	TLSSuite      mx.ModTLSSuite
 	Exts          *ex.Extensions
-	OptClientAuth bool // Enable Client Authentication
-	CertPKI       pki.CertPKI
 }

@@ -30,7 +30,7 @@ type xCertPKI struct {
 	lg   *logrus.Logger
 }
 
-func NewV1(lg *logrus.Logger, paths []*cert.CertPath) (cert.CertPKI, error) {
+func NewCertPki(lg *logrus.Logger, cp []*cert.CertPath) (cert.CertPKI, error) {
 
 	var cPki xCertPKI
 
@@ -39,12 +39,12 @@ func NewV1(lg *logrus.Logger, paths []*cert.CertPath) (cert.CertPKI, error) {
 		return nil, fmt.Errorf("nil logger (%s)", myself)
 	}
 
-	if len(paths) <= 0 {
+	if len(cp) <= 0 {
 		return nil, fmt.Errorf("empty paths (%s)", myself)
 	}
 
 	cPki.lg = lg
-	for _, p := range paths {
+	for _, p := range cp {
 		cert, err := cPki.Load(p)
 		if err != nil {
 			cPki.lg.Errorf("error loading PKI (%v): %v", p.ChainPath, err)
@@ -98,6 +98,17 @@ func (x *xCertPKI) SaSupport(sa []uint16, fingerpint []byte) bool {
 	return false
 }
 
+func (x *xCertPKI) GetAll() [][]*x509.Certificate {
+
+	var lista [][]*x509.Certificate
+
+	for _, pki := range x.info {
+		lista = append(lista, pki.chain)
+	}
+
+	return lista
+}
+
 func (x *xCertPKI) Get(fingerprint []byte) []*x509.Certificate {
 
 	if len(fingerprint) == 0 {
@@ -139,6 +150,21 @@ func (x *xCertPKI) GetBy(opts *cert.CertOpts) []*x509.Certificate {
 		}
 
 		return pki.chain
+	}
+
+	return nil
+}
+
+func (x *xCertPKI) GetCertPKey(fingerprint []byte) crypto.PrivateKey {
+
+	if len(fingerprint) == 0 {
+		return nil
+	}
+
+	for _, pki := range x.info {
+		if bytes.Equal(fingerprint, pki.fingerPrint) {
+			return pki.key
+		}
 	}
 
 	return nil

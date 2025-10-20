@@ -1,7 +1,6 @@
 package handshake
 
 import (
-	"crypto/x509"
 	"fmt"
 	"net"
 
@@ -45,7 +44,7 @@ type xHandhsakeContextData struct {
 	serverHelloDone    []byte
 	serverKeyExchange  []byte
 	prf                prfData
-	serverCert         *x509.Certificate
+	serverFP           []byte
 	msgHello           *MsgHello
 	completed          bool
 	cipherSuite        uint16
@@ -68,8 +67,8 @@ type xHandhsakeContext struct {
 type HandShakeContext interface {
 	SetBuffer(int, []byte)
 	GetBuffer(int) []byte
-	SetCert(*x509.Certificate)
-	GetCert() *x509.Certificate
+	SetCertFingerprint([]byte)
+	GetCertFingerprint() []byte
 	SetMsgHello(*MsgHello)
 	GetMsgHello() *MsgHello
 	SetCipherSuite(uint16)
@@ -229,12 +228,12 @@ func (x *xHandhsakeContext) GetBuffer(op int) []byte {
 	return nil
 }
 
-func (x *xHandhsakeContext) SetCert(cert *x509.Certificate) {
-	x.data.serverCert = cert
+func (x *xHandhsakeContext) SetCertFingerprint(fp []byte) {
+	x.data.serverFP = fp
 }
 
-func (x *xHandhsakeContext) GetCert() *x509.Certificate {
-	return x.data.serverCert
+func (x *xHandhsakeContext) GetCertFingerprint() []byte {
+	return x.data.serverFP
 }
 
 func (x *xHandhsakeContext) SetMsgHello(msg *MsgHello) {

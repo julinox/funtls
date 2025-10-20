@@ -57,7 +57,7 @@ func (x *xCertificate) Handle() error {
 // is not recommended for the client to do so.
 func (x *xCertificate) certificateServer() error {
 
-	var certChain []*x509.Certificate
+	//var certChain []*x509.Certificate
 
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
@@ -66,23 +66,13 @@ func (x *xCertificate) certificateServer() error {
 		return fmt.Errorf("%v: invalid cipher suite", x.Name())
 	}
 
-	helloMsg := x.ctx.GetMsgHello()
-	cNames := x.tCtx.Certs.CNs()
-	cNames = append(cNames, getClientSAN(helloMsg.Extensions[0x0000])...)
-
-	/*saAlgos := getClientSuppAlgos(helloMsg.Extensions[0x000D])
-	/*cOps := &modulos.CertOpts{
-		SA:     saAlgos,
-		CsInfo: cs.Info(),
+	certChain := x.tCtx.CertPKI.Get(x.ctx.GetCertFingerprint())
+	if len(certChain) == 0 {
+		return fmt.Errorf("%v: no certificate chain", x.Name())
 	}
 
-	certChain = x.tCtx.Certs.GetHSCert(cOps)
-	if len(certChain) == 0 {
-		return fmt.Errorf("no certificate match for CS '%v'", cs.Name())
-	}*/
-
 	return fmt.Errorf("ACA ESTAMOS!!")
-	x.ctx.SetCert(certChain[0])
+	//x.ctx.SetCert(certChain[0])
 	certificateBuff := packetCerts(certChain)
 
 	// Headers
