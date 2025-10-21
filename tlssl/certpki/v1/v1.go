@@ -81,21 +81,16 @@ func (x *xCertPKI) Print() string {
 
 	return str
 }
-func (x *xCertPKI) SaSupport(sa []uint16, fingerpint []byte) bool {
 
-	for _, p := range x.info {
-		if !bytes.Equal(p.fingerPrint, fingerpint) {
-			continue
-		}
+func (x *xCertPKI) GetFingerPrints() [][]byte {
 
-		for _, s := range sa {
-			if p.saSupport[s] {
-				return true
-			}
-		}
+	var fps [][]byte
+
+	for _, pki := range x.info {
+		fps = append(fps, pki.fingerPrint)
 	}
 
-	return false
+	return fps
 }
 
 func (x *xCertPKI) GetAll() [][]*x509.Certificate {
@@ -170,6 +165,27 @@ func (x *xCertPKI) GetCertPKey(fingerprint []byte) crypto.PrivateKey {
 	return nil
 }
 
+func (x *xCertPKI) SaSupport(sa []uint16, fingerpint []byte) bool {
+
+	for _, p := range x.info {
+		if !bytes.Equal(p.fingerPrint, fingerpint) {
+			continue
+		}
+
+		for _, s := range sa {
+			if p.saSupport[s] {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func (x *xCertPKI) FingerPrint(cert *x509.Certificate) []byte {
+	return certFingerPrint(cert)
+}
+
 func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 
 	var peca pki
@@ -212,10 +228,6 @@ func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 	peca.fingerPrint = certFingerPrint(peca.chain[0])
 	x.info = append(x.info, &peca)
 	return peca.chain[0], nil
-}
-
-func (x *xCertPKI) FingerPrint(cert *x509.Certificate) []byte {
-	return certFingerPrint(cert)
 }
 
 // PKCS#1 v1.5 vs. RSA-PSS

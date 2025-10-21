@@ -64,11 +64,12 @@ func (x *xServerHello) Handle() error {
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
 	// Cipher Suite
-	cs, err := x.chooseCSAndCert(msgHello)
+	err = x.chooseCSAndCert(msgHello)
 	if err != nil {
 		return err
 	}
 
+	cs := x.ctx.GetCipherSuite()
 	serverHelloBuf = append(serverHelloBuf, byte(cs>>8), byte(cs))
 	// "Compression methods"
 	serverHelloBuf = append(serverHelloBuf, 0x00)
@@ -138,11 +139,11 @@ func (x *xServerHello) random() ([]byte, error) {
 // In (EC)DHE, the server generates a fresh ephemeral key per handshake,
 // and the certificate is only used to sign the ServerKeyExchange parameters.
 // KeyAgreement is not required; DigitalSignature is enough.
-func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) (uint16, error) {
+func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
 
-	//sg := getSupportedGroups(cliMsg)
-	//sa := getSignatureAlgorithms(cliMsg)
-	certs := x.tCtx.CertPKI.GetAll()
+	sg := getSupportedGroups(cliMsg)
+	sa := getSignatureAlgorithms(cliMsg)
+	fingerPrints := x.tCtx.CertPKI.GetFingerPrints()
 	for _, cs := range cliMsg.CipherSuites {
 		if !x.tCtx.TLSSuite.IsSupported(cs) {
 			continue
@@ -153,27 +154,33 @@ func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) (uint16, error) {
 			continue
 		}
 
-		for _, chain := range certs {
-			x.tCtx.Lg.Infof("CS/Cert: (%v,%v[%v])",
-				suite.CipherSuiteNames[cs],
-				chain[0].Subject.CommonName,
-				chain[0].PublicKeyAlgorithm.String(),
-			)
-			/*if cert[0] {
-				//x.ctx.SetCipherSuite(3)
-				//x.tCtx.Lg.Infof("CipherSuite: %v", suite.CipherSuiteNames[3])
-				return cs, nil
+		for _, fp := range fingerPrints {
+			stMatch := &suite.SuiteMatch{
+				FingerPrint: fp,
+				Pki:         x.tCtx.CertPKI,
+				SG:          sg,
+				SA:          sa,
 			}
 
-			x.tCtx.Lg.Infof("mismatch CS/Cert: (%v,%v[%v])",
-				suite.CipherSuiteNames[cs],
-				chain[0].Subject.CommonName,
-				chain[0].PublicKeyAlgorithm.String(),
-			)*/
+			if !st.AcceptsCert(stMatch) {
+				continue
+			}
+
+			cert := x.tCtx.CertPKI.Get(fp)
+			if len(cert) == 0 {
+				continue // Really?
+			}
+
+			x.ctx.SetCipherSuite(cs)
+			x.ctx.SetCertFingerprint(fp)
+			x.tCtx.Lg.Infof("CipherSuite: %v", suite.CipherSuiteNames[cs])
+			x.tCtx.Lg.Infof("Certificate: %v (%v)", cert[0].Subject.CommonName,
+				cert[0].PublicKeyAlgorithm)
+			return nil
 		}
 	}
 
-	return 0, fmt.Errorf("No ciphersuites match for the given clientHello")
+	return fmt.Errorf("No ciphersuites match for the given clientHello")
 }
 
 func (x *xServerHello) extensions(cliMsg *MsgHello) []byte {

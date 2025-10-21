@@ -4,10 +4,8 @@ import (
 	"crypto/aes"
 	"crypto/hmac"
 	"crypto/sha256"
-	"crypto/x509"
 	"fmt"
 
-	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -87,14 +85,9 @@ func (x *x0x003D) HashMe(data []byte) ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func (x *x0x003D) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
+func (x *x0x003D) AcceptsCert(cc *suite.SuiteMatch) bool {
 
-	fmt.Printf("%v | %v | %v | %v\n", x.Name(), len(sg), len(sa), cert.Subject.CommonName)
 	return false
-}
-
-func (x *x0x003D) AcceptaCert(certPki pki.CertPKI) {
-
 }
 
 func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {

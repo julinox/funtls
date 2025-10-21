@@ -1,10 +1,11 @@
 package ciphersuites
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/x509"
 	"fmt"
 
-	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -56,11 +57,64 @@ func (x *x0xC02B) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0xC02B HashMe not implemented")
 }
 
-func (x *x0xC02B) AcceptsCert(sg, sa []uint16, cert *x509.Certificate) bool {
+func (x *x0xC02B) AcceptsCert(match *suite.SuiteMatch) bool {
 
+	if match == nil || match.Pki == nil {
+		return false
+	}
+
+	chain := match.Pki.Get(match.FingerPrint)
+	if len(chain) == 0 {
+		return false
+	}
+
+	if !ecdsaGroupSupport(chain[0], match.SG) {
+		return false
+	}
+
+	if chain[0].PublicKeyAlgorithm != x509.ECDSA {
+		return false
+	}
+
+	if !match.Pki.SaSupport(match.SA, match.FingerPrint) {
+		return false
+	}
+
+	// Esta firmado por
 	return false
 }
 
-func (x *x0xC02B) AcceptaCert(certPki pki.CertPKI) {
+func ecdsaGroupSupport(cert *x509.Certificate, sg []uint16) bool {
 
+	var certGroup uint16
+
+	publicKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return false
+	}
+
+	if len(sg) == 0 {
+		return false
+	}
+
+	switch publicKey.Curve {
+	case elliptic.P224():
+		certGroup = names.SECP224R1
+	case elliptic.P256():
+		certGroup = names.SECP256R1
+	case elliptic.P384():
+		certGroup = names.SECP384R1
+	case elliptic.P521():
+		certGroup = names.SECP521R1
+	default:
+		return false
+	}
+
+	for _, g := range sg {
+		if g == certGroup {
+			return true
+		}
+	}
+
+	return false
 }

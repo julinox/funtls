@@ -6,7 +6,6 @@ import (
 
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
-	ex "github.com/julinox/funtls/tlssl/extensions"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -57,8 +56,6 @@ func (x *xCertificate) Handle() error {
 // is not recommended for the client to do so.
 func (x *xCertificate) certificateServer() error {
 
-	//var certChain []*x509.Certificate
-
 	x.tCtx.Lg.Tracef("Running state: %v(SERVER)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(SERVER)", x.Name())
 	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
@@ -71,17 +68,11 @@ func (x *xCertificate) certificateServer() error {
 		return fmt.Errorf("%v: no certificate chain", x.Name())
 	}
 
-	return fmt.Errorf("ACA ESTAMOS!!")
-	//x.ctx.SetCert(certChain[0])
 	certificateBuff := packetCerts(certChain)
-
-	// Headers
 	header := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeCertificate,
 		len(certificateBuff))
-
 	x.ctx.SetBuffer(CERTIFICATE, append(header, certificateBuff...))
 	x.ctx.AppendOrder(CERTIFICATE)
-
 	if cs.Info().KeyExchange == names.KX_DHE {
 		x.nextState = SERVERKEYEXCHANGE
 
@@ -118,41 +109,4 @@ func packetCerts(certs []*x509.Certificate) []byte {
 	// Add length of all certificates
 	finalBuff = systema.Uint24(len(certsBuffer))
 	return append(finalBuff, certsBuffer...)
-}
-
-// Get Subject alternative names from SNI extension
-func getClientSAN(data interface{}) []string {
-
-	var dnsNames []string
-
-	if data == nil {
-		return nil
-	}
-
-	extData, ok := data.(*ex.ExtSNIData)
-	if !ok {
-		return nil
-	}
-
-	dnsNames = make([]string, 0)
-	for _, name := range extData.Names {
-		dnsNames = append(dnsNames, name.Name)
-	}
-
-	return dnsNames
-}
-
-// Get supported algorithms from SignatureAlgorithms extension
-func getClientSuppAlgos(data interface{}) []uint16 {
-
-	if data == nil {
-		return nil
-	}
-
-	extData, ok := data.(*ex.ExtSignAlgoData)
-	if !ok {
-		return nil
-	}
-
-	return extData.Algos
 }

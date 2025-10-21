@@ -1,7 +1,6 @@
 package suite
 
 import (
-	"crypto/x509"
 	"fmt"
 
 	pki "github.com/julinox/funtls/tlssl/certpki"
@@ -28,16 +27,22 @@ type SuiteInfo struct {
 	Auth        int // Signature algorithm
 }
 
+type SuiteMatch struct {
+	FingerPrint []byte
+	Pki         pki.CertPKI
+	SG          []uint16
+	SA          []uint16
+}
+
 type Suite interface {
 	ID() uint16
 	Name() string
 	Info() *SuiteInfo
+	AcceptsCert(*SuiteMatch) bool
+	HashMe([]byte) ([]byte, error)
+	MacMe([]byte, []byte) ([]byte, error)
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
-	MacMe([]byte, []byte) ([]byte, error) // (data, hashkey)
-	HashMe([]byte) ([]byte, error)
-	AcceptsCert([]uint16, []uint16, *x509.Certificate) bool
-	AcceptaCert(pki.CertPKI)
 }
 
 func (sc *SuiteContext) Print() string {
