@@ -38,7 +38,7 @@ type Suite interface {
 	ID() uint16
 	Name() string
 	Info() *SuiteInfo
-	AcceptsCert(*SuiteMatch) bool
+	AcceptsCert(*SuiteMatch) error
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
 	Cipher(*SuiteContext) ([]byte, error)

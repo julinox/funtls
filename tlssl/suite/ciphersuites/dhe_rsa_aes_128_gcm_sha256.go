@@ -59,8 +59,11 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E HashMe not implemented")
 }
 
-func (x *x0x009E) AcceptsCert(cc *suite.SuiteMatch) bool {
+func (x *x0x009E) AcceptsCert(cc *suite.SuiteMatch) error {
 
-	fmt.Println("jojojojojojo")
-	return false
+	var suiteCertName string
+
+	suiteCertName = fmt.Sprintf("%v", x.Name())
+
+	return fmt.Errorf("%v | not implemented", suiteCertName)
 }

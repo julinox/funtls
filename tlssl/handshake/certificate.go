@@ -73,7 +73,8 @@ func (x *xCertificate) certificateServer() error {
 		len(certificateBuff))
 	x.ctx.SetBuffer(CERTIFICATE, append(header, certificateBuff...))
 	x.ctx.AppendOrder(CERTIFICATE)
-	if cs.Info().KeyExchange == names.KX_DHE {
+	if cs.Info().KeyExchange == names.KX_DHE ||
+		cs.Info().KeyExchange == names.KX_ECDHE {
 		x.nextState = SERVERKEYEXCHANGE
 
 	} else if x.tCtx.OptClientAuth {
