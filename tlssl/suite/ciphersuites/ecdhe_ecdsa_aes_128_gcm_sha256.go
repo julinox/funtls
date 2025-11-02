@@ -1,8 +1,6 @@
 package ciphersuites
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/x509"
 	"fmt"
 
@@ -11,10 +9,18 @@ import (
 )
 
 type x0xC02B struct {
+	signSchemes map[uint16]bool
 }
 
 func NewEcdheEcdsaAes128GcmSha256() suite.Suite {
-	return &x0xC02B{}
+
+	return &x0xC02B{
+		signSchemes: map[uint16]bool{
+			names.ECDSA_SECP256R1_SHA256: true,
+			names.ECDSA_SECP384R1_SHA384: true,
+			names.ECDSA_SECP521R1_SHA512: true,
+		},
+	}
 }
 
 func (x *x0xC02B) ID() uint16 {
@@ -57,7 +63,11 @@ func (x *x0xC02B) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0xC02B HashMe not implemented")
 }
 
-func (x *x0xC02B) AcceptsCert(match *suite.SuiteMatch) error {
+func (x *x0xC02B) SignThis(msg1 []byte) []byte {
+	return nil
+}
+
+func (x *x0xC02B) AcceptsCert(match *suite.CertMatch) error {
 
 	if match == nil || match.Pki == nil {
 		return fmt.Errorf("%v | no match params", x.Name())
@@ -67,17 +77,29 @@ func (x *x0xC02B) AcceptsCert(match *suite.SuiteMatch) error {
 		return fmt.Errorf("%v | %v", x.Name(), err)
 	}
 
-	if err := ecdsaSACertMatch(match); err != nil {
+	/*if err := ecdsaSACertMatch(match); err != nil {
 		return fmt.Errorf("%v | %v", x.Name(), err)
-	}
+	}*/
 
 	return nil
 }
 
-// check if cert's public key is ecdsa
-// check cert's curve agaisnt SA list
-// check if cert is signed by a algorithm with SA list
-func ecdsaSACertMatch(match *suite.SuiteMatch) error {
+// KX para ECDHE:
+// La curva de la pubkey debe estar en SG
+func ecdheKX(cert *x509.Certificate, sg []uint16) bool {
+
+	if cert == nil {
+		return false
+	}
+
+	/*for _, g := range sg {
+
+	}*/
+	return false
+}
+
+/*
+func ecdsaSACertMatch(match *suite.CertMatch) error {
 
 	if match == nil {
 		return fmt.Errorf("nil suiteMatch")
@@ -104,52 +126,34 @@ func ecdsaSACertMatch(match *suite.SuiteMatch) error {
 	return nil
 }
 
-// Check if given certificate key's curve is compatible
-// with given supported groups list.
-// Per RFC's standar ECDH SG's list is mandatory (since that list
-// the one that enables the curve)
-func ecdhSGCertMatch(match *suite.SuiteMatch) error {
+*/
 
-	var certGroup uint16
+/*
+1. Compatibilidad con los roles criptográficos
+	1.1 Key Encipherment
+		- Debe tener KeyUsage = keyEncipherment
+		- La pubKey debe ser RSA
 
-	if match == nil {
-		return fmt.Errorf("nil suiteMatch")
-	}
+	1.2 Key Exchange (KX)
+		- Si el KX es DHE:
+			* Debe tener KeyUsage = keyAgreement
+			* algorithm.parameter.G debe ser compatible con SG o SG-Legacy
 
-	chain := match.Pki.Get(match.FingerPrint)
-	if len(chain) == 0 {
-		return fmt.Errorf("no certificate chain")
-	}
+		- Si el KX es ECDH:
+			* Debe tener KeyUsage = keyAgreement
+			* algorithm.parameter.? debe ser compatible con SG o SG-Legacy
 
-	name := fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
-		chain[0].PublicKeyAlgorithm)
-	if len(match.SG) == 0 {
-		return fmt.Errorf("no SG list given | %v", name)
-	}
+		- Si el KX es ECDHE:
+			* La pubKey del certificado NO participa en el KX
+			* Si la suite es ECDHE, la curva usada en el KX debe estar en SG
 
-	publicKey, ok := chain[0].PublicKey.(*ecdsa.PublicKey)
-	if !ok {
-		return fmt.Errorf("no ecdsa key | %v", name)
-	}
+	1.3 Signature (SKE o handshake)
+		- Debe tener KeyUsage = digitalSignature
+		- La pubKey debe coincidir con el algoritmo de firma/autenticación de la CS (RSA o ECDSA)
+		- La pubKey debe poder firmar usando algún algoritmo de SA
+		- Si la pubKey es ECDSA, su curva debe estar en SG
 
-	switch publicKey.Curve {
-	case elliptic.P224():
-		certGroup = names.SECP224R1
-	case elliptic.P256():
-		certGroup = names.SECP256R1
-	case elliptic.P384():
-		certGroup = names.SECP384R1
-	case elliptic.P521():
-		certGroup = names.SECP521R1
-	default:
-		return fmt.Errorf("no ecdsa curve | %v", name)
-	}
-
-	for _, g := range match.SG {
-		if g == certGroup {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("SG list is unsupported | %v", name)
-}
+2. Validación de la cadena
+	- Cada certificado en la cadena debe estar firmado con algún algoritmo en SA
+	  (solo si el cliente envió SA; si no, se aplica modo legacy)
+*/

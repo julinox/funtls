@@ -155,7 +155,7 @@ func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
 		}
 
 		for _, fp := range fingerPrints {
-			stMatch := &suite.SuiteMatch{
+			stMatch := &suite.CertMatch{
 				FingerPrint: fp,
 				Pki:         x.tCtx.CertPKI,
 				SG:          sg,

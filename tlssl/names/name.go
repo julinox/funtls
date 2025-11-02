@@ -40,6 +40,14 @@ const (
 	CIPHER_AEAD
 )
 
+// Types of cert keys
+const (
+	CERT_KEY_RSA = iota + 60
+	CERT_KEY_ECDSA_P256
+	CERT_KEY_ECDSA_P384
+	CERT_KEY_ECDSA_P521
+)
+
 const (
 	ECDSA_SECP256R1_SHA256 = 0x0403
 	ECDSA_SECP384R1_SHA384 = 0x0503
@@ -76,7 +84,6 @@ const (
 	X448   = 0x001E
 
 	// RFC 4492 (TLS ECC) - Named Curves (NIST P-curves)
-	SECP224R1 = 0x0015
 	SECP256R1 = 0x0017
 	SECP384R1 = 0x0018
 	SECP521R1 = 0x0019

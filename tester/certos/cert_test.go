@@ -34,7 +34,8 @@ func TestEame(t *testing.T) {
 	}
 
 	fp := cpki.FingerPrint(chain[0])
-	lg.Infof("GetBy() | CNAME %v (%v)", chain[0].Subject.CommonName, hexToPointString(fp[:8]))
+	lg.Infof("GetBy() | CNAME %v (%v)", chain[0].Subject.CommonName,
+		hexToPointString(fp[:8]))
 	chain2 := cpki.Get(fp)
 	for _, c := range chain2 {
 		lg.Infof("Get() | %v", c.Subject.CommonName)
@@ -62,12 +63,67 @@ func TestEame(t *testing.T) {
 	}
 }
 
+func TestFML(t *testing.T) {
+
+	/*cpki, lg := CertPKI()
+	chain := cpki.GetBy(&cert.CertOpts{
+		//DnsNames: []string{"server1.funssl.dev"},
+		//DnsNames: []string{"server1.funssl.dev"},
+		KeyAlgorithm: x509.ECDSA,
+		//KeyAlgorithm:  x509.RSA,
+		IgnoreExpired: true,
+	})
+
+	if lg == nil {
+		fmt.Println("--- No logger ---")
+		return
+	}
+
+	if len(chain) == 0 {
+		lg.Error("No chain to operate with")
+		return
+	}
+
+	//fp := cpki.FingerPrint(chain[0])
+	sa := []uint16{
+		//names.RSA_PKCS1_SHA256,
+		names.RSA_PSS_RSAE_SHA256,
+
+		//names.RSA_PKCS1_SHA384,
+		//names.RSA_PSS_RSAE_SHA384,
+
+		//names.RSA_PKCS1_SHA512,
+		//names.RSA_PSS_RSAE_SHA512,
+
+		names.ECDSA_SECP256R1_SHA256,
+		names.ECDSA_SECP384R1_SHA384,
+		//names.ECDSA_SECP521R1_SHA512,
+	}
+
+	err := css.ValidateChainSignatures(chain, sa)
+	if err != nil {
+		lg.Errorf("%v", err)
+		return
+	}
+
+	lg.Info("Chain OK!")*/
+}
+
+func GetCertoCurva(cert *x509.Certificate) uint16 {
+
+	if cert == nil {
+		return 0
+	}
+
+	return 0
+}
+
 func CertPKI() (cert.CertPKI, *logrus.Logger) {
 
 	certos := []*cert.CertPath{
 		{
-			ChainPath: "/data/seagate/codigo/golang/workspace/funtls/cmd/pki3/server1chain.pem",
-			KeyPath:   "/data/seagate/codigo/golang/workspace/funtls/cmd/pki3/server1key.pem",
+			ChainPath: "/home/usery/ca/chains/server2chain.pem",
+			KeyPath:   "/home/usery/ca/funtls/private/server2funtlsdev.key",
 		},
 	}
 

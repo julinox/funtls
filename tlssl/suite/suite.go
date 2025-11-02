@@ -27,7 +27,7 @@ type SuiteInfo struct {
 	Auth        int // Signature algorithm
 }
 
-type SuiteMatch struct {
+type CertMatch struct {
 	FingerPrint []byte
 	Pki         pki.CertPKI
 	SG          []uint16
@@ -38,11 +38,12 @@ type Suite interface {
 	ID() uint16
 	Name() string
 	Info() *SuiteInfo
-	AcceptsCert(*SuiteMatch) error
+	AcceptsCert(*CertMatch) error
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
+	SignThis([]byte) []byte
 }
 
 func (sc *SuiteContext) Print() string {

@@ -68,7 +68,9 @@ func loadPrivateKey(path string) (any, error) {
 
 	switch block.Type {
 	case "RSA PRIVATE KEY":
+		key, err = x509.ParsePKCS1PrivateKey(block.Bytes)
 	case "EC PRIVATE KEY":
+		key, err = x509.ParseECPrivateKey(block.Bytes)
 	case "PRIVATE KEY":
 		key, err = x509.ParsePKCS8PrivateKey(block.Bytes)
 

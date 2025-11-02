@@ -98,8 +98,8 @@ func custom(conn net.Conn) {
 }
 
 func curly(conn net.Conn) {
-	defer conn.Close()
 
+	defer conn.Close()
 	reader := bufio.NewReader(conn)
 
 	// Leer línea inicial (ej: GET / HTTP/1.1)

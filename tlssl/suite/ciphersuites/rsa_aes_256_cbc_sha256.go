@@ -85,7 +85,7 @@ func (x *x0x003D) HashMe(data []byte) ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func (x *x0x003D) AcceptsCert(cc *suite.SuiteMatch) error {
+func (x *x0x003D) AcceptsCert(cc *suite.CertMatch) error {
 
 	var suiteCertName string
 
@@ -107,6 +107,11 @@ func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 	if len(cc.IV) != aes.BlockSize {
 		return fmt.Errorf("invalid IV size(%v)", x.Name())
 	}
+
+	return nil
+}
+
+func (x *x0x003D) SignThis(msg []byte) []byte {
 
 	return nil
 }
