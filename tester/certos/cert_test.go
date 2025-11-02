@@ -1,11 +1,8 @@
 package certos
 
 import (
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/x509"
 	"encoding/hex"
-	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -68,7 +65,7 @@ func TestEame(t *testing.T) {
 
 func TestFML(t *testing.T) {
 
-	cpki, lg := CertPKI()
+	/*cpki, lg := CertPKI()
 	chain := cpki.GetBy(&cert.CertOpts{
 		//DnsNames: []string{"server1.funssl.dev"},
 		//DnsNames: []string{"server1.funssl.dev"},
@@ -87,10 +84,8 @@ func TestFML(t *testing.T) {
 		return
 	}
 
-	curva := getECCurve(chain[0])
-	fmt.Printf("CURVA: %v\n", names.SupportedGroups[curva])
 	//fp := cpki.FingerPrint(chain[0])
-	/*sa := []uint16{
+	sa := []uint16{
 		//names.RSA_PKCS1_SHA256,
 		names.RSA_PSS_RSAE_SHA256,
 
@@ -114,38 +109,12 @@ func TestFML(t *testing.T) {
 	lg.Info("Chain OK!")*/
 }
 
-func getECCurve(cert *x509.Certificate) uint16 {
-
-	if cert == nil || cert.PublicKeyAlgorithm != x509.ECDSA {
-		fmt.Println(cert)
-		return 0
-	}
-
-	pubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
-	if !ok {
-		fmt.Println("No es ECDSA PUBKEY")
-		return 0
-	}
-
-	switch pubKey.Curve {
-	case elliptic.P256():
-		return names.SECP256R1
-	case elliptic.P384():
-		return names.SECP384R1
-	case elliptic.P521():
-		return names.SECP521R1
-	}
-
-	fmt.Printf("PUBKEY: %v\n", pubKey.Params().Name)
-	return 0
-}
-
 func CertPKI() (cert.CertPKI, *logrus.Logger) {
 
 	certos := []*cert.CertPath{
 		{
-			ChainPath: "/home/usery/ca/chains/server2chain.pem",
-			KeyPath:   "/home/usery/ca/funtls/private/server2funtlsdev.key",
+			ChainPath: "/home/usery/ca/chains/server1chain.pem",
+			KeyPath:   "/home/usery/ca/funtls/private/server1funtlsdev.key",
 		},
 	}
 

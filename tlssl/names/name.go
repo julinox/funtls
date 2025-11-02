@@ -73,6 +73,7 @@ const (
 
 const (
 	// RFC 7919 - Finite Field Diffie-Hellman Ephemeral
+	NOGROUP   = 0
 	FFDHE2048 = 0x0100
 	FFDHE3072 = 0x0101
 	FFDHE4096 = 0x0102

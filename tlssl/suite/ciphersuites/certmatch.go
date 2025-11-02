@@ -61,6 +61,29 @@ func saToMapSA(sa []uint16) map[uint16]bool {
 	return mapa
 }
 
+func getECGroupName(cert *x509.Certificate) uint16 {
+
+	if cert == nil || cert.PublicKeyAlgorithm != x509.ECDSA {
+		return names.NOGROUP
+	}
+
+	pubKey, ok := cert.PublicKey.(*ecdsa.PublicKey)
+	if !ok {
+		return names.NOGROUP
+	}
+
+	switch pubKey.Curve {
+	case elliptic.P256():
+		return names.SECP256R1
+	case elliptic.P384():
+		return names.SECP384R1
+	case elliptic.P521():
+		return names.SECP521R1
+	}
+
+	return names.NOGROUP
+}
+
 // Check if certificate key's curve is compatible with given SG list
 // Per RFC's standar ECDH SG's list is mandatory and must
 // contain at least one matching curve to use on the KX

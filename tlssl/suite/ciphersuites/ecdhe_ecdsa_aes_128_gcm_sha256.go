@@ -84,76 +84,27 @@ func (x *x0xC02B) AcceptsCert(match *suite.CertMatch) error {
 	return nil
 }
 
-// KX para ECDHE:
 // La curva de la pubkey debe estar en SG
-func ecdheKX(cert *x509.Certificate, sg []uint16) bool {
+func roleKxEcdhe(cert *x509.Certificate, sg []uint16) bool {
 
 	if cert == nil {
 		return false
 	}
 
-	/*for _, g := range sg {
+	groupName := getECGroupName(cert)
+	if groupName == names.NOGROUP {
+		return false
+	}
 
-	}*/
+	for _, g := range sg {
+		if groupName == g {
+			return true
+		}
+	}
+
 	return false
 }
 
-/*
-func ecdsaSACertMatch(match *suite.CertMatch) error {
+func roleAuthEcdsa(cert *x509.Certificate) {
 
-	if match == nil {
-		return fmt.Errorf("nil suiteMatch")
-	}
-
-	chain := match.Pki.Get(match.FingerPrint)
-	if len(chain) == 0 {
-		return fmt.Errorf("no certificate chain")
-	}
-
-	name := fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
-		chain[0].PublicKeyAlgorithm)
-
-	if chain[0].PublicKeyAlgorithm != x509.ECDSA {
-		return fmt.Errorf("public key not ECDSA | %v", name)
-	}
-
-	if !match.Pki.SaSupport(match.SA, match.FingerPrint) {
-		return fmt.Errorf("unsupported SA list | %v", name)
-	}
-
-	// Esta firmado por ?
-	fmt.Println("Firmado: ", chain[0].SignatureAlgorithm)
-	return nil
 }
-
-*/
-
-/*
-1. Compatibilidad con los roles criptográficos
-	1.1 Key Encipherment
-		- Debe tener KeyUsage = keyEncipherment
-		- La pubKey debe ser RSA
-
-	1.2 Key Exchange (KX)
-		- Si el KX es DHE:
-			* Debe tener KeyUsage = keyAgreement
-			* algorithm.parameter.G debe ser compatible con SG o SG-Legacy
-
-		- Si el KX es ECDH:
-			* Debe tener KeyUsage = keyAgreement
-			* algorithm.parameter.? debe ser compatible con SG o SG-Legacy
-
-		- Si el KX es ECDHE:
-			* La pubKey del certificado NO participa en el KX
-			* Si la suite es ECDHE, la curva usada en el KX debe estar en SG
-
-	1.3 Signature (SKE o handshake)
-		- Debe tener KeyUsage = digitalSignature
-		- La pubKey debe coincidir con el algoritmo de firma/autenticación de la CS (RSA o ECDSA)
-		- La pubKey debe poder firmar usando algún algoritmo de SA
-		- Si la pubKey es ECDSA, su curva debe estar en SG
-
-2. Validación de la cadena
-	- Cada certificado en la cadena debe estar firmado con algún algoritmo en SA
-	  (solo si el cliente envió SA; si no, se aplica modo legacy)
-*/
