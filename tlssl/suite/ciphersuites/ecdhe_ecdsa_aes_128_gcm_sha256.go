@@ -8,31 +8,37 @@ import (
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
+type csCert struct {
+	group       uint16
+	fingerPrint []byte
+}
+
 type x0xC02B struct {
-	isClient     bool
-	fingerPrints [][]byte
+	isClient bool
+	certs    []*csCert
 }
 
 func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 
 	var newSuite x0xC02B
+	var certNames []string
 
-	if opts == nil {
+	if opts == nil || opts.Pki == nil || opts.Lg == nil {
 		return nil
 	}
 
-	newSuite.fingerPrints = make([][]byte, 0)
+	newSuite.certs = make([]*csCert, 0)
 	if opts.IsClient {
 		newSuite.isClient = true
 		return &newSuite
 	}
 
-	fps := opts.Pki.GetFingerPrints()
-	if len(fps) == 0 {
+	fingerPrints := opts.Pki.GetFingerPrints()
+	if len(fingerPrints) == 0 {
 		return nil
 	}
 
-	for _, fp := range fps {
+	for _, fp := range fingerPrints {
 		chain := opts.Pki.Get(fp)
 		if len(chain) == 0 || chain[0].PublicKeyAlgorithm != x509.ECDSA {
 			continue
@@ -42,11 +48,23 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 			continue
 		}
 
-		if chain[0].ExtKeyUsage&x509.ExtKeyUsageAny == 0 {
+		if !checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageAny) &&
+			!checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageServerAuth) {
 			continue
 		}
+
+		groupName := ecGroupName(chain[0])
+		if groupName == names.NOGROUP {
+			continue
+		}
+
+		aux := fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
+			chain[0].PublicKeyAlgorithm)
+		certNames = append(certNames, aux)
+		newSuite.certs = append(newSuite.certs, &csCert{groupName, fp})
 	}
 
+	opts.Lg.Warnf("%v: %v", newSuite.Name(), certNames)
 	return &newSuite
 }
 

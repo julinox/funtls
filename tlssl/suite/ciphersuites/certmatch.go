@@ -122,3 +122,18 @@ func sgCheck(groupName uint16, sg []uint16) bool {
 
 	return false
 }
+
+func checkEKU(eku []x509.ExtKeyUsage, ku x509.ExtKeyUsage) bool {
+
+	if len(eku) == 0 {
+		return false
+	}
+
+	for _, e := range eku {
+		if e == ku {
+			return true
+		}
+	}
+
+	return false
+}

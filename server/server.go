@@ -128,7 +128,8 @@ func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 
 	suiteOpts := &suite.SuiteOpts{
 		Pki:      pk,
-		IsServer: true,
+		IsClient: false,
+		Lg:       lg,
 	}
 
 	supportedSuites := map[string]suite.Suite{

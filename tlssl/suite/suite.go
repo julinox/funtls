@@ -5,6 +5,7 @@ import (
 
 	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
+	"github.com/sirupsen/logrus"
 )
 
 type SuiteContext struct {
@@ -37,6 +38,7 @@ type CertMatch struct {
 type SuiteOpts struct {
 	IsClient bool
 	Pki      pki.CertPKI
+	Lg       *logrus.Logger
 }
 
 type Suite interface {
