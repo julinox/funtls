@@ -21,7 +21,7 @@ func main() {
 		Certos: []*pki.CertPath{
 			{
 				ChainPath: "/home/usery/ca/chains/server1chain.pem",
-				KeyPath:   "/home/usery/ca/funtls/private/server1funtlsdev.key",
+				KeyPath:   "/home/usery/ca/chains/private/server1chain.key",
 			},
 		},
 	})

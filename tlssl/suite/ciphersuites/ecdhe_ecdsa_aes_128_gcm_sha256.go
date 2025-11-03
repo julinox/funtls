@@ -4,39 +4,50 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
 type x0xC02B struct {
-	signSchemes map[uint16]bool
+	isClient     bool
+	fingerPrints [][]byte
 }
 
-func NewEcdheEcdsaAes128GcmSha256(pecas pki.CertPKI) suite.Suite {
+func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 
-	nuevo0xC02B(pecas)
-	return &x0xC02B{
-		signSchemes: map[uint16]bool{
-			names.ECDSA_SECP256R1_SHA256: true,
-			names.ECDSA_SECP384R1_SHA384: true,
-			names.ECDSA_SECP521R1_SHA512: true,
-		},
+	var newSuite x0xC02B
+
+	if opts == nil {
+		return nil
 	}
-}
 
-type suiteCert struct {
-	group       uint16
-	fingerPrint []byte
-	algorithm   x509.PublicKeyAlgorithm
-}
-
-func nuevo0xC02B(pecas pki.CertPKI) {
-
-	chains := pecas.GetAll()
-	for _, chain := range chains {
-
+	newSuite.fingerPrints = make([][]byte, 0)
+	if opts.IsClient {
+		newSuite.isClient = true
+		return &newSuite
 	}
+
+	fps := opts.Pki.GetFingerPrints()
+	if len(fps) == 0 {
+		return nil
+	}
+
+	for _, fp := range fps {
+		chain := opts.Pki.Get(fp)
+		if len(chain) == 0 || chain[0].PublicKeyAlgorithm != x509.ECDSA {
+			continue
+		}
+
+		if chain[0].KeyUsage&x509.KeyUsageDigitalSignature == 0 {
+			continue
+		}
+
+		if chain[0].ExtKeyUsage&x509.ExtKeyUsageAny == 0 {
+			continue
+		}
+	}
+
+	return &newSuite
 }
 
 func (x *x0xC02B) ID() uint16 {

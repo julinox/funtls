@@ -34,6 +34,11 @@ type CertMatch struct {
 	SA          []uint16
 }
 
+type SuiteOpts struct {
+	IsClient bool
+	Pki      pki.CertPKI
+}
+
 type Suite interface {
 	ID() uint16
 	Name() string

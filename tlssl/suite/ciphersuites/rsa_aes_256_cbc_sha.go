@@ -13,7 +13,7 @@ import (
 type x0x0035 struct {
 }
 
-func NewRsaAes256CbcSha() suite.Suite {
+func RsaAes256CbcSha() suite.Suite {
 	//func New_RSA_AES_256_CBC_SHA() suite.Suite {
 	return &x0x0035{}
 }

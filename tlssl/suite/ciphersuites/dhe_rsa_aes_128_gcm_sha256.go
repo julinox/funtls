@@ -12,7 +12,7 @@ type x0x009E struct {
 	dhe dh.DiffieHellman
 }
 
-func NewDheRsaAes128GcmSha256() suite.Suite {
+func DheRsaAes128GcmSha256() suite.Suite {
 
 	return &x0x009E{
 		dhe: dh.NewModDHClassic(),
