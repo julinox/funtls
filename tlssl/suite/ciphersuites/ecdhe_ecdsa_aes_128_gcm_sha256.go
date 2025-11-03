@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -12,14 +13,29 @@ type x0xC02B struct {
 	signSchemes map[uint16]bool
 }
 
-func NewEcdheEcdsaAes128GcmSha256() suite.Suite {
+func NewEcdheEcdsaAes128GcmSha256(pecas pki.CertPKI) suite.Suite {
 
+	nuevo0xC02B(pecas)
 	return &x0xC02B{
 		signSchemes: map[uint16]bool{
 			names.ECDSA_SECP256R1_SHA256: true,
 			names.ECDSA_SECP384R1_SHA384: true,
 			names.ECDSA_SECP521R1_SHA512: true,
 		},
+	}
+}
+
+type suiteCert struct {
+	group       uint16
+	fingerPrint []byte
+	algorithm   x509.PublicKeyAlgorithm
+}
+
+func nuevo0xC02B(pecas pki.CertPKI) {
+
+	chains := pecas.GetAll()
+	for _, chain := range chains {
+
 	}
 }
 
@@ -73,38 +89,83 @@ func (x *x0xC02B) AcceptsCert(match *suite.CertMatch) error {
 		return fmt.Errorf("%v | no match params", x.Name())
 	}
 
-	if err := ecdhSGCertMatch(match); err != nil {
-		return fmt.Errorf("%v | %v", x.Name(), err)
+	chain := match.Pki.Get(match.FingerPrint)
+	if len(chain) == 0 {
+		return fmt.Errorf("%v | no chain", x.Name())
 	}
 
-	/*if err := ecdsaSACertMatch(match); err != nil {
-		return fmt.Errorf("%v | %v", x.Name(), err)
-	}*/
+	certName := fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
+		chain[0].PublicKeyAlgorithm)
+
+	if !roleKxEcdhe(chain[0], match.SG) {
+		return fmt.Errorf("%v | no role", certName)
+	}
+
+	if err := roleAuthEcdsa(chain[0], match.SA, match.SG); err != nil {
+		return fmt.Errorf("%v | %v", certName, err)
+	}
 
 	return nil
 }
 
-// La curva de la pubkey debe estar en SG
-func roleKxEcdhe(cert *x509.Certificate, sg []uint16) bool {
+// Si SA = [] entonces se acepta siempre que la curva sea EC
+//
+// -Debe tener KeyUsage = digitalSignature
+// -La pubKey debe coincidir con el algoritmo de firma/autenticación
+// de la CS (RSA o ECDSA)
+// - Si la pubKey es ECDSA, su curva debe estar en SG si len(SG) > 0
+// - La pubKey debe poder firmar usando algún algoritmo de SA
+func roleAuthEcdsa(cert *x509.Certificate, sa, sg []uint16) error {
+
+	var err error
 
 	if cert == nil {
-		return false
+		return nil
 	}
 
-	groupName := getECGroupName(cert)
-	if groupName == names.NOGROUP {
-		return false
+	if cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
+		return fmt.Errorf("no KeyUsageDigitalSignature")
 	}
 
-	for _, g := range sg {
-		if groupName == g {
-			return true
-		}
+	if cert.PublicKeyAlgorithm != x509.ECDSA {
+		return fmt.Errorf("pubkey not ecdsa")
 	}
 
-	return false
+	groupName := ecGroupName(cert)
+	if !sgCheck(groupName, sg) {
+		return fmt.Errorf("cert's curve not within SG")
+	}
+
+	return err
 }
 
-func roleAuthEcdsa(cert *x509.Certificate) {
+/*
 
-}
+1. Compatibilidad con los roles criptográficos
+	1.1 Key Encipherment
+		- Debe tener KeyUsage = keyEncipherment
+		- La pubKey debe ser RSA
+
+	1.2 Key Exchange (KX)
+		- Si el KX es DHE:
+			* Debe tener KeyUsage = keyAgreement
+			* algorithm.parameter.G debe ser compatible con SG o SG-Legacy
+
+		- Si el KX es ECDH:
+			* Debe tener KeyUsage = keyAgreement
+			* algorithm.parameter.? debe ser compatible con SG o SG-Legacy
+
+		- Si el KX es ECDHE:
+			* La pubKey del certificado NO participa en el KX
+			* Si la suite es ECDHE, la curva usada en el KX debe estar en SG
+
+	1.3 Signature (SKE o handshake)
+		- Debe tener KeyUsage = digitalSignature
+		- La pubKey debe coincidir con el algoritmo de firma/autenticación de la CS (RSA o ECDSA)
+		- La pubKey debe poder firmar usando algún algoritmo de SA
+		- Si la pubKey es ECDSA, su curva debe estar en SG
+
+2. Validación de la cadena
+	- Cada certificado en la cadena debe estar firmado con algún algoritmo en SA
+	  (solo si el cliente envió SA; si no, se aplica modo legacy)
+*/

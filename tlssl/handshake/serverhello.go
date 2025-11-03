@@ -163,7 +163,7 @@ func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
 			}
 
 			if err := st.AcceptsCert(stMatch); err != nil {
-				x.tCtx.Lg.Infof("CS/Cert mismatch: %v", err)
+				x.tCtx.Lg.Infof("%v mismatch: %v", st.Name(), err)
 				continue
 			}
 

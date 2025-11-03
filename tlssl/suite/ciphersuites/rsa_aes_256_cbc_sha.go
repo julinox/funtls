@@ -87,11 +87,7 @@ func (x *x0x0035) HashMe(data []byte) ([]byte, error) {
 
 func (x *x0x0035) AcceptsCert(cc *suite.CertMatch) error {
 
-	var suiteCertName string
-
-	suiteCertName = fmt.Sprintf("%v", x.Name())
-
-	return fmt.Errorf("%v | not implemented", suiteCertName)
+	return fmt.Errorf("not implemented")
 }
 
 func (x *x0x0035) basicCheck(cc *suite.SuiteContext) error {

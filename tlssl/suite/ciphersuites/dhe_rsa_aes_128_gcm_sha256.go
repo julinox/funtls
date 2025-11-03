@@ -61,11 +61,7 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 
 func (x *x0x009E) AcceptsCert(cc *suite.CertMatch) error {
 
-	var suiteCertName string
-
-	suiteCertName = fmt.Sprintf("%v", x.Name())
-
-	return fmt.Errorf("%v | not implemented", suiteCertName)
+	return fmt.Errorf("not implemented")
 }
 
 func (x *x0x009E) SignThis(msg []byte) []byte {

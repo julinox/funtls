@@ -65,7 +65,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 		return nil, err
 	}
 
-	fun.tCtx.TLSSuite, err = initTLSSuites(fun.tCtx.Lg)
+	fun.tCtx.TLSSuite, err = initTLSSuites(fun.tCtx.CertPKI, fun.tCtx.Lg)
 	if err != nil {
 		fun.tCtx.Lg.Error("error initializing TLS suites: ", err)
 		return nil, err
@@ -116,7 +116,7 @@ func InitDefaultLogger() *logrus.Logger {
 	return lg
 }
 
-func initTLSSuites(lg *logrus.Logger) (mx.ModTLSSuite, error) {
+func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 
 	var err error
 	var tSuite mx.ModTLSSuite
@@ -130,7 +130,7 @@ func initTLSSuites(lg *logrus.Logger) (mx.ModTLSSuite, error) {
 		suite.CipherSuiteNames[0x0035]: css.NewRsaAes256CbcSha(),
 		suite.CipherSuiteNames[0x003D]: css.NewRsaAes256CbcSha256(),
 		suite.CipherSuiteNames[0x009E]: css.NewDheRsaAes128GcmSha256(),
-		suite.CipherSuiteNames[0xC02B]: css.NewEcdheEcdsaAes128GcmSha256(),
+		suite.CipherSuiteNames[0xC02B]: css.NewEcdheEcdsaAes128GcmSha256(pk),
 	}
 
 	for name, suite := range supportedSuites {

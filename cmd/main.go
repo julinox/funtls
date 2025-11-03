@@ -20,13 +20,9 @@ func main() {
 		Logger: lg,
 		Certos: []*pki.CertPath{
 			{
-				ChainPath: "./pki3/server1chain.pem",
-				KeyPath:   "./pki3/server1key.pem",
+				ChainPath: "/home/usery/ca/chains/server1chain.pem",
+				KeyPath:   "/home/usery/ca/funtls/private/server1funtlsdev.key",
 			},
-			/*{
-				PathCert: "./pki3/server1chain.pem",
-				PathKey:  "./pki3/server1key.pem",
-			},*/
 		},
 	})
 
