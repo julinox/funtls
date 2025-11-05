@@ -23,6 +23,18 @@ func main() {
 				ChainPath: "/home/usery/ca/chains/server1chain.pem",
 				KeyPath:   "/home/usery/ca/chains/private/server1chain.key",
 			},
+			{
+				ChainPath: "/home/usery/ca/chains/server3chain.pem",
+				KeyPath:   "/home/usery/ca/chains/private/server3chain.key",
+			},
+			{
+				ChainPath: "/home/usery/ca/chains/server2chain.pem",
+				KeyPath:   "/home/usery/ca/chains/private/server2chain.key",
+			},
+			{
+				ChainPath: "/home/usery/ca/chains/server2rsachain.pem",
+				KeyPath:   "/home/usery/ca/chains/private/server2rsachain.key",
+			},
 		},
 	})
 
@@ -31,6 +43,7 @@ func main() {
 		return
 	}
 
+	return
 	hearit, err := srv.Accept()
 	if err != nil {
 		return

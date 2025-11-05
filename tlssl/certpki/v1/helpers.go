@@ -193,14 +193,13 @@ func isRSAPSSPublicKey(spki []byte) bool {
 	return aux.Algo.Algorithm.Equal(pss)
 }
 
-func certFingerPrint(cert *x509.Certificate) []byte {
+func certFingerPrint(cert *x509.Certificate) [32]byte {
 
 	if cert == nil {
-		return []byte{}
+		return [32]byte{}
 	}
 
-	sum := sha256.Sum256(cert.Raw)
-	return sum[:]
+	return sha256.Sum256(cert.Raw)
 }
 
 func matchByname(dnsNames []string, certNames map[string]bool) bool {

@@ -55,7 +55,7 @@ func createCSpec(st suite.Suite, keys *tlssl.Keys) cipherspec.CipherSpec {
 }
 
 func createCSuite() suite.Suite {
-	return ciphersuites.NewRsaAes256CbcSha256()
+	return ciphersuites.RsaAes256CbcSha256()
 }
 
 func clientKeys() *tlssl.Keys {

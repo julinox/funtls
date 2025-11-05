@@ -65,6 +65,11 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 		return nil, err
 	}
 
+	for _, cc := range fun.tCtx.CertPKI.GetAll() {
+		fmt.Printf("Certo: %v (%v)\n", cc[0].Subject.CommonName, cc[0].PublicKeyAlgorithm)
+	}
+
+	return nil, fmt.Errorf("Hasta Aca")
 	fun.tCtx.TLSSuite, err = initTLSSuites(fun.tCtx.CertPKI, fun.tCtx.Lg)
 	if err != nil {
 		fun.tCtx.Lg.Error("error initializing TLS suites: ", err)

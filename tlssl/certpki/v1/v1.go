@@ -8,7 +8,6 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
-	"maps"
 
 	"github.com/julinox/funtls/systema"
 	cert "github.com/julinox/funtls/tlssl/certpki"
@@ -16,18 +15,18 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type pki struct {
-	cname       string
-	fingerPrint []byte
-	saSupport   map[uint16]bool // Suppoorted Algorithns
-	san         map[string]bool // Subject Alternative Names
-	key         crypto.PrivateKey
-	chain       []*x509.Certificate // 0 is the leaf
+type pkInfo struct {
+	cname     string
+	saSupport map[uint16]bool // Suppoorted Algorithns
+	san       map[string]bool // Subject Alternative Names
+	key       crypto.PrivateKey
+	chain     []*x509.Certificate // 0 is the leaf
 }
 
 type xCertPKI struct {
-	info []*pki
+	//info []*pki
 	lg   *logrus.Logger
+	info map[[32]byte]*pkInfo
 }
 
 func NewCertPki(lg *logrus.Logger, cp []*cert.CertPath) (cert.CertPKI, error) {
@@ -43,11 +42,12 @@ func NewCertPki(lg *logrus.Logger, cp []*cert.CertPath) (cert.CertPKI, error) {
 		return nil, fmt.Errorf("empty paths (%s)", myself)
 	}
 
+	cPki.info = make(map[[32]byte]*pkInfo)
 	cPki.lg = lg
 	for _, p := range cp {
 		cert, err := cPki.Load(p)
 		if err != nil {
-			cPki.lg.Errorf("error loading PKI (%v): %v", p.ChainPath, err)
+			cPki.lg.Warnf("cert load (%v): %v", p.ChainPath, err)
 			continue
 		}
 
@@ -62,7 +62,7 @@ func (x *xCertPKI) Print() string {
 
 	var str string
 
-	for i, pki := range x.info {
+	/*for i, pki := range x.info {
 		var sans []string
 
 		for s := range maps.Keys(pki.san) {
@@ -77,7 +77,7 @@ func (x *xCertPKI) Print() string {
 			str += fmt.Sprintf("%s (%v) | %v | %s", pki.cname, fp,
 				sans, printSASupport(pki.saSupport, ","))
 		}
-	}
+	}*/
 
 	return str
 }
@@ -86,8 +86,8 @@ func (x *xCertPKI) GetFingerPrints() [][]byte {
 
 	var fps [][]byte
 
-	for _, pki := range x.info {
-		fps = append(fps, pki.fingerPrint)
+	for fp, _ := range x.info {
+		fps = append(fps, fp[:])
 	}
 
 	return fps
@@ -106,12 +106,14 @@ func (x *xCertPKI) GetAll() [][]*x509.Certificate {
 
 func (x *xCertPKI) Get(fingerprint []byte) []*x509.Certificate {
 
+	//var fpAux [_FP_SZ_]byte
+
 	if len(fingerprint) == 0 {
 		return nil
 	}
 
-	for _, pki := range x.info {
-		if bytes.Equal(fingerprint, pki.fingerPrint) {
+	for fp, pki := range x.info {
+		if bytes.Equal(fp[:], fingerprint) {
 			return pki.chain
 		}
 	}
@@ -150,14 +152,14 @@ func (x *xCertPKI) GetBy(opts *cert.CertOpts) []*x509.Certificate {
 	return nil
 }
 
-func (x *xCertPKI) GetCertPKey(fingerprint []byte) crypto.PrivateKey {
+func (x *xCertPKI) GetPrivateKey(fingerprint []byte) crypto.PrivateKey {
 
 	if len(fingerprint) == 0 {
 		return nil
 	}
 
-	for _, pki := range x.info {
-		if bytes.Equal(fingerprint, pki.fingerPrint) {
+	for fp, pki := range x.info {
+		if bytes.Equal(fp[:], fingerprint) {
 			return pki.key
 		}
 	}
@@ -167,13 +169,13 @@ func (x *xCertPKI) GetCertPKey(fingerprint []byte) crypto.PrivateKey {
 
 func (x *xCertPKI) SaSupport(sa []uint16, fingerpint []byte) bool {
 
-	for _, p := range x.info {
-		if !bytes.Equal(p.fingerPrint, fingerpint) {
+	for fp, pki := range x.info {
+		if bytes.Equal(fp[:], fingerpint) {
 			continue
 		}
 
 		for _, s := range sa {
-			if p.saSupport[s] {
+			if pki.saSupport[s] {
 				return true
 			}
 		}
@@ -183,20 +185,30 @@ func (x *xCertPKI) SaSupport(sa []uint16, fingerpint []byte) bool {
 }
 
 func (x *xCertPKI) FingerPrint(cert *x509.Certificate) []byte {
-	return certFingerPrint(cert)
+
+	fp := certFingerPrint(cert)
+	return fp[:]
 }
 
 func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 
-	var peca pki
+	var peca pkInfo
+	var fingerPrint [32]byte
 
 	chain, err := loadCertificateChain(path.ChainPath)
 	if err != nil {
 		return nil, err
 	}
 
+	fingerPrint = certFingerPrint(chain[0])
 	if len(chain) <= 0 {
 		return nil, fmt.Errorf("no cert chain generated")
+	}
+
+	_, ok := x.info[fingerPrint]
+	if ok {
+		return nil, fmt.Errorf("already exists '%v' (%v)",
+			chain[0].Subject.CommonName, chain[0].PublicKeyAlgorithm)
 	}
 
 	key, err := loadPrivateKey(path.KeyPath)
@@ -225,8 +237,11 @@ func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 		peca.san[san] = true
 	}
 
-	peca.fingerPrint = certFingerPrint(peca.chain[0])
-	x.info = append(x.info, &peca)
+	//peca.fingerPrint = certFingerPrint(peca.chain[0])
+	//fmt.Println("HUELA: ", peca.fi)
+	//x.info = append(x.info, &peca)
+	//x.info[certFingerPrint(peca.chain[0])] = &peca
+	x.info[fingerPrint] = &peca
 	return peca.chain[0], nil
 }
 
@@ -262,7 +277,7 @@ func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 // - If the certificate contains an RSA-PSS key (OID rsassaPss):
 //   - It can only be used with PSS (rsa_pss_pss_*).
 //   - PKCS#1 v1.5 is not allowed.
-func (p *pki) setSignAlgoSupport() error {
+func (p *pkInfo) setSignAlgoSupport() error {
 
 	p.saSupport = make(map[uint16]bool)
 	leaf := p.chain[0]

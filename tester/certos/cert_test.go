@@ -57,7 +57,7 @@ func TestEame(t *testing.T) {
 	}
 
 	// Key
-	key := cpki.GetCertPKey(fp)
+	key := cpki.GetPrivateKey(fp)
 	if key != nil {
 		lg.Info("Key founded")
 	}
