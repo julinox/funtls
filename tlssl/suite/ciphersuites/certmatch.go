@@ -5,9 +5,16 @@ import (
 	"crypto/elliptic"
 	"crypto/x509"
 	"fmt"
+	"strings"
 
 	"github.com/julinox/funtls/tlssl/names"
 )
+
+// CipherSuite related certs
+type csrCert struct {
+	group       uint16
+	fingerPrint []byte
+}
 
 var sigAlgToSchemes = map[x509.SignatureAlgorithm][]uint16{
 	x509.SHA256WithRSA:    {names.RSA_PKCS1_SHA256, names.RSA_PSS_RSAE_SHA256},
@@ -88,8 +95,9 @@ func ecGroupName(cert *x509.Certificate) uint16 {
 }
 
 // La curva de la pubkey debe estar en SG
-func roleKxEcdhe(cert *x509.Certificate, sg []uint16) bool {
+func sgMatchEcdsa(cert *x509.Certificate, sg []uint16) bool {
 
+	fmt.Println("LA CADENITAAA")
 	if cert == nil {
 		return false
 	}
@@ -136,4 +144,64 @@ func checkEKU(eku []x509.ExtKeyUsage, ku x509.ExtKeyUsage) bool {
 	}
 
 	return false
+}
+
+func matchSniSan(sniList []string, sans []string, cn string) bool {
+
+	if len(sniList) == 0 {
+		return true
+	}
+
+	sni := sniList[0]
+	if sni == "" {
+		return true
+	}
+
+	for _, san := range sans {
+		if sniSanVs(sni, san) {
+			fmt.Printf("MSS san: %v\n", san)
+			return true
+		}
+	}
+
+	if cn != "" && sniSanVs(sni, cn) {
+		fmt.Printf("MSS cn: %v\n", cn)
+		return true
+	}
+
+	return false
+}
+
+func sniSanVs(sni, san string) bool {
+
+	sni = strings.ToLower(strings.TrimSuffix(sni, "."))
+	san = strings.ToLower(strings.TrimSuffix(san, "."))
+	if !strings.Contains(san, "*") {
+		return sni == san
+	}
+
+	sniParts := strings.Split(sni, ".")
+	sanParts := strings.Split(san, ".")
+
+	// a*.example.com
+	if sanParts[0] != "*" {
+		return false
+	}
+
+	// avoid *.com, *.net, etc
+	if len(sanParts) < 3 {
+		return false
+	}
+
+	if len(sniParts) != len(sanParts) {
+		return false
+	}
+
+	for i := 1; i < len(sanParts); i++ {
+		if sniParts[i] != sanParts[i] {
+			return false
+		}
+	}
+
+	return true
 }

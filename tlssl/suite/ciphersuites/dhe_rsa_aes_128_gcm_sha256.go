@@ -59,9 +59,9 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E HashMe not implemented")
 }
 
-func (x *x0x009E) AcceptsCert(cc *suite.CertMatch) error {
+func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 
-	return fmt.Errorf("not implemented")
+	return nil
 }
 
 func (x *x0x009E) SignThis(msg []byte) []byte {

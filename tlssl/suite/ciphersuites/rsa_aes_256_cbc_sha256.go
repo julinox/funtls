@@ -85,9 +85,9 @@ func (x *x0x003D) HashMe(data []byte) ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func (x *x0x003D) AcceptsCert(cc *suite.CertMatch) error {
+func (x *x0x003D) CertMe(match *suite.CertMatch) []byte {
 
-	return fmt.Errorf("not implemented")
+	return nil
 }
 
 func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {

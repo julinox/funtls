@@ -8,6 +8,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
+	"maps"
 
 	"github.com/julinox/funtls/systema"
 	cert "github.com/julinox/funtls/tlssl/certpki"
@@ -40,8 +41,8 @@ func NewCertPki(lg *logrus.Logger, cp []*cert.CertPath) (cert.CertPKI, error) {
 
 	if len(cp) <= 0 {
 		return nil, fmt.Errorf("empty paths (%s)", myself)
-	}
 
+	}
 	cPki.info = make(map[[32]byte]*pkInfo)
 	cPki.lg = lg
 	for _, p := range cp {
@@ -62,22 +63,26 @@ func (x *xCertPKI) Print() string {
 
 	var str string
 
-	/*for i, pki := range x.info {
+	i := 0
+	for fp, pki := range x.info {
 		var sans []string
 
 		for s := range maps.Keys(pki.san) {
 			sans = append(sans, s)
 		}
 
-		fp := hexToPointString(pki.fingerPrint[:8])
+		fpAux := hexToPointString(fp[:8])
+		pka := pki.chain[0].PublicKeyAlgorithm
 		if i < len(x.info)-1 {
-			str += fmt.Sprintf("%s (%v) | %v | %s\n", pki.cname, fp,
-				sans, printSASupport(pki.saSupport, ","))
+			str += fmt.Sprintf("%v: %s (%v) | %v | %s\n", fpAux, pki.cname,
+				pka, sans, printSASupport(pki.saSupport, ","))
 		} else {
-			str += fmt.Sprintf("%s (%v) | %v | %s", pki.cname, fp,
-				sans, printSASupport(pki.saSupport, ","))
+			str += fmt.Sprintf("%v: %s (%v) | %v | %s", fpAux, pki.cname,
+				pka, sans, printSASupport(pki.saSupport, ","))
 		}
-	}*/
+
+		i++
+	}
 
 	return str
 }

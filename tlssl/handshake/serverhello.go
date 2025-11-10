@@ -7,6 +7,7 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
+	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -143,7 +144,7 @@ func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
 
 	sg := getSupportedGroups(cliMsg)
 	sa := getSignatureAlgorithms(cliMsg)
-	fingerPrints := x.tCtx.CertPKI.GetFingerPrints()
+	sni := getServerNameIndication(cliMsg)
 	for _, cs := range cliMsg.CipherSuites {
 		if !x.tCtx.TLSSuite.IsSupported(cs) {
 			continue
@@ -154,30 +155,15 @@ func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
 			continue
 		}
 
-		for _, fp := range fingerPrints {
-			stMatch := &suite.CertMatch{
-				FingerPrint: fp,
-				Pki:         x.tCtx.CertPKI,
-				SG:          sg,
-				SA:          sa,
-			}
+		fp := st.CertMe(&suite.CertMatch{
+			SG:  sg,
+			SA:  sa,
+			SNI: sni,
+		})
 
-			if err := st.AcceptsCert(stMatch); err != nil {
-				x.tCtx.Lg.Infof("%v mismatch: %v", st.Name(), err)
-				continue
-			}
-
-			cert := x.tCtx.CertPKI.Get(fp)
-			if len(cert) == 0 {
-				continue // Really?
-			}
-
-			x.ctx.SetCipherSuite(cs)
-			x.ctx.SetCertFingerprint(fp)
-			x.tCtx.Lg.Infof("CipherSuite: %v", suite.CipherSuiteNames[cs])
-			x.tCtx.Lg.Infof("Certificate: %v (%v)", cert[0].Subject.CommonName,
-				cert[0].PublicKeyAlgorithm)
-			return nil
+		if len(fp) > 0 {
+			fmt.Println("Bingo")
+			return fmt.Errorf("Encontramos el Certo pero forzamos el error")
 		}
 	}
 
@@ -250,6 +236,13 @@ func getSupportedGroups(cliMsg *MsgHello) []uint16 {
 
 func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
 
+	fmt.Println("-------------------------DEBUG getsignaturealgorithms")
+	return []uint16{
+		names.RSA_PKCS1_SHA256,
+		names.ECDSA_SECP384R1_SHA384,
+		names.ECDSA_SECP256R1_SHA256,
+	}
+	fmt.Println("-------------------------DEBUG getsignaturealgorithms")
 	if cliMsg == nil {
 		return []uint16{}
 	}
@@ -265,4 +258,27 @@ func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
 	}
 
 	return saData.Algos
+}
+
+func getServerNameIndication(cliMsg *MsgHello) []string {
+
+	names := []string{}
+	if cliMsg == nil {
+		return names
+	}
+
+	sniAux := cliMsg.Extensions[ex.EXT_SERVER_NAME]
+	if sniAux == nil {
+		return names
+	}
+
+	sniData, ok := sniAux.(*ex.ExtSNIData)
+	if !ok {
+		return names
+	}
+
+	for _, name := range sniData.Names {
+		names = append(names, name.Name)
+	}
+	return names
 }

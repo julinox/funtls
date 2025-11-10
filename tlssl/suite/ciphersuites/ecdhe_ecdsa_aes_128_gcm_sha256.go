@@ -4,18 +4,15 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	cpki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
-type csCert struct {
-	group       uint16
-	fingerPrint []byte
-}
-
 type x0xC02B struct {
-	isClient bool
-	certs    []*csCert
+	isClient     bool
+	relatedcerts []*csrCert
+	certPki      cpki.CertPKI
 }
 
 func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
@@ -27,7 +24,7 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 		return nil
 	}
 
-	newSuite.certs = make([]*csCert, 0)
+	newSuite.relatedcerts = make([]*csrCert, 0)
 	if opts.IsClient {
 		newSuite.isClient = true
 		return &newSuite
@@ -38,6 +35,10 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 		return nil
 	}
 
+	// Searching for matching certs
+	// - Is ECDSA
+	// - Can sign (ServerKeyExchange)
+	// - Does it have TLS server Auth, or any (non specific constraint)
 	for _, fp := range fingerPrints {
 		chain := opts.Pki.Get(fp)
 		if len(chain) == 0 || chain[0].PublicKeyAlgorithm != x509.ECDSA {
@@ -61,10 +62,12 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 		aux := fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
 			chain[0].PublicKeyAlgorithm)
 		certNames = append(certNames, aux)
-		newSuite.certs = append(newSuite.certs, &csCert{groupName, fp})
+		newSuite.relatedcerts = append(newSuite.relatedcerts,
+			&csrCert{groupName, fp})
 	}
 
-	opts.Lg.Warnf("%v: %v", newSuite.Name(), certNames)
+	newSuite.certPki = opts.Pki
+	opts.Lg.Infof("%v: %v", newSuite.Name(), certNames)
 	return &newSuite
 }
 
@@ -112,26 +115,35 @@ func (x *x0xC02B) SignThis(msg1 []byte) []byte {
 	return nil
 }
 
-func (x *x0xC02B) AcceptsCert(match *suite.CertMatch) error {
+func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 
-	if match == nil || match.Pki == nil {
-		return fmt.Errorf("%v | no match params", x.Name())
+	for _, si := range match.SA {
+		fmt.Println(names.SignHashAlgorithms[si])
 	}
 
-	chain := match.Pki.Get(match.FingerPrint)
-	if len(chain) == 0 {
-		return fmt.Errorf("%v | no chain", x.Name())
-	}
+	for _, csc := range x.relatedcerts {
+		chain := x.certPki.Get(csc.fingerPrint)
+		if len(chain) == 0 {
+			continue
+		}
 
-	certName := fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
-		chain[0].PublicKeyAlgorithm)
+		if !matchSniSan(match.SNI, chain[0].DNSNames,
+			chain[0].Subject.CommonName) {
+			//fmt.Println("Skipped... ", chain[0].DNSNames, chain[0].Subject.CommonName)
+			continue
+		}
 
-	if !roleKxEcdhe(chain[0], match.SG) {
-		return fmt.Errorf("%v | no role", certName)
-	}
+		//if err := validateChainSignatures(chain, ); err != nil {
+		if err := validateChainSignatures(chain, match.SA); err != nil {
+			fmt.Printf("VCSIG: %v\n", err)
+			continue
+		}
 
-	if err := roleAuthEcdsa(chain[0], match.SA, match.SG); err != nil {
-		return fmt.Errorf("%v | %v", certName, err)
+		if len(match.SG) > 0 && !sgMatchEcdsa(chain[0], match.SG) {
+			fmt.Println("NO matcheo por SG MATCH")
+		}
+
+		fmt.Println("PASAA???")
 	}
 
 	return nil

@@ -43,7 +43,6 @@ func main() {
 		return
 	}
 
-	return
 	hearit, err := srv.Accept()
 	if err != nil {
 		return

@@ -29,10 +29,9 @@ type SuiteInfo struct {
 }
 
 type CertMatch struct {
-	FingerPrint []byte
-	Pki         pki.CertPKI
-	SG          []uint16
-	SA          []uint16
+	SG  []uint16
+	SA  []uint16
+	SNI []string
 }
 
 type SuiteOpts struct {
@@ -45,7 +44,7 @@ type Suite interface {
 	ID() uint16
 	Name() string
 	Info() *SuiteInfo
-	AcceptsCert(*CertMatch) error
+	CertMe(*CertMatch) []byte
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
 	Cipher(*SuiteContext) ([]byte, error)
