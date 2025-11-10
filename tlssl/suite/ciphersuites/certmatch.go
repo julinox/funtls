@@ -97,7 +97,6 @@ func ecGroupName(cert *x509.Certificate) uint16 {
 // La curva de la pubkey debe estar en SG
 func sgMatchEcdsa(cert *x509.Certificate, sg []uint16) bool {
 
-	fmt.Println("LA CADENITAAA")
 	if cert == nil {
 		return false
 	}
@@ -109,6 +108,7 @@ func sgMatchEcdsa(cert *x509.Certificate, sg []uint16) bool {
 
 	for _, g := range sg {
 		if groupName == g {
+			fmt.Println("certmatch.go grupo encontrado: ", names.SupportedGroups[g])
 			return true
 		}
 	}
@@ -159,13 +159,11 @@ func matchSniSan(sniList []string, sans []string, cn string) bool {
 
 	for _, san := range sans {
 		if sniSanVs(sni, san) {
-			fmt.Printf("MSS san: %v\n", san)
 			return true
 		}
 	}
 
 	if cn != "" && sniSanVs(sni, cn) {
-		fmt.Printf("MSS cn: %v\n", cn)
 		return true
 	}
 

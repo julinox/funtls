@@ -1,7 +1,6 @@
 package v1
 
 import (
-	"bytes"
 	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
@@ -91,7 +90,7 @@ func (x *xCertPKI) GetFingerPrints() [][]byte {
 
 	var fps [][]byte
 
-	for fp, _ := range x.info {
+	for fp := range x.info {
 		fps = append(fps, fp[:])
 	}
 
@@ -111,50 +110,16 @@ func (x *xCertPKI) GetAll() [][]*x509.Certificate {
 
 func (x *xCertPKI) Get(fingerprint []byte) []*x509.Certificate {
 
-	//var fpAux [_FP_SZ_]byte
-
 	if len(fingerprint) == 0 {
 		return nil
 	}
 
-	for fp, pki := range x.info {
-		if bytes.Equal(fp[:], fingerprint) {
-			return pki.chain
-		}
+	info, ok := x.info[[32]byte(fingerprint)]
+	if !ok {
+		return []*x509.Certificate{}
 	}
 
-	return nil
-}
-
-// Select certificate that mntches by:
-// - Dns Names (CNAME + SAN)
-// - Public Key Algorithm
-// - Ignore if certificate is expired
-// - Any other parameter in "opts"
-func (x *xCertPKI) GetBy(opts *cert.CertOpts) []*x509.Certificate {
-
-	if opts == nil {
-		return nil
-	}
-
-	for _, pki := range x.info {
-		if len(opts.DnsNames) > 0 && !matchByname(opts.DnsNames, pki.san) {
-			continue
-		}
-
-		if opts.KeyAlgorithm != x509.UnknownPublicKeyAlgorithm &&
-			opts.KeyAlgorithm != pki.chain[0].PublicKeyAlgorithm {
-			continue
-		}
-
-		if !opts.IgnoreExpired && !certValidity(pki.chain[0]) {
-			continue
-		}
-
-		return pki.chain
-	}
-
-	return nil
+	return info.chain
 }
 
 func (x *xCertPKI) GetPrivateKey(fingerprint []byte) crypto.PrivateKey {
@@ -163,26 +128,28 @@ func (x *xCertPKI) GetPrivateKey(fingerprint []byte) crypto.PrivateKey {
 		return nil
 	}
 
-	for fp, pki := range x.info {
-		if bytes.Equal(fp[:], fingerprint) {
-			return pki.key
-		}
+	info, ok := x.info[[32]byte(fingerprint)]
+	if !ok {
+		return nil
 	}
 
-	return nil
+	return info.key
 }
 
-func (x *xCertPKI) SaSupport(sa []uint16, fingerpint []byte) bool {
+func (x *xCertPKI) SaSupport(sa []uint16, fingerprint []byte) bool {
 
-	for fp, pki := range x.info {
-		if bytes.Equal(fp[:], fingerpint) {
-			continue
-		}
+	if len(fingerprint) == 0 {
+		return false
+	}
 
-		for _, s := range sa {
-			if pki.saSupport[s] {
-				return true
-			}
+	info, ok := x.info[[32]byte(fingerprint)]
+	if !ok {
+		return false
+	}
+
+	for _, s := range sa {
+		if info.saSupport[s] {
+			return true
 		}
 	}
 
@@ -242,10 +209,6 @@ func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 		peca.san[san] = true
 	}
 
-	//peca.fingerPrint = certFingerPrint(peca.chain[0])
-	//fmt.Println("HUELA: ", peca.fi)
-	//x.info = append(x.info, &peca)
-	//x.info[certFingerPrint(peca.chain[0])] = &peca
 	x.info[fingerPrint] = &peca
 	return peca.chain[0], nil
 }

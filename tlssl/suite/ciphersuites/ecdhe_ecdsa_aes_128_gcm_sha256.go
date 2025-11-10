@@ -117,10 +117,6 @@ func (x *x0xC02B) SignThis(msg1 []byte) []byte {
 
 func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 
-	for _, si := range match.SA {
-		fmt.Println(names.SignHashAlgorithms[si])
-	}
-
 	for _, csc := range x.relatedcerts {
 		chain := x.certPki.Get(csc.fingerPrint)
 		if len(chain) == 0 {
@@ -129,11 +125,10 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 
 		if !matchSniSan(match.SNI, chain[0].DNSNames,
 			chain[0].Subject.CommonName) {
-			//fmt.Println("Skipped... ", chain[0].DNSNames, chain[0].Subject.CommonName)
 			continue
 		}
 
-		//if err := validateChainSignatures(chain, ); err != nil {
+		fmt.Println("SOPORTA SASUPPORT: ", x.certPki.SaSupport(match.SA, csc.fingerPrint))
 		if err := validateChainSignatures(chain, match.SA); err != nil {
 			fmt.Printf("VCSIG: %v\n", err)
 			continue
