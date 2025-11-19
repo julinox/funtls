@@ -49,7 +49,6 @@ type Suite interface {
 	MacMe([]byte, []byte) ([]byte, error)
 	Cipher(*SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
-	SignThis([]byte) []byte
 }
 
 func (sc *SuiteContext) Print() string {

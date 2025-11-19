@@ -108,7 +108,6 @@ func sgMatchEcdsa(cert *x509.Certificate, sg []uint16) bool {
 
 	for _, g := range sg {
 		if groupName == g {
-			fmt.Println("certmatch.go grupo encontrado: ", names.SupportedGroups[g])
 			return true
 		}
 	}

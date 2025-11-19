@@ -35,9 +35,8 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 		return nil
 	}
 
-	// Searching for matching certs
+	// Searching for suite's matching certs
 	// - Is ECDSA
-	// - Can sign (ServerKeyExchange)
 	// - Does it have TLS server Auth, or any (non specific constraint)
 	for _, fp := range fingerPrints {
 		chain := opts.Pki.Get(fp)
@@ -111,10 +110,9 @@ func (x *x0xC02B) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0xC02B HashMe not implemented")
 }
 
-func (x *x0xC02B) SignThis(msg1 []byte) []byte {
-	return nil
-}
-
+// - CN/SNI match
+// - SG's curve allowed?
+// - Can sign (ServerKeyExchange)
 func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 
 	for _, csc := range x.relatedcerts {
@@ -128,17 +126,19 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 			continue
 		}
 
-		fmt.Println("SOPORTA SASUPPORT: ", x.certPki.SaSupport(match.SA, csc.fingerPrint))
+		if !x.certPki.SaSupport(match.SA, csc.fingerPrint) {
+			continue
+		}
+
 		if err := validateChainSignatures(chain, match.SA); err != nil {
-			fmt.Printf("VCSIG: %v\n", err)
 			continue
 		}
 
 		if len(match.SG) > 0 && !sgMatchEcdsa(chain[0], match.SG) {
-			fmt.Println("NO matcheo por SG MATCH")
+			continue
 		}
 
-		fmt.Println("PASAA???")
+		return csc.fingerPrint
 	}
 
 	return nil

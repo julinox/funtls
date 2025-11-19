@@ -63,7 +63,6 @@ func (x *xCertificate) certificateServer() error {
 		return fmt.Errorf("%v: invalid cipher suite", x.Name())
 	}
 
-	return fmt.Errorf("ESTO ESTA MAL certificate.go linea 66")
 	certChain := x.tCtx.CertPKI.Get(x.ctx.GetCertFingerprint())
 	if len(certChain) == 0 {
 		return fmt.Errorf("%v: no certificate chain", x.Name())

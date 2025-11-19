@@ -7,7 +7,6 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
-	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
@@ -162,8 +161,9 @@ func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
 		})
 
 		if len(fp) > 0 {
-			fmt.Println("Bingo")
-			return fmt.Errorf("Encontramos el Certo pero forzamos el error")
+			x.ctx.SetCipherSuite(cs)
+			x.ctx.SetCertFingerprint(fp)
+			return nil
 		}
 	}
 
@@ -217,16 +217,6 @@ func (x *xServerHello) extensions(cliMsg *MsgHello) []byte {
 
 func getSupportedGroups(cliMsg *MsgHello) []uint16 {
 
-	fmt.Println("-------------------------DEBUG getSupportedGroups")
-	return []uint16{
-		names.FFDHE2048,
-		names.FFDHE3072,
-		names.SECP256R1,
-		names.SECP384R1,
-		names.SECP521R1,
-		names.X25519,
-		names.FFDHE8192,
-	}
 	if cliMsg == nil {
 		return []uint16{}
 	}
@@ -245,13 +235,6 @@ func getSupportedGroups(cliMsg *MsgHello) []uint16 {
 }
 
 func getSignatureAlgorithms(cliMsg *MsgHello) []uint16 {
-
-	fmt.Println("-------------------------DEBUG getsignaturealgorithms")
-	return []uint16{
-		//names.RSA_PKCS1_SHA256,
-		//names.ECDSA_SECP384R1_SHA384,
-		//names.ECDSA_SECP256R1_SHA256,
-	}
 
 	if cliMsg == nil {
 		return []uint16{}

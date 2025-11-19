@@ -13,6 +13,7 @@ import (
 	pki "github.com/julinox/funtls/tlssl/certpki"
 )
 
+// Lee esto: https://x.com/popovicu94/status/1988839738523152487
 func main() {
 
 	lg := server.InitDefaultLogger()

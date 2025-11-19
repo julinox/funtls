@@ -53,7 +53,7 @@ func (x *xServerKeyExchange) Handle() error {
 	}
 
 	x.tCtx.Lg.Infof("EL Grupo: %v", pp.GroupName)
-	return fmt.Errorf("ServerKeyExchange not implemented yet")
+	//return fmt.Errorf("ServerKeyExchange not implemented yet")
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 	} else {

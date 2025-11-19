@@ -106,8 +106,3 @@ func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 
 	return nil
 }
-
-func (x *x0x003D) SignThis(msg []byte) []byte {
-
-	return nil
-}
