@@ -1,9 +1,12 @@
 package ecdh
 
 import (
+	"crypto/ecdsa"
 	"crypto/elliptic"
+	"crypto/rand"
 	crand "crypto/rand"
-	"crypto/x509"
+	"crypto/sha256"
+	"crypto/sha512"
 	"encoding/binary"
 	"fmt"
 	"math/big"
@@ -15,13 +18,9 @@ import (
 // MarshalParams(*ECDHResult) []byte
 // SignParams(*x509.Certificate, []byte, []byte, []byte) ([]byte, error)
 // BuildSKE(*ECDHResult, []byte, uint8, uint8) []byte
-// entonces 'GenerateKey' me retorna '*ecdh.PrivateKey', y
-
-// 03 | curve_id | len | 04| X | Y | Firma
-// Firma: client_random || server_random || (03 | curve_id | len | 04||X||Y)
 type NamedGroup uint16
 
-type Eliptica struct {
+type Ecdhe struct {
 	Group uint16
 	Priv  []byte
 	X     *big.Int
@@ -29,10 +28,56 @@ type Eliptica struct {
 	Curva elliptic.Curve
 }
 
-func Curveame(sg []uint16, cert *x509.Certificate) (*Eliptica, error) {
+type ecdhe struct {
+	x     *big.Int
+	y     *big.Int
+	curva elliptic.Curve
+}
+
+type dhe struct {
+}
+
+type KeyExchange struct {
+	Group  uint16
+	priv   []byte
+	xEcdhe *ecdhe
+	xDhe   *dhe
+}
+
+/*func KXParams(sg []uint16, kxType int) (*KeyExchange, error) {
+
+	if kxType == names.KX_ECDHE {
+		return KXParamsEcdhe(sg)
+	}
+
+	return nil, fmt.Errorf("key exchange not supported")
+}*/
+
+func KXParamsEcdhe(sg []uint16) (*KeyExchange, error) {
 
 	var err error
-	var elp Eliptica
+	var aux ecdhe
+	var newKX KeyExchange
+
+	curveGroup, curve := selectCurva(sg)
+	if curveGroup == names.NOGROUP || curve == nil {
+		return nil, fmt.Errorf("no ec curve supported for given sg list")
+	}
+
+	aux.curva = curve
+	newKX.priv, aux.x, aux.y, err = elliptic.GenerateKey(curve, crand.Reader)
+	if err != nil {
+		return nil, err
+	}
+
+	newKX.xEcdhe = &aux
+	return &newKX, nil
+}
+
+func NewEcdhe(sg []uint16) (*Ecdhe, error) {
+
+	var err error
+	var elp Ecdhe
 
 	curveGroup, curve := selectCurva(sg)
 	if curveGroup == names.NOGROUP || curve == nil {
@@ -49,13 +94,146 @@ func Curveame(sg []uint16, cert *x509.Certificate) (*Eliptica, error) {
 	return &elp, nil
 }
 
-func (e *Eliptica) Marshall() []byte {
+func Unmarshal(buffer []byte) (*Ecdhe, error) {
 
+	var ec Ecdhe
+
+	if len(buffer) <= 5 {
+		return nil, fmt.Errorf("incorrect buffer len")
+	}
+
+	if buffer[0] != 0x03 {
+		return nil, fmt.Errorf("no named curve byte")
+	}
+
+	curveID := binary.BigEndian.Uint16(buffer[1:])
+	ec.Curva = NamedGroup(curveID).eliptica()
+	if ec.Curva == nil {
+		return nil, fmt.Errorf("unknow curve/group")
+	}
+
+	ec.Group = curveID
+	lenn := int(buffer[3])
+	if len(buffer[4:]) != lenn {
+		return nil, fmt.Errorf("len doesnt match 1byte+x+y")
+	}
+
+	if buffer[4] != 0x04 {
+		return nil, fmt.Errorf("no uncompressed point byte")
+	}
+
+	sz := int((lenn - 1) / 2)
+	if len(buffer[5:]) != sz*2 {
+		return nil, fmt.Errorf("x|y len mismatch")
+	}
+
+	coordLen := (ec.Curva.Params().BitSize + 7) / 8
+	if lenn != 1+2*coordLen {
+		return nil, fmt.Errorf("len mismatch for curve")
+	}
+
+	ec.X = new(big.Int).SetBytes(buffer[5 : 5+sz])
+	ec.Y = new(big.Int).SetBytes(buffer[5+sz:])
+	if !ec.Curva.IsOnCurve(ec.X, ec.Y) {
+		return nil, fmt.Errorf("point not on curve")
+	}
+
+	return &ec, nil
+}
+
+func (e *Ecdhe) BuildSKE(cRand, sRand []byte) ([]byte, error) {
+
+	var err error
+	var ske []byte
+	var toSign []byte
+
+	params, err := e.Marshall()
+	if err != nil {
+		return nil, err
+	}
+
+	toSign = append(toSign, cRand...)
+	toSign = append(toSign, sRand...)
+	toSign = append(toSign, params...)
+	signature, err := e.sign(toSign)
+	if err != nil {
+		return nil, err
+	}
+
+	ske = append(ske, params...)
+	ske = append(ske, 0x00, 0x00)
+	binary.BigEndian.PutUint16(ske[len(params):], uint16(len(signature)))
+	ske = append(ske, signature...)
+	return ske, nil
+}
+
+func (e *Ecdhe) sign(msg []byte) ([]byte, error) {
+
+	var hash []byte
+
+	d := new(big.Int).SetBytes(e.Priv)
+	privateKey := &ecdsa.PrivateKey{
+		D: d,
+	}
+
+	privateKey.PublicKey.Curve = e.Curva
+	privateKey.PublicKey.X = e.X
+	privateKey.PublicKey.Y = e.Y
+	switch e.Group {
+	case names.SECP256R1:
+		h := sha256.Sum256(msg)
+		hash = h[:]
+
+	case names.SECP384R1:
+		h := sha512.Sum384(msg)
+		hash = h[:]
+
+	case names.SECP521R1:
+		h := sha512.Sum512(msg)
+		hash = h[:]
+
+	default:
+		return nil, fmt.Errorf("unsupported curve")
+	}
+
+	if len(hash) == 0 {
+		return nil, fmt.Errorf("message hash has no len")
+	}
+
+	r, s, err := ecdsa.Sign(rand.Reader, privateKey, hash)
+	if err != nil {
+		return nil, err
+	}
+
+	return append(r.Bytes(), s.Bytes()...), nil
+
+}
+
+// CurveParams: 03 | curve_id(2B) | len (in bytes) | 04 | X | Y
+// 03 = named_curve, 04 = uncompressed point
+// Signature: ECDSA(client_random || server_random || CurveParams)
+// SKE: CurveParams || Signature
+func (e *Ecdhe) Marshall() ([]byte, error) {
+
+	var sz int
 	var buffer []byte
 
-	buffer = append(buffer, 0x03)
-	binary.BigEndian.PutUint16(buffer[:], e.Group)
-	return buffer
+	if e.Curva == nil || e.X == nil || e.Y == nil {
+		return nil, fmt.Errorf("nil params for Eliptica struct")
+	}
+
+	sz = (e.Curva.Params().BitSize + 7) / 8
+	pX := paddy(e.X.Bytes(), sz)
+	pY := paddy(e.Y.Bytes(), sz)
+	totalLen := 1 + len(pX) + len(pY)
+	// making space for 'PutUint16'
+	buffer = append(buffer, 0x03, 0x00, 0x00)
+	binary.BigEndian.PutUint16(buffer[1:], e.Group)
+	buffer = append(buffer, byte(totalLen))
+	buffer = append(buffer, 0x04)
+	buffer = append(buffer, pX...)
+	buffer = append(buffer, pY...)
+	return buffer, nil
 }
 
 func selectCurva(sg []uint16) (uint16, elliptic.Curve) {
@@ -90,4 +268,15 @@ func (g NamedGroup) eliptica() elliptic.Curve {
 	default:
 		return nil
 	}
+}
+
+func paddy(buffer []byte, padSz int) []byte {
+
+	if len(buffer) >= padSz {
+		return buffer
+	}
+
+	newBuff := make([]byte, padSz)
+	copy(newBuff[padSz-len(buffer):], buffer)
+	return newBuff
 }

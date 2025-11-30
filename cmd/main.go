@@ -11,10 +11,22 @@ import (
 
 	"github.com/julinox/funtls/server"
 	pki "github.com/julinox/funtls/tlssl/certpki"
+	kx "github.com/julinox/funtls/tlssl/keyexchange"
 )
 
-// Lee esto: https://x.com/popovicu94/status/1988839738523152487
 func main() {
+	opts := &kx.KXParamsOpts{
+		Algorithm: kx.SKE_ALGORITHM_DHE,
+	}
+
+	_, err := kx.KeyExchangeParams(opts)
+	if err != nil {
+		fmt.Println("error SKE: ", err)
+	}
+}
+
+// Lee esto: https://x.com/popovicu94/status/1988839738523152487
+func mainnn() {
 
 	lg := server.InitDefaultLogger()
 	srv, err := server.FunTLServe(&server.FunTLSCfg{
