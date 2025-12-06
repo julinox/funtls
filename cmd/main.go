@@ -12,17 +12,32 @@ import (
 	"github.com/julinox/funtls/server"
 	pki "github.com/julinox/funtls/tlssl/certpki"
 	kx "github.com/julinox/funtls/tlssl/keyexchange"
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 func main() {
-	opts := &kx.KXParamsOpts{
-		Algorithm: kx.SKE_ALGORITHM_DHE,
+
+	sg := []uint16{names.X25519, names.X448, names.SECP256R1,
+		names.SECP384R1, names.SECP521R1}
+	prueba(sg)
+}
+
+func prueba(sg []uint16) {
+
+	res, err := kx.KXEcdhe(sg, false)
+	if err != nil {
+		fmt.Printf("error KX Ecdhe: %v\n", err)
+		return
 	}
 
-	_, err := kx.KeyExchangeParams(opts)
+	fmt.Println("Curva: ", res.Curva.Params().Name)
+	buff, err := res.Marshall()
 	if err != nil {
-		fmt.Println("error SKE: ", err)
+		fmt.Println("error marshalling: ", err)
+		return
 	}
+
+	fmt.Printf("%x\n", buff)
 }
 
 // Lee esto: https://x.com/popovicu94/status/1988839738523152487

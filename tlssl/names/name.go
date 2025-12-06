@@ -90,6 +90,22 @@ const (
 	SECP521R1 = 0x0019
 )
 
+// Used for server key exchange and client key exchange
+const (
+	MD5    = 0x01
+	SHA1   = 0x02
+	SHA224 = 0x03
+	SHA256 = 0x04
+	SHA384 = 0x05
+	SHA512 = 0x06
+)
+
+const (
+	RSA   = 0x01
+	DSA   = 0x02
+	ECDSA = 0x03
+)
+
 var SupportedGroups = map[uint16]string{
 	SECP256R1: "secp256r1",
 	SECP384R1: "secp384r1",

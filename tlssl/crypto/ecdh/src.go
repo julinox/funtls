@@ -44,36 +44,6 @@ type KeyExchange struct {
 	xDhe   *dhe
 }
 
-/*func KXParams(sg []uint16, kxType int) (*KeyExchange, error) {
-
-	if kxType == names.KX_ECDHE {
-		return KXParamsEcdhe(sg)
-	}
-
-	return nil, fmt.Errorf("key exchange not supported")
-}*/
-
-func KXParamsEcdhe(sg []uint16) (*KeyExchange, error) {
-
-	var err error
-	var aux ecdhe
-	var newKX KeyExchange
-
-	curveGroup, curve := selectCurva(sg)
-	if curveGroup == names.NOGROUP || curve == nil {
-		return nil, fmt.Errorf("no ec curve supported for given sg list")
-	}
-
-	aux.curva = curve
-	newKX.priv, aux.x, aux.y, err = elliptic.GenerateKey(curve, crand.Reader)
-	if err != nil {
-		return nil, err
-	}
-
-	newKX.xEcdhe = &aux
-	return &newKX, nil
-}
-
 func NewEcdhe(sg []uint16) (*Ecdhe, error) {
 
 	var err error

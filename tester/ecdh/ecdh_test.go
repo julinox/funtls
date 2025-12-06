@@ -7,7 +7,7 @@ import (
 	"math/big"
 	"testing"
 
-	fecdh "github.com/julinox/funtls/tlssl/crypto/ecdh"
+	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -22,7 +22,7 @@ var nonSupportedSG = map[uint16]bool{
 func TestCurveame_NoSupportedCurves(t *testing.T) {
 	//func pepito(t *testing.T) {
 
-	res, err := fecdh.NewEcdhe(allSG)
+	res, err := kx.KXEcdhe(allSG, false)
 	if err != nil {
 		t.Fatalf("expected error, got nil")
 	}
@@ -31,12 +31,12 @@ func TestCurveame_NoSupportedCurves(t *testing.T) {
 		t.Fatalf("returned non supported group '%v'", res.Group)
 	}
 
-	fmt.Println("Curva NonSupp: ", res.Curva.Params().Name)
+	fmt.Println("Curva: ", res.Curva.Params().Name)
 }
 
 func TestCurveame_IsOnCurve(t *testing.T) {
 
-	res, err := fecdh.NewEcdhe(allSG)
+	res, err := kx.KXEcdhe(allSG, false)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -62,7 +62,7 @@ func TestCurveame_IsOnCurve(t *testing.T) {
 
 func TestCurveame_PrivateMatchesPublic(t *testing.T) {
 
-	res, err := fecdh.NewEcdhe(allSG)
+	res, err := kx.KXEcdhe(allSG, false)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestCurveame_PrivateMatchesPublic(t *testing.T) {
 
 func TestMarshallBasicSz(t *testing.T) {
 
-	res, err := fecdh.NewEcdhe(allSG)
+	res, err := kx.KXEcdhe(allSG, false)
 	if err != nil || res == nil {
 		t.Fatalf("CurveMe failed: %v", err)
 	}
@@ -95,7 +95,7 @@ func TestMarshallBasicSz(t *testing.T) {
 
 func TestMarshallXY(t *testing.T) {
 
-	res, err := fecdh.NewEcdhe(allSG)
+	res, err := kx.KXEcdhe(allSG, false)
 	if err != nil || res == nil {
 		t.Fatalf("CurveMe failed: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestMarshallXY(t *testing.T) {
 		t.Fatal("named curve doesnt match")
 	}
 
-	fmt.Println("Grupo: ", names.SupportedGroups[res.Group])
+	fmt.Printf("Grupo (%v): %v", res.Group, names.SupportedGroups[res.Group])
 	grupo := binary.BigEndian.Uint16(buffer[1:])
 	if grupo != res.Group {
 		t.Fatal("group value doesnt match")
@@ -140,13 +140,13 @@ func TestMarshallXY(t *testing.T) {
 
 func TestMarshallRoundTrip(t *testing.T) {
 	// Genera un punto real ECDHE
-	res, err := fecdh.NewEcdhe(allSG)
+	res, err := kx.KXEcdhe(allSG, false)
 	if err != nil || res == nil {
 		t.Fatalf("CurveMe failed: %v", err)
 	}
 
 	buf1, _ := res.Marshall()
-	e2, err := fecdh.Unmarshal(buf1)
+	e2, err := kx.KXEcdheUnmarshal(buf1)
 	if err != nil {
 		t.Fatalf("UnMarshall failed: %v", err)
 	}
