@@ -1,6 +1,7 @@
 package keyexchange
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -63,7 +64,7 @@ func KXEcdheUnmarshal(buffer []byte) (*KXecdhe, error) {
 	}
 
 	curveID := binary.BigEndian.Uint16(buffer[1:])
-	ec.Curva = eliptica(curveID)
+	ec.Curva = eliptica2(curveID)
 	if ec.Curva == nil {
 		return nil, fmt.Errorf("unknow curve/group")
 	}
@@ -126,34 +127,21 @@ func (kx *KXecdhe) Marshall() ([]byte, error) {
 // SKE: CurveParams || Signature
 func (kx *KXecdhe) Ske(csRand []byte) ([]byte, error) {
 
-	var ske []byte
-	/*var toSign []byte
-	var err error
-
-	params, err := kx.Marshall()
-	if err != nil {
-		return nil, err
-	}
-
-	toSign = append(toSign, csRand...)
-	toSign = append(toSign, params...)
-	rs, err := kx.Sign(toSign)
-	if err != nil {
-		return nil, err
-	}
-
-	ske = append(ske, params...)
-	ske = append(ske, 0x00, 0x00)
-	binary.BigEndian.PutUint16(ske[len(params):], uint16(len(signature)))
-	ske = append(ske, signature...)*/
-	return ske, nil
+	return nil, nil
 }
 
 // For ecdhe the hashing algorithm is implied by the curve used
 // This is at least true for NIST curves
 //
 // Signatyre Format: HashAlgo | SignAlgo | len(signature) | signature
-func (kx *KXecdhe) Sign(msg []byte) ([]byte, error) {
+func PepitoFirma(msg []byte, key crypto.PrivateKey) {
+
+	if key == nil {
+
+	}
+}
+
+func (kx *KXecdhe) Signature(msg []byte) ([]byte, error) {
 
 	var err error
 	var hashAlgo byte
@@ -196,30 +184,8 @@ func (kx *KXecdhe) Sign(msg []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	bitSz := kx.Curva.Params().BitSize
-	return serializeRS(r, s, hashAlgo, names.ECDSA, bitSz), nil
-}
-
-// Format: HashAlgo (1B) | SignAlgo(1B) | lenSign(2B) | signature
-func serializeRS(r, s *big.Int, hAlg, sAlg byte, bitSz int) []byte {
-
-	var buffer []byte
-
-	if r == nil || s == nil {
-		return nil
-	}
-
-	sz := (bitSz + 7) / 8
-	rN := paddy(r.Bytes(), sz)
-	sN := paddy(s.Bytes(), sz)
-	lenSign := len(rN) + len(sN)
-	buffer = append(buffer, hAlg)
-	buffer = append(buffer, sAlg)
-	buffer = append(buffer, 0x00, 0x00)
-	binary.BigEndian.PutUint16(buffer[2:], uint16(lenSign))
-	buffer = append(buffer, rN...)
-	buffer = append(buffer, sN...)
-	return buffer
+	bitSz := (kx.Curva.Params().BitSize + 7) / 8
+	return serializeSignature(r, s, hashAlgo, names.ECDSA, bitSz), nil
 }
 
 func selectCurva(sg []uint16, lowest bool) (elliptic.Curve, uint16) {
@@ -228,11 +194,11 @@ func selectCurva(sg []uint16, lowest bool) (elliptic.Curve, uint16) {
 	var curvas []uint16
 
 	if len(sg) == 0 {
-		return eliptica(_DEFAULT_ECDHE_GROUP), _DEFAULT_ECDHE_GROUP
+		return eliptica2(_DEFAULT_ECDHE_GROUP), _DEFAULT_ECDHE_GROUP
 	}
 
 	for _, group := range sg {
-		if eliptica(group) != nil {
+		if eliptica2(group) != nil {
 			curvas = append(curvas, group)
 		}
 	}
@@ -254,10 +220,31 @@ func selectCurva(sg []uint16, lowest bool) (elliptic.Curve, uint16) {
 		curva = curvas[int(n.Int64())]
 	}
 
-	return eliptica(curva), curva
+	return eliptica2(curva), curva
 }
 
-func eliptica(group uint16) elliptic.Curve {
+// Format: HashAlgo (1B) | SignAlgo(1B) | lenSign(2B) | signature
+func serializeSignature(r, s *big.Int, hAlg, sAlg byte, bitSz int) []byte {
+
+	var buffer []byte
+
+	if r == nil || s == nil {
+		return nil
+	}
+
+	rN := r.FillBytes(make([]byte, bitSz))
+	sN := s.FillBytes(make([]byte, bitSz))
+	lenSign := len(rN) + len(sN)
+	buffer = make([]byte, 4, 4+lenSign)
+	buffer[0] = hAlg
+	buffer[1] = sAlg
+	binary.BigEndian.PutUint16(buffer[2:], uint16(lenSign))
+	buffer = append(buffer, rN...)
+	buffer = append(buffer, sN...)
+	return buffer
+}
+
+func eliptica2(group uint16) elliptic.Curve {
 
 	switch group {
 	case names.SECP256R1:

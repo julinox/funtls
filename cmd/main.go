@@ -19,25 +19,19 @@ func main() {
 
 	sg := []uint16{names.X25519, names.X448, names.SECP256R1,
 		names.SECP384R1, names.SECP521R1}
-	prueba(sg)
-}
 
-func prueba(sg []uint16) {
+	opts := &kx.ServerKXOpts{
+		SG:  sg,
+		Tax: names.SECP256R1,
+	}
 
-	res, err := kx.KXEcdhe(sg, false)
+	gg, err := kx.NewServerKX(opts)
 	if err != nil {
-		fmt.Printf("error KX Ecdhe: %v\n", err)
+		fmt.Println("error creacion: ", err)
 		return
 	}
 
-	fmt.Println("Curva: ", res.Curva.Params().Name)
-	buff, err := res.Marshall()
-	if err != nil {
-		fmt.Println("error marshalling: ", err)
-		return
-	}
-
-	fmt.Printf("%x\n", buff)
+	gg.Params()
 }
 
 // Lee esto: https://x.com/popovicu94/status/1988839738523152487
