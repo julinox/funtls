@@ -1,5 +1,0 @@
-package dhe
-
-func nada() {
-
-}

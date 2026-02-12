@@ -4,70 +4,63 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	cpki "github.com/julinox/funtls/tlssl/certpki"
+	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
 type x0xC02B struct {
-	isClient     bool
-	relatedcerts []*csrCert
-	certPki      cpki.CertPKI
+	info *suiteBaseInfo
 }
 
 func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 
 	var newSuite x0xC02B
-	var certNames []string
 
 	if opts == nil || opts.Pki == nil || opts.Lg == nil {
 		return nil
 	}
 
-	newSuite.relatedcerts = make([]*csrCert, 0)
-	if opts.IsClient {
-		newSuite.isClient = true
-		return &newSuite
-	}
-
-	fingerPrints := opts.Pki.GetFingerPrints()
-	if len(fingerPrints) == 0 {
+	newSuite.info = certPreselect(opts, ecdsaCertCheck)
+	if len(newSuite.info.relatedcerts) == 0 {
+		opts.Lg.Warnf("Suite registered (no certs): %v", newSuite.Name())
 		return nil
+	} else {
+		opts.Lg.Infof("Suite registered: %v [%v]", newSuite.Name(),
+			printCertNameType(newSuite.info.relatedcerts))
 	}
 
-	// Searching for suite's matching certs
-	// - Is ECDSA
-	// - Does it have TLS server Auth, or any (non specific constraint)
-	for _, fp := range fingerPrints {
-		chain := opts.Pki.Get(fp)
-		if len(chain) == 0 || chain[0].PublicKeyAlgorithm != x509.ECDSA {
-			continue
-		}
-
-		if chain[0].KeyUsage&x509.KeyUsageDigitalSignature == 0 {
-			continue
-		}
-
-		if !checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageAny) &&
-			!checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageServerAuth) {
-			continue
-		}
-
-		groupName := ecGroupName(chain[0])
-		if groupName == names.NOGROUP {
-			continue
-		}
-
-		aux := fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
-			chain[0].PublicKeyAlgorithm)
-		certNames = append(certNames, aux)
-		newSuite.relatedcerts = append(newSuite.relatedcerts,
-			&csrCert{groupName, fp})
-	}
-
-	newSuite.certPki = opts.Pki
-	opts.Lg.Infof("%v: %v", newSuite.Name(), certNames)
+	newSuite.info.certPki = opts.Pki
 	return &newSuite
+}
+
+func (x *x0xC02B) ServerKX(data *kx.KXData) ([]byte, error) {
+
+	if data == nil {
+		return nil, fmt.Errorf("no data provided")
+	}
+
+	curve, err := kx.ECXKInit(&kx.ECKXConfig{
+		SG:  data.SG,
+		SA:  data.SA,
+		Tax: names.SECP256R1,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	ecSrvParams := kx.ECKXServerParams(curve)
+	firma, err := kx.SignServerKXParams(ecSrvParams, data)
+	if err != nil {
+		return nil, err
+	}
+
+	/*fmt.Printf("ecSrvParams: %x\n", ecSrvParams)
+	fmt.Printf("firma: %x\n", firma)
+	fmt.Printf("cliRand: %x\n", data.CliRandom)
+	fmt.Printf("srvRand: %x\n", data.SrvRandom)*/
+	return append(ecSrvParams, firma...), nil
 }
 
 func (x *x0xC02B) ID() uint16 {
@@ -115,8 +108,8 @@ func (x *x0xC02B) HashMe(data []byte) ([]byte, error) {
 // - Can sign (ServerKeyExchange)
 func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 
-	for _, csc := range x.relatedcerts {
-		chain := x.certPki.Get(csc.fingerPrint)
+	for _, csc := range x.info.relatedcerts {
+		chain := x.info.certPki.Get(csc.fingerPrint)
 		if len(chain) == 0 {
 			continue
 		}
@@ -126,7 +119,7 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 			continue
 		}
 
-		if !x.certPki.SaSupport(match.SA, csc.fingerPrint) {
+		if !x.info.certPki.SaSupport(match.SA, csc.fingerPrint) {
 			continue
 		}
 

@@ -6,15 +6,33 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
 type x0x003D struct {
+	info *suiteBaseInfo
 }
 
-func RsaAes256CbcSha256() suite.Suite {
-	return &x0x003D{}
+func RsaAes256CbcSha256(opts *suite.SuiteOpts) suite.Suite {
+
+	var newSuite x0x003D
+
+	if opts == nil || opts.Pki == nil || opts.Lg == nil {
+		return nil
+	}
+
+	newSuite.info = certPreselect(opts, rsaCertCheck)
+	if len(newSuite.info.relatedcerts) == 0 {
+		opts.Lg.Warnf("Suite registered (no certs): %v", newSuite.Name())
+	} else {
+		opts.Lg.Infof("Suite registered: %v [%v]", newSuite.Name(),
+			printCertNameType(newSuite.info.relatedcerts))
+	}
+
+	newSuite.info.certPki = opts.Pki
+	return &newSuite
 }
 
 func (x *x0x003D) ID() uint16 {
@@ -105,4 +123,8 @@ func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 	}
 
 	return nil
+}
+
+func (x *x0x003D) ServerKX(data *kx.KXData) ([]byte, error) {
+	return nil, nil
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/julinox/funtls/tlssl/names"
 )
 
-const _DEFAULT_ECDHE_GROUP = names.SECP256R1
+//const _DEFAULT_ECDHE_GROUP = names.SECP256R1
 
 type KXecdhe struct {
 	Priv  []byte

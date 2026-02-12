@@ -78,7 +78,7 @@ func (x *xModTLSSuite) GetSuite(id uint16) css.Suite {
 func (x *xModTLSSuite) RegisterSuite(cs css.Suite) error {
 
 	if cs == nil {
-		return systema.ErrNilParams
+		return fmt.Errorf("suite not init-ed")
 	}
 
 	if _, ok := x.supported[cs.ID()]; ok {

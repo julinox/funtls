@@ -11,51 +11,51 @@ import (
 
 	"github.com/julinox/funtls/server"
 	pki "github.com/julinox/funtls/tlssl/certpki"
+
+	//"github.com/julinox/funtls/tlssl/keyexchange"
 	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
-func main() {
+/*
+El lg.info("suite registered") en 'initTLSSuites' (server.go) que se imprima
+en la inicializacion de la suite y que imprima el cert match que se encontro
+para la suite, ya eso ocurre pero primero se imprimen los matchs y luego los
+registered
+*/
+func mano() {
 
 	sg := []uint16{names.X25519, names.X448, names.SECP256R1,
 		names.SECP384R1, names.SECP521R1}
 
-	opts := &kx.ServerKXOpts{
-		SG:  sg,
-		Tax: names.SECP256R1,
+	opts := &kx.ECKXConfig{
+		SG: sg,
+		//Tax: names.SECP256R1,
 	}
 
-	gg, err := kx.NewServerKX(opts)
+	kxParams, err := kx.ECXKInit(opts)
 	if err != nil {
 		fmt.Println("error creacion: ", err)
 		return
 	}
 
-	gg.Params()
+	fmt.Printf("%x\n", kx.ECKXServerParams(kxParams))
 }
 
 // Lee esto: https://x.com/popovicu94/status/1988839738523152487
-func mainnn() {
+func main() {
 
 	lg := server.InitDefaultLogger()
 	srv, err := server.FunTLServe(&server.FunTLSCfg{
 		Logger: lg,
 		Certos: []*pki.CertPath{
 			{
-				ChainPath: "/home/usery/ca/chains/server1chain.pem",
-				KeyPath:   "/home/usery/ca/chains/private/server1chain.key",
+				ChainPath: "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/ecdsacert.pem",
+				KeyPath:   "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/ecdsakey.pem",
 			},
 			{
-				ChainPath: "/home/usery/ca/chains/server3chain.pem",
-				KeyPath:   "/home/usery/ca/chains/private/server3chain.key",
-			},
-			{
-				ChainPath: "/home/usery/ca/chains/server2chain.pem",
-				KeyPath:   "/home/usery/ca/chains/private/server2chain.key",
-			},
-			{
-				ChainPath: "/home/usery/ca/chains/server2rsachain.pem",
-				KeyPath:   "/home/usery/ca/chains/private/server2rsachain.key",
+				ChainPath: "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/rsacert.pem",
+				KeyPath:   "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/rsakey.pem",
 			},
 		},
 	})
@@ -65,12 +65,13 @@ func mainnn() {
 		return
 	}
 
-	hearit, err := srv.Accept()
+	//hearit, err := srv.Accept()
+	_, err = srv.Accept()
 	if err != nil {
 		return
 	}
 
-	curly(hearit)
+	//curly(hearit)
 	//openssl(hearit)
 	//fileDownload(hearit)
 	//custom(hearit)

@@ -107,6 +107,7 @@ const (
 )
 
 var SupportedGroups = map[uint16]string{
+	NOGROUP:   "no group",
 	SECP256R1: "secp256r1",
 	SECP384R1: "secp384r1",
 	SECP521R1: "secp521r1",

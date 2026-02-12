@@ -3,20 +3,17 @@ package ciphersuites
 import (
 	"fmt"
 
+	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
-	"github.com/julinox/funtls/tlssl/suite/dh"
 )
 
 type x0x009E struct {
-	dhe dh.DiffieHellman
 }
 
 func DheRsaAes128GcmSha256() suite.Suite {
 
-	return &x0x009E{
-		dhe: dh.NewModDHClassic(),
-	}
+	return &x0x009E{}
 }
 
 func (x *x0x009E) ID() uint16 {
@@ -62,4 +59,9 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 
 	return nil
+}
+
+func (x *x0x009E) ServerKX(data *kx.KXData) ([]byte, error) {
+
+	return nil, nil
 }

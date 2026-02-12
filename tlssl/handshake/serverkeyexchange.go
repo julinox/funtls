@@ -5,7 +5,8 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
-	"github.com/julinox/funtls/tlssl/suite/dhe"
+	kx "github.com/julinox/funtls/tlssl/keyexchange"
+	"github.com/julinox/funtls/tlssl/names"
 )
 
 type xServerKeyExchange struct {
@@ -36,24 +37,37 @@ func (x *xServerKeyExchange) Next() (int, error) {
 
 func (x *xServerKeyExchange) Handle() error {
 
-	// Extension 0x000A = supported_groups
-	data := x.ctx.GetMsgHello().Extensions[0x000A]
-	if data == nil {
-		return fmt.Errorf("%v: no ServerKeyExchange data found", x.Name())
+	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
+	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
+	dataSG := x.ctx.GetMsgHello().Extensions[ex.EXT_SUPPORTED_GROUPS]
+	dataSA := x.ctx.GetMsgHello().Extensions[ex.EXT_SIGNATURE_ALGORITHMS]
+	certPrivKey := x.tCtx.CertPKI.GetPrivateKey(x.ctx.GetCertFingerprint())
+	if certPrivKey == nil {
+		return fmt.Errorf("cert private key not found")
 	}
 
-	rd, ok := data.(*ex.ExtSupportedGroupsData)
-	if !ok {
-		return fmt.Errorf("%v: invalid ServerKeyExchange data type", x.Name())
+	kxData := kx.KXData{
+		CliRandom:  x.ctx.GetBuffer(CLIENTRANDOM),
+		SrvRandom:  x.ctx.GetBuffer(SERVERRANDOM),
+		SG:         parseSG(dataSG),
+		SA:         parseSA(dataSA),
+		PrivateKey: certPrivKey,
 	}
 
-	pp, err := dhe.NewDHEPms(rd.Groups)
+	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	if cs == nil {
+		return fmt.Errorf("ciphersuite not found")
+	}
+
+	skeMsg, err := cs.ServerKX(&kxData)
 	if err != nil {
-		return fmt.Errorf("NewDHEPms (%v): %v", x.Name(), err)
+		return err
 	}
 
-	x.tCtx.Lg.Infof("EL Grupo: %v", pp.GroupName)
-	//return fmt.Errorf("ServerKeyExchange not implemented yet")
+	hd := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerKeyExchange,
+		len(skeMsg))
+	fmt.Printf("HEAD: %x\n", hd)
+	fmt.Printf("SKEMSG: %x\n", skeMsg)
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 	} else {
@@ -61,4 +75,46 @@ func (x *xServerKeyExchange) Handle() error {
 	}
 
 	return nil
+}
+
+func parseSG(data any) []uint16 {
+
+	esg, ok := data.(*ex.ExtSupportedGroupsData)
+	if !ok {
+		return []uint16{}
+	}
+
+	if esg.Len == 0 {
+		return []uint16{}
+	}
+
+	return esg.Groups
+}
+
+func parseSA(data any) []uint16 {
+
+	esa, ok := data.(*ex.ExtSignAlgoData)
+	if !ok {
+		return []uint16{}
+	}
+
+	if esa.Len == 0 {
+		return []uint16{}
+	}
+
+	return esa.Algos
+}
+
+func printSG(sg []uint16) {
+
+	for _, g := range sg {
+		fmt.Println(names.SupportedGroups[g])
+	}
+}
+
+func printSA(sa []uint16) {
+
+	for _, a := range sa {
+		fmt.Println(names.SignHashAlgorithms[a])
+	}
 }

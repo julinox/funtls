@@ -1,0 +1,5 @@
+openssl req -x509 -config ~/ca/funtls/ca.conf -key rsakey.pem -out certo
+
+Pista:
+req -new -> CSR (req_extensions)
+req -x509 -> CeRT (x509_extensions)

@@ -133,10 +133,10 @@ func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 	}
 
 	supportedSuites := map[string]suite.Suite{
-		suite.CipherSuiteNames[0x0035]: css.RsaAes256CbcSha(),
-		suite.CipherSuiteNames[0x003D]: css.RsaAes256CbcSha256(),
-		suite.CipherSuiteNames[0x009E]: css.DheRsaAes128GcmSha256(),
+		suite.CipherSuiteNames[0x0035]: css.RsaAes256CbcSha(suiteOpts),
+		suite.CipherSuiteNames[0x003D]: css.RsaAes256CbcSha256(suiteOpts),
 		suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
+		//suite.CipherSuiteNames[0x009E]: css.DheRsaAes128GcmSha256(),
 	}
 
 	for name, suite := range supportedSuites {
@@ -144,11 +144,8 @@ func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 			lg.Errorf("suite '%v' registry failed: %v", name, err)
 			continue
 		}
-
-		lg.Info("Suite registered: ", suite.Name())
 	}
 
-	//tSuite.SetTax(ciphersuites.NewDHE_RSA_AES_128_GCM_SHA256().ID())
 	return tSuite, nil
 }
 

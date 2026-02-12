@@ -7,13 +7,24 @@ import (
 	"fmt"
 	"strings"
 
+	cpki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
+	"github.com/julinox/funtls/tlssl/suite"
 )
+
+type suiteRequisites func(*x509.Certificate) bool
 
 // CipherSuite related certs
 type csrCert struct {
 	group       uint16
 	fingerPrint []byte
+	name        string
+}
+
+type suiteBaseInfo struct {
+	isClient     bool
+	relatedcerts []*csrCert
+	certPki      cpki.CertPKI
 }
 
 var sigAlgToSchemes = map[x509.SignatureAlgorithm][]uint16{
@@ -29,8 +40,53 @@ var sigAlgToSchemes = map[x509.SignatureAlgorithm][]uint16{
 	x509.PureEd25519:      {names.ED25519},
 }
 
+// Validates if certificate meets minimun requirements
+// 'cps' function is a function that meets suite's individual
+// or specific requirements
+func certPreselect(opts *suite.SuiteOpts, sr suiteRequisites) *suiteBaseInfo {
+
+	var sbi suiteBaseInfo
+
+	sbi.relatedcerts = make([]*csrCert, 0)
+	if opts.IsClient {
+		sbi.isClient = true
+		return &sbi
+	}
+
+	fingerPrints := opts.Pki.GetFingerPrints()
+	if len(fingerPrints) == 0 {
+		return nil
+	}
+
+	for _, fp := range fingerPrints {
+		chain := opts.Pki.Get(fp)
+		if len(chain) == 0 {
+			continue
+		}
+
+		if !checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageAny) &&
+			!checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageServerAuth) {
+			continue
+		}
+
+		if sr != nil && sr(chain[0]) {
+			sbi.relatedcerts = append(sbi.relatedcerts, &csrCert{
+				group:       ecGroupName(chain[0]),
+				fingerPrint: fp,
+				name: fmt.Sprintf("%v (%v)", chain[0].Subject.CommonName,
+					chain[0].PublicKeyAlgorithm),
+			})
+		}
+	}
+
+	return &sbi
+}
+
 // Validates if all certs in chain were signed with one
-// of the given signature algorithms (SA list)
+// of the given signature algorithms (SA list). RFC states
+// that you must treat the SA list as the list of algorithms
+// the peer is capable of handling (remember that validating
+// a cert means checking its signature)
 func validateChainSignatures(chain []*x509.Certificate, sa []uint16) error {
 
 	if len(chain) == 0 || len(sa) == 0 {
@@ -94,7 +150,7 @@ func ecGroupName(cert *x509.Certificate) uint16 {
 	return names.NOGROUP
 }
 
-// La curva de la pubkey debe estar en SG
+// Cert's EC-curve must be among SG list
 func sgMatchEcdsa(cert *x509.Certificate, sg []uint16) bool {
 
 	if cert == nil {
@@ -201,4 +257,56 @@ func sniSanVs(sni, san string) bool {
 	}
 
 	return true
+}
+
+// Check cert requirements for TLS_RSA_* suites
+func rsaCertCheck(cert *x509.Certificate) bool {
+
+	if cert.PublicKeyAlgorithm != x509.RSA {
+		return false
+	}
+
+	if cert.KeyUsage&x509.KeyUsageKeyEncipherment == 0 {
+		return false
+	}
+
+	return true
+}
+
+// Check cert requirements for TLS_ECDHE_* suites
+func ecdsaCertCheck(cert *x509.Certificate) bool {
+
+	if cert.PublicKeyAlgorithm != x509.ECDSA {
+		return false
+	}
+
+	if cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
+		return false
+	}
+
+	groupName := ecGroupName(cert)
+	if groupName == names.NOGROUP {
+		return false
+	}
+
+	return true
+}
+
+func printCertNameType(relatedcerts []*csrCert) string {
+
+	var str string
+
+	sz := len(relatedcerts)
+	if sz == 0 {
+		return ""
+	}
+
+	for i := 0; i < sz; i++ {
+		str += relatedcerts[i].name
+		if i < sz-1 {
+			str += ","
+		}
+	}
+
+	return str
 }

@@ -6,16 +6,33 @@ import (
 	"crypto/sha1"
 	"fmt"
 
+	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
 type x0x0035 struct {
+	info *suiteBaseInfo
 }
 
-func RsaAes256CbcSha() suite.Suite {
-	//func New_RSA_AES_256_CBC_SHA() suite.Suite {
-	return &x0x0035{}
+func RsaAes256CbcSha(opts *suite.SuiteOpts) suite.Suite {
+
+	var newSuite x0x0035
+
+	if opts == nil || opts.Pki == nil || opts.Lg == nil {
+		return nil
+	}
+
+	newSuite.info = certPreselect(opts, rsaCertCheck)
+	if len(newSuite.info.relatedcerts) == 0 {
+		opts.Lg.Warnf("Suite registered (no certs): %v", newSuite.Name())
+	} else {
+		opts.Lg.Infof("Suite registered: %v [%v]", newSuite.Name(),
+			printCertNameType(newSuite.info.relatedcerts))
+	}
+
+	newSuite.info.certPki = opts.Pki
+	return &newSuite
 }
 
 func (x *x0x0035) ID() uint16 {
@@ -87,6 +104,24 @@ func (x *x0x0035) HashMe(data []byte) ([]byte, error) {
 
 func (x *x0x0035) CertMe(match *suite.CertMatch) []byte {
 
+	for _, csc := range x.info.relatedcerts {
+		chain := x.info.certPki.Get(csc.fingerPrint)
+		if len(chain) == 0 {
+			continue
+		}
+
+		if !matchSniSan(match.SNI, chain[0].DNSNames,
+			chain[0].Subject.CommonName) {
+			continue
+		}
+
+		if err := validateChainSignatures(chain, match.SA); err != nil {
+			continue
+		}
+
+		return csc.fingerPrint
+	}
+
 	return nil
 }
 
@@ -105,4 +140,8 @@ func (x *x0x0035) basicCheck(cc *suite.SuiteContext) error {
 	}
 
 	return nil
+}
+
+func (x *x0x0035) ServerKX(data *kx.KXData) ([]byte, error) {
+	return nil, nil
 }
