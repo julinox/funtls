@@ -66,7 +66,7 @@ const (
 	SHA224_ECDSA           = 0x0303
 	SHA224_RSA             = 0x0301
 	SHA224_DSA             = 0x0302
-	SHA256_DSA             = 0x402
+	SHA256_DSA             = 0x0402
 	SHA384_DSA             = 0x0502
 	SHA512_DSA             = 0x0602
 )

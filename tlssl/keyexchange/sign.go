@@ -4,9 +4,11 @@ import (
 	"crypto"
 	"crypto/dsa"
 	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/sha512"
+	"encoding/binary"
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl/names"
@@ -19,7 +21,7 @@ import (
 	} SignatureAndHashAlgorithm;
 */
 
-const _SignatureHeadSz = 4
+//const _SignatureHeadSz = 4
 
 var SignAlgoRSASupport = map[uint16]bool{
 	names.RSA_PKCS1_SHA256:    true,
@@ -43,83 +45,103 @@ var SignAlgoDSASupport = map[uint16]bool{
 	names.SHA512_DSA: true,
 }
 
-/*type DigitallySignedParams struct {
-	ServerParams []byte
-	ClientRandom   []byte
-	ServerRandom   []byte
-	SignatureAlgos []uint16
-	PrivateKey     crypto.PrivateKey
-}*/
+var tlsHashToCryptoHash = map[uint8]crypto.Hash{
+	0x01: crypto.MD5,
+	0x02: crypto.SHA1,
+	0x03: crypto.SHA224,
+	0x04: crypto.SHA256,
+	0x05: crypto.SHA384,
+	0x06: crypto.SHA512,
+}
 
-// Signature: ECDSA/RSA(client_random || server_random || CurveParams)
+// Generates 'ecparams' signature and returns a buffer containing the
+// required TLS format:
+// HashAlgo (1B) | SignAlgo (1B) | SignatureLen (2B) | Signature
+//
+// Signature: ECDSA/RSA(Hash(CliRandom ||SrvRandom ||EcParams))
 func SignServerKXParams(ecparams []byte, data *KXData) ([]byte, error) {
 
-	var signatureAlgo uint16
-
-	if params == nil || params.PrivateKey == nil {
-		return nil, fmt.Errorf("nil params/privatekey")
+	if data == nil {
+		return nil, fmt.Errorf("nil kxdata")
 	}
 
-	saSubset := getSASubset(params.PrivateKey)
-	if saSubset == nil {
-		return nil, fmt.Errorf("signature algorithms list not supported")
+	if len(ecparams) == 0 {
+		return nil, fmt.Errorf("no bufferdata to sign")
 	}
 
-	fmt.Println("SA LIST", params.SignatureAlgos)
-	for _, sa := range params.SignatureAlgos {
-		if saSubset[sa] {
-			signatureAlgo = sa
-			break
-		}
+	sighScheme := getSignScheme(data.PrivateKey, data.SA)
+	if sighScheme == 0 {
+		return nil, fmt.Errorf("unmatched SA list for signing")
 	}
 
-	fmt.Println("Signature Algorithm:", names.SignHashAlgorithms[signatureAlgo])
-	/*signer, ok := params.PrivateKey.(crypto.Signer)
+	signer, ok := data.PrivateKey.(crypto.Signer)
 	if !ok {
 		return nil, fmt.Errorf("privatekey doesnt implement signer")
 	}
 
-	data := append(params.ClientRandom, params.ServerRandom...)
-	data = append(data, params.ServerParams...)
-	message, err := hashMessage(data, )
-	if err != nil {
-		return nil, err
+	tlsHashID := uint8(sighScheme >> 8)
+	hashFN, ok := tlsHashToCryptoHash[tlsHashID]
+	if !ok {
+		return nil, fmt.Errorf("tls-hash %d not supported", tlsHashID)
 	}
 
-	return signer.Sign(rand.Reader, message, params.HashAlgorithm)*/
-	return nil, nil
+	h := hashFN.New()
+	h.Write(data.CliRandom)
+	h.Write(data.SrvRandom)
+	h.Write(ecparams)
+	message := h.Sum(nil)
+	/*totalLen := len(data.CliRandom) + len(data.SrvRandom) + len(ecparams)
+	buffData := make([]byte, 0, totalLen)
+	buffData = append(buffData, data.CliRandom...)
+	buffData = append(buffData, data.SrvRandom...)
+	buffData = append(buffData, ecparams...)
+	message, err := hashMessage(buffData, hashFN)
+	if err != nil {
+		return nil, err
+	}*/
+
+	sign, err := signer.Sign(rand.Reader, message, hashFN)
+	if err != nil {
+		return nil, fmt.Errorf("crypto-signer error: %w", err)
+	}
+
+	// SignatureAndHashAlgorithm = 2 bytes, SignatureLen = 2 bytes
+	totalLen := len(sign) + 4
+	finalBuff := make([]byte, totalLen)
+	binary.BigEndian.PutUint16(finalBuff, sighScheme)
+	binary.BigEndian.PutUint16(finalBuff[2:], uint16(len(sign)))
+	copy(finalBuff[4:], sign)
+	//fmt.Printf("SignatureScheme: %v\n", names.SignHashAlgorithms[sighScheme])
+	return finalBuff, nil
 }
 
-func getSASubset(pKey crypto.PrivateKey) map[uint16]bool {
+// Selects the appropriate SignatureScheme (2 bytes) by matching
+// the server's private key type with the client's supported algorithms (SA).
+// The high byte represents the Hash Algorithm and the low byte represents
+// the Signature Algorithm.
+func getSignScheme(pKey crypto.PrivateKey, saList []uint16) uint16 {
+
+	var saSubset map[uint16]bool
 
 	switch pKey.(type) {
 	case *rsa.PrivateKey:
-		return SignAlgoRSASupport
+		saSubset = SignAlgoRSASupport
 
 	case *ecdsa.PrivateKey:
-		return SignAlgoECDSASupport
+		saSubset = SignAlgoECDSASupport
 
 	case *dsa.PrivateKey:
-		return SignAlgoDSASupport
+		saSubset = SignAlgoDSASupport
 	}
 
-	return nil
-}
-
-/*
-func SignatureBuffer(data *SignData) []byte {
-
-	if data == nil {
-		return []byte{}
+	for _, sa := range saList {
+		if saSubset[sa] {
+			return sa
+		}
 	}
 
-	newBuffer := make([]byte, _SignatureHeadSz+len(data.Signature))
-	newBuffer[0] = data.HashAlgo
-	newBuffer[1] = data.SignAlgo
-	binary.BigEndian.PutUint16(newBuffer[2:], uint16(len(data.Signature)))
-	return newBuffer
+	return 0
 }
-*/
 
 func hashMessage(data []byte, algo crypto.Hash) ([]byte, error) {
 

@@ -86,7 +86,8 @@ func (x *xServerHello) Handle() error {
 
 	// Encrypt-then-MAC extension
 	// Set ETM mode always when the client supports it
-	if x.ctx.GetExtension(0x0016) {
+	//if x.ctx.GetExtension(0x0016) {
+	if x.ctx.GetExtension(ex.EXT_ENCRYPT_THEN_MAC) {
 		x.ctx.SetMacMode(tlssl.MODE_ETM)
 		x.tCtx.Lg.Info("Encrypt-then-MAC extension enabled")
 	}

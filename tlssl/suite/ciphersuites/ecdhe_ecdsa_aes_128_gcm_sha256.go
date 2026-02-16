@@ -57,9 +57,9 @@ func (x *x0xC02B) ServerKX(data *kx.KXData) ([]byte, error) {
 	}
 
 	/*fmt.Printf("ecSrvParams: %x\n", ecSrvParams)
-	fmt.Printf("firma: %x\n", firma)
-	fmt.Printf("cliRand: %x\n", data.CliRandom)
-	fmt.Printf("srvRand: %x\n", data.SrvRandom)*/
+	fmt.Printf("CliRand: %x\n", data.CliRandom)
+	fmt.Printf("SrvRand: %x\n", data.SrvRandom)
+	fmt.Printf("Firma: %x\n", firma)*/
 	return append(ecSrvParams, firma...), nil
 }
 

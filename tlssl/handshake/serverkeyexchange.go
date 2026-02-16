@@ -59,15 +59,15 @@ func (x *xServerKeyExchange) Handle() error {
 		return fmt.Errorf("ciphersuite not found")
 	}
 
-	skeMsg, err := cs.ServerKX(&kxData)
+	skeMsgBuff, err := cs.ServerKX(&kxData)
 	if err != nil {
 		return err
 	}
 
 	hd := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerKeyExchange,
-		len(skeMsg))
-	fmt.Printf("HEAD: %x\n", hd)
-	fmt.Printf("SKEMSG: %x\n", skeMsg)
+		len(skeMsgBuff))
+	x.ctx.SetBuffer(SERVERKEYEXCHANGE, append(hd, skeMsgBuff...))
+	x.ctx.AppendOrder(SERVERKEYEXCHANGE)
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 	} else {

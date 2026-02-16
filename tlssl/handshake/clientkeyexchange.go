@@ -69,15 +69,15 @@ func (x *xClientKeyExchange) Handle() error {
 		return fmt.Errorf("PreMasterSecreto no content(%v)", x.Name())
 	}
 
-	kBuff = kBuff[aux:]
-	pmsLen := uint16(kBuff[0])<<8 | uint16(kBuff[1])
+	//kBuff = kBuff[aux:]
+	/*pmsLen := uint16(kBuff[0])<<8 | uint16(kBuff[1])
 	if int(pmsLen) != len(kBuff[2:]) {
 		return fmt.Errorf("PreMasterSecreto len unmatched(%v)", x.Name())
 	}
 
 	// Decode the pre master secret
-	pmsCoded := kBuff[2:]
-	pms, err := x.preMasterSecret(pmsCoded)
+	pmsCoded := kBuff[2:]*/
+	pms, err := x.preMasterSecret(kBuff[aux:])
 	if err != nil {
 		return err
 	}
@@ -95,7 +95,7 @@ func (x *xClientKeyExchange) Handle() error {
 }
 
 // Calculate the pre master secret
-func (x *xClientKeyExchange) preMasterSecret(cPms []byte) ([]byte, error) {
+func (x *xClientKeyExchange) preMasterSecret(buff []byte) ([]byte, error) {
 
 	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if cs == nil {
@@ -104,27 +104,36 @@ func (x *xClientKeyExchange) preMasterSecret(cPms []byte) ([]byte, error) {
 
 	switch cs.Info().KeyExchange {
 	case names.KX_RSA:
-		return x.preMasterSecretRSA(cPms)
+		return x.pmsRSA(buff)
 
 	case names.KX_DHE:
-		return x.preMasterSecretDHE(cPms)
+		return x.pmsDHE(buff)
+
+	case names.KX_ECDHE:
+		return x.pmsECDHE(buff)
 	}
 
 	return nil, fmt.Errorf("key exchange not implemented yet(%v)", x.Name())
 }
 
-func (x *xClientKeyExchange) preMasterSecretRSA(cPms []byte) ([]byte, error) {
+func (x *xClientKeyExchange) pmsRSA(buff []byte) ([]byte, error) {
+
+	pmsLen := uint16(buff[0])<<8 | uint16(buff[1])
+	if int(pmsLen) != len(buff[2:]) {
+		return nil, fmt.Errorf("PreMasterSecreto len unmatched")
+	}
 
 	privateKey := x.tCtx.CertPKI.GetPrivateKey(x.ctx.GetCertFingerprint())
 	if privateKey == nil {
 		return nil, fmt.Errorf("cert's private key not found(%v)", x.Name())
 	}
 
-	pms, err := decodeRSA(cPms, privateKey)
+	pms, err := decodeRSA(buff[2:], privateKey)
 	if err != nil {
 		return nil, fmt.Errorf("%v(%v)", err.Error(), x.Name())
 	}
 
+	// PMS (unciphered) is always 48 bytes
 	if len(pms) != _PMS_SIZE_ {
 		return nil, fmt.Errorf("invalid pre master secret len(%v)", x.Name())
 	}
@@ -132,8 +141,20 @@ func (x *xClientKeyExchange) preMasterSecretRSA(cPms []byte) ([]byte, error) {
 	return pms, nil
 }
 
-func (x *xClientKeyExchange) preMasterSecretDHE(buff []byte) ([]byte, error) {
+func (x *xClientKeyExchange) pmsDHE(buff []byte) ([]byte, error) {
 	return nil, fmt.Errorf("key exchange DHE not implemented yet")
+}
+
+func (x *xClientKeyExchange) pmsECDHE(buff []byte) ([]byte, error) {
+
+	pmsLen := buff[0]
+	if int(pmsLen) != len(buff[1:]) {
+		return nil, fmt.Errorf("PreMasterSecreto len unmatched")
+	}
+
+	pubKey := buff[1:]
+	fmt.Printf("PKEY: %x\n", pubKey)
+	return nil, fmt.Errorf("key exchange EC-DHE not implemented yet")
 }
 
 func decodeRSA(data []byte, key crypto.PrivateKey) ([]byte, error) {

@@ -97,6 +97,11 @@ type ECKXCurve struct {
 	Private *ecdh.PrivateKey
 }
 
+type KXParams struct {
+	Params any
+	Buffer []byte
+}
+
 type ECKXConfig struct {
 	Lowest bool
 	Tax    uint16
