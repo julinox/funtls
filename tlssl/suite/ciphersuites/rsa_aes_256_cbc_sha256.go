@@ -125,6 +125,6 @@ func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
 	return nil
 }
 
-func (x *x0x003D) ServerKX(data *kx.KXData) ([]byte, error) {
+func (x *x0x003D) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
 	return nil, nil
 }

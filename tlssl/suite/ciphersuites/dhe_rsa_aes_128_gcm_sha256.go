@@ -61,7 +61,7 @@ func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 	return nil
 }
 
-func (x *x0x009E) ServerKX(data *kx.KXData) ([]byte, error) {
+func (x *x0x009E) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
 
 	return nil, nil
 }

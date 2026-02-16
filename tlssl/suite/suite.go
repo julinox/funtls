@@ -46,7 +46,7 @@ type Suite interface {
 	Name() string
 	Info() *SuiteInfo
 	//ServerKX(*kx.KXData) ([]byte, error)
-	ServerKX(*kx.KXData) *kx.KXParams
+	ServerKX(*kx.KXData) (*kx.KXParams, error)
 	CertMe(*CertMatch) []byte
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)

@@ -152,8 +152,14 @@ func (x *xClientKeyExchange) pmsECDHE(buff []byte) ([]byte, error) {
 		return nil, fmt.Errorf("PreMasterSecreto len unmatched")
 	}
 
+	kxPms := x.ctx.GetSkeParams()
+	if kxPms == nil {
+		return nil, fmt.Errorf("nil ske parameters from ctx")
+	}
+
 	pubKey := buff[1:]
 	fmt.Printf("PKEY: %x\n", pubKey)
+	fmt.Printf("Random PrivKey: %x\n", kxPms.CurveParams.Private.Bytes())
 	return nil, fmt.Errorf("key exchange EC-DHE not implemented yet")
 }
 

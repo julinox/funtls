@@ -1,7 +1,6 @@
 package ciphersuites
 
 import (
-	"crypto/x509"
 	"fmt"
 
 	kx "github.com/julinox/funtls/tlssl/keyexchange"
@@ -34,7 +33,9 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 	return &newSuite
 }
 
-func (x *x0xC02B) ServerKX(data *kx.KXData) ([]byte, error) {
+func (x *x0xC02B) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
+
+	var kxPms kx.KXParams
 
 	if data == nil {
 		return nil, fmt.Errorf("no data provided")
@@ -56,11 +57,10 @@ func (x *x0xC02B) ServerKX(data *kx.KXData) ([]byte, error) {
 		return nil, err
 	}
 
-	/*fmt.Printf("ecSrvParams: %x\n", ecSrvParams)
-	fmt.Printf("CliRand: %x\n", data.CliRandom)
-	fmt.Printf("SrvRand: %x\n", data.SrvRandom)
-	fmt.Printf("Firma: %x\n", firma)*/
-	return append(ecSrvParams, firma...), nil
+	kxPms.CurveParams = curve
+	kxPms.Buffer = append(kxPms.Buffer, append(ecSrvParams, firma...)...)
+	fmt.Printf("PrivateKey ECDHE: %x\n", curve.Private.Bytes())
+	return &kxPms, nil
 }
 
 func (x *x0xC02B) ID() uint16 {
@@ -136,65 +136,3 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 
 	return nil
 }
-
-// Si SA = [] entonces se acepta siempre que la curva sea EC
-//
-// -Debe tener KeyUsage = digitalSignature
-// -La pubKey debe coincidir con el algoritmo de firma/autenticación
-// de la CS (RSA o ECDSA)
-// - Si la pubKey es ECDSA, su curva debe estar en SG si len(SG) > 0
-// - La pubKey debe poder firmar usando algún algoritmo de SA
-func roleAuthEcdsa(cert *x509.Certificate, sa, sg []uint16) error {
-
-	var err error
-
-	if cert == nil {
-		return nil
-	}
-
-	if cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
-		return fmt.Errorf("no KeyUsageDigitalSignature")
-	}
-
-	if cert.PublicKeyAlgorithm != x509.ECDSA {
-		return fmt.Errorf("pubkey not ecdsa")
-	}
-
-	groupName := ecGroupName(cert)
-	if !sgCheck(groupName, sg) {
-		return fmt.Errorf("cert's curve not within SG")
-	}
-
-	return err
-}
-
-/*
-
-1. Compatibilidad con los roles criptográficos
-	1.1 Key Encipherment
-		- Debe tener KeyUsage = keyEncipherment
-		- La pubKey debe ser RSA
-
-	1.2 Key Exchange (KX)
-		- Si el KX es DHE:
-			* Debe tener KeyUsage = keyAgreement
-			* algorithm.parameter.G debe ser compatible con SG o SG-Legacy
-
-		- Si el KX es ECDH:
-			* Debe tener KeyUsage = keyAgreement
-			* algorithm.parameter.? debe ser compatible con SG o SG-Legacy
-
-		- Si el KX es ECDHE:
-			* La pubKey del certificado NO participa en el KX
-			* Si la suite es ECDHE, la curva usada en el KX debe estar en SG
-
-	1.3 Signature (SKE o handshake)
-		- Debe tener KeyUsage = digitalSignature
-		- La pubKey debe coincidir con el algoritmo de firma/autenticación de la CS (RSA o ECDSA)
-		- La pubKey debe poder firmar usando algún algoritmo de SA
-		- Si la pubKey es ECDSA, su curva debe estar en SG
-
-2. Validación de la cadena
-	- Cada certificado en la cadena debe estar firmado con algún algoritmo en SA
-	  (solo si el cliente envió SA; si no, se aplica modo legacy)
-*/

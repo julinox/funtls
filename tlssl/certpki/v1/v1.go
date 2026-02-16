@@ -24,7 +24,6 @@ type pkInfo struct {
 }
 
 type xCertPKI struct {
-	//info []*pki
 	lg   *logrus.Logger
 	info map[[32]byte]*pkInfo
 }

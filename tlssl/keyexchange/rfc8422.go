@@ -98,8 +98,8 @@ type ECKXCurve struct {
 }
 
 type KXParams struct {
-	Params any
-	Buffer []byte
+	Buffer      []byte
+	CurveParams *ECKXCurve
 }
 
 type ECKXConfig struct {
