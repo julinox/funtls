@@ -59,7 +59,6 @@ func (x *x0xC02B) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
 
 	kxPms.CurveParams = curve
 	kxPms.Buffer = append(kxPms.Buffer, append(ecSrvParams, firma...)...)
-	fmt.Printf("PrivateKey ECDHE: %x\n", curve.Private.Bytes())
 	return &kxPms, nil
 }
 
@@ -80,19 +79,65 @@ func (x *x0xC02B) Info() *suite.SuiteInfo {
 		HashSize:    32,
 		Cipher:      names.CIPHER_AES,
 		KeySize:     16,
-		KeySizeHMAC: 32,
-		IVSize:      12,
+		KeySizeHMAC: 0,
+		IVSize:      4,
 		Auth:        names.SIG_ECDSA,
 		KeyExchange: names.KX_ECDHE,
 	}
 }
 
 func (x *x0xC02B) Cipher(ctx *suite.SuiteContext) ([]byte, error) {
-	return nil, fmt.Errorf("0xC02B Cipher not implemented")
+
+	var err error
+
+	err = x.basicCheck(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	pmsEnc := &aesParams{
+		key:       ctx.Key,
+		ivOrNonce: ctx.IV,
+		//data:      ctx.Data,
+		out: make([]byte, 60, 100),
+	}
+
+	err = aesGCMEncrypt(pmsEnc)
+	fmt.Printf("PMSOUT: %x\n", pmsEnc.out)
+
+	pmsDec := &aesParams{
+		key:       ctx.Key,
+		ivOrNonce: ctx.IV,
+		data:      pmsEnc.out,
+	}
+
+	err1 := aesGCMDecrypt(pmsDec)
+	if err1 != nil {
+		fmt.Println("EPAPPP: ", err1)
+	}
+
+	fmt.Printf("PMSOUT: %s\n", pmsDec.out)
+	return nil, nil
 }
 
 func (x *x0xC02B) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
-	return nil, fmt.Errorf("0xC02B CipherNot not implemented")
+
+	var err error
+
+	err = x.basicCheck(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	pms := &aesParams{
+		key:       ctx.Key,
+		ivOrNonce: ctx.IV,
+		//data:      ctx.Data,
+		//out:       make([]byte, 60, 100),
+	}
+
+	err = aesGCMDecrypt(pms)
+	return pms.out, err
 }
 
 func (x *x0xC02B) MacMe(data, hashKey []byte) ([]byte, error) {
@@ -132,6 +177,23 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 		}
 
 		return csc.fingerPrint
+	}
+
+	return nil
+}
+
+func (x *x0xC02B) basicCheck(ctx *suite.SuiteContext) error {
+
+	if ctx == nil {
+		return fmt.Errorf("nil SuiteContext(%v)", x.Name())
+	}
+
+	if len(ctx.Key) != x.Info().KeySize {
+		return fmt.Errorf("invalid key size(%v)", x.Name())
+	}
+
+	if len(ctx.IV) != x.Info().IVSize+_AES_GCM_EXPLICIT_NONCE_SZ {
+		return fmt.Errorf("invalid Nonce size(%v)", x.Name())
 	}
 
 	return nil

@@ -9,6 +9,11 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// For AES-GCM suites, the IV concept differs from CBC.
+// The IV is actually known as a 'Nonce', and has two parts:
+// the Implicit Nonce (a.k.a. Salt) and the Explicit Nonce.
+// Nonce = Implicit Nonce | Explicit Nonce. For GCM,
+// the total size is 12 bytes (4 + 8).
 type SuiteContext struct {
 	Key  []byte
 	HKey []byte
@@ -51,19 +56,20 @@ type Suite interface {
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
 	Cipher(*SuiteContext) ([]byte, error)
+	//Cipher([]byte, []byte, *SuiteContext) ([]byte, error)
 	CipherNot(*SuiteContext) ([]byte, error)
 }
 
 func (sc *SuiteContext) Print() string {
 
-	return fmt.Sprintf("IV: %s\nKey: %s\nHKey: %s\nData: %s",
-		sc.IV, sc.Key, sc.HKey, sc.Data)
+	return fmt.Sprintf("IV: %s\nKey: %s\nHKey: %s",
+		sc.IV, sc.Key, sc.HKey)
 }
 
 func (sc *SuiteContext) PrintRaw() string {
 
-	return fmt.Sprintf("IV: %x\nKey: %x\nHKey: %x\nData: %x",
-		sc.IV, sc.Key, sc.HKey, sc.Data)
+	return fmt.Sprintf("IV: %x\nKey: %x\nHKey: %x",
+		sc.IV, sc.Key, sc.HKey)
 }
 
 func (info *SuiteInfo) Print() string {

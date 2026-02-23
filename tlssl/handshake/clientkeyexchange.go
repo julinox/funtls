@@ -10,7 +10,7 @@ import (
 	"github.com/julinox/funtls/tlssl/names"
 )
 
-const _PMS_SIZE_ = 48
+const _PMS_RSA_SIZE_ = 48
 
 type xClientKeyExchange struct {
 	stateBasicInfo
@@ -69,20 +69,11 @@ func (x *xClientKeyExchange) Handle() error {
 		return fmt.Errorf("PreMasterSecreto no content(%v)", x.Name())
 	}
 
-	//kBuff = kBuff[aux:]
-	/*pmsLen := uint16(kBuff[0])<<8 | uint16(kBuff[1])
-	if int(pmsLen) != len(kBuff[2:]) {
-		return fmt.Errorf("PreMasterSecreto len unmatched(%v)", x.Name())
-	}
-
-	// Decode the pre master secret
-	pmsCoded := kBuff[2:]*/
 	pms, err := x.preMasterSecret(kBuff[aux:])
 	if err != nil {
 		return err
 	}
 
-	// Calculate the session keys
 	x.ctx.SetBuffer(PREMASTERSECRET, pms)
 	x.ctx.AppendOrder(CLIENTKEYEXCHANGE)
 	if x.tCtx.OptClientAuth {
@@ -133,8 +124,8 @@ func (x *xClientKeyExchange) pmsRSA(buff []byte) ([]byte, error) {
 		return nil, fmt.Errorf("%v(%v)", err.Error(), x.Name())
 	}
 
-	// PMS (unciphered) is always 48 bytes
-	if len(pms) != _PMS_SIZE_ {
+	// PMS (unciphered) is always 48 bytes for RSA
+	if len(pms) != _PMS_RSA_SIZE_ {
 		return nil, fmt.Errorf("invalid pre master secret len(%v)", x.Name())
 	}
 
@@ -157,10 +148,18 @@ func (x *xClientKeyExchange) pmsECDHE(buff []byte) ([]byte, error) {
 		return nil, fmt.Errorf("nil ske parameters from ctx")
 	}
 
-	pubKey := buff[1:]
-	fmt.Printf("PKEY: %x\n", pubKey)
-	fmt.Printf("Random PrivKey: %x\n", kxPms.CurveParams.Private.Bytes())
-	return nil, fmt.Errorf("key exchange EC-DHE not implemented yet")
+	// pubkey len is 1 byte for ECDHE
+	pubRemote, err := kxPms.CurveParams.Curva.NewPublicKey(buff[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	pms, err := kxPms.CurveParams.Private.ECDH(pubRemote)
+	if err != nil {
+		return nil, err
+	}
+
+	return pms, nil
 }
 
 func decodeRSA(data []byte, key crypto.PrivateKey) ([]byte, error) {

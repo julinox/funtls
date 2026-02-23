@@ -38,6 +38,30 @@ type xTLSListener struct {
 	tCtx     tlssl.TLSContext
 }
 
+func bypass(xx *tlssl.TLSContext) {
+
+	//key := []byte("AES256Key-32Characters1234567890")
+	/*key := []byte("AES128Key-123456")
+	nonce := make([]byte, 12)
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
+		panic(err.Error())
+	}
+
+	plaintext := []byte("exampleplaintext")
+	sCtx := stt.SuiteContext{
+		Key:  key,
+		IV:   nonce,
+		Data: plaintext,
+	}
+
+	dulce := xx.TLSSuite.GetSuite(0xC02B)
+	if _, err := dulce.Cipher(&sCtx); err != nil {
+		fmt.Println("ERR: ", err)
+	}
+
+	fmt.Println("#-------- BYPASEOOOO --------#")*/
+}
+
 // FunTLServe is the main entry point for the FunTLS server
 // It initializes the TLS context and starts listening on the port
 // Can handle multiple certificates, if the certificate is signed
@@ -81,6 +105,7 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 	// Implements the net.Listener interface
 	fun.listener, err = net.Listen("tcp", ":"+cfg.ListeningPort)
 	fun.tCtx.Lg.Infof("Starting FunTLS Server (%v)", fun.listener.Addr())
+	//bypass(&fun.tCtx)
 	return &fun, nil
 }
 
@@ -135,7 +160,7 @@ func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 	supportedSuites := map[string]suite.Suite{
 		suite.CipherSuiteNames[0x0035]: css.RsaAes256CbcSha(suiteOpts),
 		suite.CipherSuiteNames[0x003D]: css.RsaAes256CbcSha256(suiteOpts),
-		suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
+		//suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
 		//suite.CipherSuiteNames[0x009E]: css.DheRsaAes128GcmSha256(),
 	}
 

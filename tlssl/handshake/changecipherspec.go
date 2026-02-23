@@ -100,7 +100,7 @@ func (x *xChangeCipherSpec) cipeherSpecServer() error {
 	serverKeys := x.ctx.GetKeys().ServerKeys
 	newSpec := cipherspec.NewCipherSpec(st, &serverKeys, x.ctx.GetMacMode())
 	if newSpec == nil {
-		return fmt.Errorf("nil CipherSpec2 object create(%v)", x.Name())
+		return fmt.Errorf("nil CipherSpec object create(%v)", x.Name())
 	}
 
 	x.ctx.SetCipherSpec(CIPHERSPECSERVER, newSpec)

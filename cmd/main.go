@@ -11,10 +11,7 @@ import (
 
 	"github.com/julinox/funtls/server"
 	pki "github.com/julinox/funtls/tlssl/certpki"
-
 	//"github.com/julinox/funtls/tlssl/keyexchange"
-	kx "github.com/julinox/funtls/tlssl/keyexchange"
-	"github.com/julinox/funtls/tlssl/names"
 )
 
 /*
@@ -23,26 +20,10 @@ en la inicializacion de la suite y que imprima el cert match que se encontro
 para la suite, ya eso ocurre pero primero se imprimen los matchs y luego los
 registered
 */
-func mano() {
-
-	sg := []uint16{names.X25519, names.X448, names.SECP256R1,
-		names.SECP384R1, names.SECP521R1}
-
-	opts := &kx.ECKXConfig{
-		SG: sg,
-		//Tax: names.SECP256R1,
-	}
-
-	kxParams, err := kx.ECXKInit(opts)
-	if err != nil {
-		fmt.Println("error creacion: ", err)
-		return
-	}
-
-	fmt.Printf("%x\n", kx.ECKXServerParams(kxParams))
-}
 
 // Lee esto: https://x.com/popovicu94/status/1988839738523152487
+// https://robertovitillo.com/why-you-should-measure-tail-latencies/
+// https://medium.com/@crusty0gphr/tricky-golang-interview-questions-part-1-slice-header-341802e45c9b
 func main() {
 
 	lg := server.InitDefaultLogger()

@@ -67,14 +67,20 @@ func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 		return nil, fmt.Errorf("Record shorter than IV+Hash size: %v", myself)
 	}
 
+	var src []byte
 	if x.seqNum == 0 {
 		sCtx.IV = x.keys.IV
-		sCtx.Data = tRec.Msg
+		//sCtx.Data = tRec.Msg
+		src = tRec.Msg
 	} else {
 		sCtx.IV = tRec.Msg[:x.cipherSuite.Info().IVSize]
-		sCtx.Data = tRec.Msg[x.cipherSuite.Info().IVSize:]
+		//sCtx.Data = tRec.Msg[x.cipherSuite.Info().IVSize:]
+		src = tRec.Msg[x.cipherSuite.Info().IVSize:]
 	}
 
+	fmt.Println("---------------------------------------------------------------")
+	fmt.Printf("SURCO: %x\n", src)
+	fmt.Println("---------------------------------------------------------------")
 	sCtx.Key = x.keys.Key
 	clearText, err := x.cipherSuite.CipherNot(&sCtx)
 	if err != nil {

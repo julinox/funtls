@@ -108,23 +108,23 @@ func (x *x0x003D) CertMe(match *suite.CertMatch) []byte {
 	return nil
 }
 
-func (x *x0x003D) basicCheck(cc *suite.SuiteContext) error {
+func (x *x0x003D) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
+	return nil, nil
+}
 
-	if cc == nil || len(cc.Data) == 0 {
-		return fmt.Errorf("nil/empty SuiteContext(%v)", x.Name())
+func (x *x0x003D) basicCheck(ctx *suite.SuiteContext) error {
+
+	if ctx == nil {
+		return fmt.Errorf("nil SuiteContext(%v)", x.Name())
 	}
 
-	if len(cc.Key) != x.Info().KeySize {
+	if len(ctx.Key) != x.Info().KeySize {
 		return fmt.Errorf("invalid key size(%v)", x.Name())
 	}
 
-	if len(cc.IV) != aes.BlockSize {
+	if len(ctx.IV) != x.Info().IVSize {
 		return fmt.Errorf("invalid IV size(%v)", x.Name())
 	}
 
 	return nil
-}
-
-func (x *x0x003D) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
-	return nil, nil
 }
