@@ -18,7 +18,53 @@ type aesParams struct {
 	ivOrNonce []byte
 }
 
-func aesCBCEncrypt(data, key, iv []byte) ([]byte, error) {
+func aesCBCEncrypt(dst, src, key, iv []byte) ([]byte, error) {
+
+	padLen := aes.BlockSize - (len(src) % aes.BlockSize)
+	requiredLen := len(src) + padLen
+	if cap(dst) < requiredLen {
+		return nil, fmt.Errorf("dstLen does not meet requiredLen: %v vs %v",
+			cap(dst), requiredLen)
+	}
+
+	dst = dst[:requiredLen]
+	copy(dst, src)
+	padding := dst[len(src):]
+	padByte := byte(padLen - 1)
+	for i := range padding {
+		padding[i] = padByte
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	syphonFilter := cipher.NewCBCEncrypter(block, iv)
+	syphonFilter.CryptBlocks(dst, dst)
+	return dst, nil
+}
+
+func aesCBCEncrypt2nd(dst, src, key, iv []byte) ([]byte, error) {
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	padLen := aes.BlockSize - (len(src) % aes.BlockSize)
+	if cap(dst) < len(src)+padLen {
+		dst = make([]byte, len(src)+padLen)
+	}
+
+	// Adding PKCS#7 padding
+	dataPadded := append(src, bytes.Repeat([]byte{byte(padLen - 1)}, padLen)...)
+	syphonFilter := cipher.NewCBCEncrypter(block, iv)
+	syphonFilter.CryptBlocks(dst, dataPadded)
+	return dst, nil
+}
+
+/*func aesCBCEncryptOG(dst, data, key, iv []byte) ([]byte, error) {
 
 	block, err := aes.NewCipher(key)
 	if err != nil {
@@ -30,7 +76,7 @@ func aesCBCEncrypt(data, key, iv []byte) ([]byte, error) {
 	syphonFilter := cipher.NewCBCEncrypter(block, iv)
 	syphonFilter.CryptBlocks(cipherText, paddedData)
 	return cipherText, nil
-}
+}*/
 
 func aesCBCDecrypt(data, key, iv []byte) ([]byte, error) {
 
@@ -105,6 +151,11 @@ func aesGCMDecrypt(pms *aesParams) error {
 }
 
 func paddPKCS7(data []byte, blockSize int) []byte {
+	padLen := blockSize - (len(data) % blockSize)
+	return append(data, bytes.Repeat([]byte{byte(padLen - 1)}, padLen)...)
+}
+
+func paddPKCS72(data []byte, blockSize int) []byte {
 
 	padLen := blockSize - (len(data) % blockSize)
 	if padLen == 0 {

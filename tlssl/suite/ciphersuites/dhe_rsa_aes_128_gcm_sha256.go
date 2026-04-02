@@ -40,11 +40,11 @@ func (x *x0x009E) Info() *suite.SuiteInfo {
 	}
 }
 
-func (x *x0x009E) Cipher(ctx *suite.SuiteContext) ([]byte, error) {
+func (x *x0x009E) Cipher(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E Cipher not implemented")
 }
 
-func (x *x0x009E) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
+func (x *x0x009E) CipherNot(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E CipherNot not implemented")
 }
 

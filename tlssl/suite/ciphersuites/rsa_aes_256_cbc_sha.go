@@ -59,7 +59,7 @@ func (x *x0x0035) Info() *suite.SuiteInfo {
 	}
 }
 
-func (x *x0x0035) Cipher(ctx *suite.SuiteContext) ([]byte, error) {
+func (x *x0x0035) Cipher(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
 
 	var err error
 
@@ -68,10 +68,10 @@ func (x *x0x0035) Cipher(ctx *suite.SuiteContext) ([]byte, error) {
 		return nil, err
 	}
 
-	return aesCBCEncrypt(ctx.Data, ctx.Key, ctx.IV)
+	return aesCBCEncrypt(dst, src, ctx.Key, ctx.IV)
 }
 
-func (x *x0x0035) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
+func (x *x0x0035) CipherNot(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
 
 	if err := x.basicCheck(ctx); err != nil {
 		return nil, err

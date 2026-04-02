@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl"
+	"github.com/julinox/funtls/tlssl/connsec"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -54,6 +55,8 @@ func (x *xFinished) Handle() error {
 
 func (x *xFinished) finishedClient() error {
 
+	var plainText []byte
+
 	x.tCtx.Lg.Tracef("Running state: %v(CLIENT)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(CLIENT)", x.Name())
 
@@ -64,7 +67,7 @@ func (x *xFinished) finishedClient() error {
 
 	// Get the "Finished" message
 	finished := x.ctx.GetBuffer(FINISHED)
-	plainText, err := cs.DecryptRec(finished)
+	plainText, err := cs.DecryptRec(plainText, finished)
 	if err != nil {
 		return fmt.Errorf("DecryptRec(%v): %v", x.Name(), err)
 	}
@@ -134,8 +137,8 @@ func (x *xFinished) finishedServer() error {
 	})
 
 	x.tCtx.Lg.Debugf("Computed verify data(SERVER): %x", calcVD)
-	record, err = cspec.EncryptRec(tlssl.ContentTypeHandshake,
-		append(fragment, calcVD...))
+	record, err = cspec.EncryptRec(connsec.GiveMe2(), append(fragment, calcVD...),
+		uint8(tlssl.ContentTypeHandshake))
 	if err != nil {
 		return fmt.Errorf("EncryptRec(%v): %v", x.Name(), err)
 	}

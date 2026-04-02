@@ -112,7 +112,7 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 				break
 			}
 
-			plainText, err := x.specRead.DecryptRec(record)
+			plainText, err := x.specRead.DecryptRec(nil, record)
 			if err != nil {
 				x.lg.Error("Error decrypting TLS record: ", err)
 				if !x.debugMode {
@@ -155,8 +155,8 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 			break
 		}
 
-		record, err := x.specWrite.EncryptRec(tlssl.ContentTypeApplicationData,
-			p[inf:sup])
+		record, err := x.specWrite.EncryptRec(GiveMe(),
+			p[inf:sup], uint8(tlssl.ContentTypeApplicationData))
 		if err != nil {
 			x.lg.Errorf("Error encrypting TLS record: %v", err)
 			if !x.debugMode {
@@ -198,9 +198,10 @@ func (x *xTLSConn) Close() error {
 
 	defer x.rawConn.Close()
 	x.eofWrite = true
-	record, err := x.specWrite.EncryptRec(tlssl.ContentTypeAlert, _CloseNotify_)
+	record, err := x.specWrite.EncryptRec(GiveMe2(), _CloseNotify_,
+		uint8(tlssl.ContentTypeAlert))
 	if err != nil {
-		x.lg.Warnf("Error encrypting close notify record: %v", err)
+		x.lg.Warnf("error encrypting close notify record: %v", err)
 		return err
 	}
 
@@ -248,7 +249,7 @@ func (x *xTLSConn) RemoteAddr() net.Addr {
 func (x *xTLSConn) handleAlert(record []byte) {
 
 	x.eofRead = true
-	pt, err := x.specRead.DecryptRec(record)
+	pt, err := x.specRead.DecryptRec(nil, record)
 	if err != nil {
 		x.lg.Error("Error decrypting alert record: ", err)
 		return

@@ -46,17 +46,19 @@ func main() {
 		return
 	}
 
-	//hearit, err := srv.Accept()
-	_, err = srv.Accept()
+	hearit, err := srv.Accept()
+	//_, err = srv.Accept()
 	if err != nil {
 		return
 	}
 
-	//curly(hearit)
+	curly(hearit)
+	//fixed(hearit)
 	//openssl(hearit)
 	//fileDownload(hearit)
 	//custom(hearit)
 	//closing(hearit)
+	//hearit.Close()
 }
 
 func closing(conn net.Conn) {
@@ -135,12 +137,15 @@ func curly(conn net.Conn) {
 
 	// Respuesta simple
 	body := []byte("<html><body><h1>FunTLS alive</h1></body></html>")
-
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n" +
+	_, err = conn.Write([]byte("HTTP/1.1 200 OK\r\n" +
 		"Content-Type: text/html\r\n" +
 		fmt.Sprintf("Content-Length: %d\r\n", len(body)) +
 		"Connection: close\r\n" +
 		"\r\n"))
+	if err != nil {
+		return
+	}
+
 	conn.Write(body)
 }
 
@@ -190,6 +195,35 @@ func fileDownload(conn net.Conn) {
 
 	// Enviar archivo
 	io.Copy(conn, file)
+}
+
+func fixed(conn net.Conn) {
+
+	defer conn.Close()
+	reader := bufio.NewReader(conn)
+
+	// Leer línea inicial (ej: GET / HTTP/1.1)
+	line, err := reader.ReadString('\n')
+	if err != nil {
+		fmt.Printf("error leyendo request: %s\n", err)
+		return
+	}
+	if !strings.HasPrefix(line, "GET ") {
+		fmt.Println("no es un GET")
+		return
+	}
+
+	// Leer headers y descartarlos
+	for {
+		h, err := reader.ReadString('\n')
+		if err != nil || h == "\r\n" {
+			break
+		}
+	}
+
+	// Respuesta simple
+	body := []byte("ABCDE")
+	conn.Write(body)
 }
 
 // go build -gcflags="all=-N -l" -o funtls

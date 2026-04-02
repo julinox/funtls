@@ -86,7 +86,7 @@ func (x *x0xC02B) Info() *suite.SuiteInfo {
 	}
 }
 
-func (x *x0xC02B) Cipher(ctx *suite.SuiteContext) ([]byte, error) {
+func (x *x0xC02B) Cipher(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
 
 	var err error
 
@@ -120,7 +120,7 @@ func (x *x0xC02B) Cipher(ctx *suite.SuiteContext) ([]byte, error) {
 	return nil, nil
 }
 
-func (x *x0xC02B) CipherNot(ctx *suite.SuiteContext) ([]byte, error) {
+func (x *x0xC02B) CipherNot(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
 
 	var err error
 

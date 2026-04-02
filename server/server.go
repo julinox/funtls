@@ -97,7 +97,12 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 
 	fun.tCtx.Exts = initExtensions(fun.tCtx.Lg)
 	fun.tCtx.OptClientAuth = initClientAuthOpt()
-	cfg.ListeningPort = os.Getenv(_ENV_LISTENING_PORT_)
+	auxLport := os.Getenv(_ENV_LISTENING_PORT_)
+	if auxLport != "" {
+		fmt.Println("-------------*-*-*")
+		cfg.ListeningPort = auxLport
+	}
+
 	if cfg.ListeningPort == "" {
 		cfg.ListeningPort = _DEFAULT_PORT_
 	}
@@ -180,7 +185,7 @@ func initExtensions(lg *logrus.Logger) *ex.Extensions {
 	extns.Register(ex.NewExtSignAlgo())
 	extns.Register(ex.NewExtSNI())
 	extns.Register(ex.NewExtRenegotiation())
-	extns.Register(ex.NewExtEncryptThenMac())
+	//extns.Register(ex.NewExtEncryptThenMac())
 	extns.Register(ex.NewExtSupportedGroups())
 	return extns
 }

@@ -1,6 +1,7 @@
 package suite
 
 import (
+	"crypto/cipher"
 	"fmt"
 
 	pki "github.com/julinox/funtls/tlssl/certpki"
@@ -15,10 +16,12 @@ import (
 // Nonce = Implicit Nonce | Explicit Nonce. For GCM,
 // the total size is 12 bytes (4 + 8).
 type SuiteContext struct {
-	Key  []byte
-	HKey []byte
-	IV   []byte
-	Data []byte
+	Key   []byte
+	HKey  []byte
+	IV    []byte
+	Data  []byte
+	Block cipher.Block
+	AeAd  cipher.AEAD
 }
 
 type SuiteInfo struct {
@@ -55,9 +58,8 @@ type Suite interface {
 	CertMe(*CertMatch) []byte
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
-	Cipher(*SuiteContext) ([]byte, error)
-	//Cipher([]byte, []byte, *SuiteContext) ([]byte, error)
-	CipherNot(*SuiteContext) ([]byte, error)
+	Cipher([]byte, []byte, *SuiteContext) ([]byte, error)
+	CipherNot([]byte, []byte, *SuiteContext) ([]byte, error)
 }
 
 func (sc *SuiteContext) Print() string {

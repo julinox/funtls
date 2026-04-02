@@ -13,13 +13,13 @@ import (
 
 // opaque is the final decrypted data (without the TLS header)
 // The name 'opaque' comes from RFC 5246, section 6.2.1 (struct TLSPlaintext{)
-func (x *xCS) decryptRec(record []byte) ([]byte, error) {
+func (x *xCS) decryptRec(dst []byte, src []byte) ([]byte, error) {
 
 	var err error
 	var opaque []byte
 	var tRec *tlssl.TLSRecord
 
-	tRec, err = tlssl.TLSRecordMe(record)
+	tRec, err = tlssl.TLSRecordMe(src)
 	if err != nil || tRec == nil {
 		return nil, fmt.Errorf("TLSRecordMe error: %v", err)
 	}
@@ -27,10 +27,10 @@ func (x *xCS) decryptRec(record []byte) ([]byte, error) {
 	if x.cipherSuite.Info().CipherType == names.CIPHER_CBC {
 		switch x.macMode {
 		case tlssl.MODE_MTE:
-			opaque, err = x.decryptMTE(tRec)
+			opaque, err = x.decryptMTE(dst, tRec)
 
 		case tlssl.MODE_ETM:
-			opaque, err = x.decryptETM(tRec)
+			opaque, err = x.decryptETM(dst, tRec)
 
 		default:
 			return nil, fmt.Errorf("unsupported macMode: %v", x.macMode)
@@ -57,7 +57,7 @@ func (x *xCS) decryptRec(record []byte) ([]byte, error) {
 //   - The first IV-Sized bytes of the decrypted message are random bytes,
 //     the rest is HandshakeHeader + verified data + MAC.
 //   - The MAC is computed over the HandshakeHeader and the verified data.
-func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
+func (x *xCS) decryptMTE(dst []byte, tRec *tlssl.TLSRecord) ([]byte, error) {
 
 	var sCtx suite.SuiteContext
 
@@ -76,7 +76,7 @@ func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 	}
 
 	sCtx.Key = x.keys.Key
-	clearText, err := x.cipherSuite.CipherNot(&sCtx)
+	clearText, err := x.cipherSuite.CipherNot(nil, nil, &sCtx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", myself, err)
 	}
@@ -92,7 +92,7 @@ func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 		plainText = plainText[x.cipherSuite.Info().IVSize:]
 	}
 
-	computedMAC, err := x.macintosh(tRec.Header.ContentType, plainText)
+	computedMAC, err := x.macintosh(plainText, uint8(tRec.Header.ContentType))
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", myself, err)
 	}
@@ -104,7 +104,7 @@ func (x *xCS) decryptMTE(tRec *tlssl.TLSRecord) ([]byte, error) {
 	return plainText, nil
 }
 
-func (x *xCS) decryptETM(tRec *tlssl.TLSRecord) ([]byte, error) {
+func (x *xCS) decryptETM(dst []byte, tRec *tlssl.TLSRecord) ([]byte, error) {
 
 	var sCtx suite.SuiteContext
 
@@ -124,7 +124,7 @@ func (x *xCS) decryptETM(tRec *tlssl.TLSRecord) ([]byte, error) {
 		sCtx.Data = record[x.cipherSuite.Info().IVSize:]
 	}
 
-	computedMAC, err := x.macintosh(tRec.Header.ContentType, record)
+	computedMAC, err := x.macintosh(record, uint8(tRec.Header.ContentType))
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", myself, err)
 	}
@@ -134,7 +134,7 @@ func (x *xCS) decryptETM(tRec *tlssl.TLSRecord) ([]byte, error) {
 	}
 
 	sCtx.Key = x.keys.Key
-	clearText, err := x.cipherSuite.CipherNot(&sCtx)
+	clearText, err := x.cipherSuite.CipherNot(nil, nil, &sCtx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", myself, err)
 	}

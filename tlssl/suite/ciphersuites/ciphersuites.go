@@ -55,7 +55,7 @@ func certPreselect(opts *suite.SuiteOpts, sr suiteRequisites) *suiteBaseInfo {
 
 	fingerPrints := opts.Pki.GetFingerPrints()
 	if len(fingerPrints) == 0 {
-		return nil
+		return &sbi
 	}
 
 	for _, fp := range fingerPrints {

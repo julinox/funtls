@@ -61,8 +61,10 @@ import (
 type CipherSpec interface {
 	SeqNumber() uint64
 	SeqNumIncrement() error
-	EncryptRec(tlssl.ContentTypeType, []byte) ([]byte, error)
-	DecryptRec([]byte) ([]byte, error)
+	//EncryptRec(tlssl.ContentTypeType, []byte) ([]byte, error)
+	EncryptRec([]byte, []byte, uint8) ([]byte, error)
+	//DecryptRec([]byte) ([]byte, error)
+	DecryptRec([]byte, []byte) ([]byte, error)
 }
 
 type xCS struct {
@@ -111,9 +113,9 @@ func (x *xCS) SeqNumIncrement() error {
 
 // Returns a buffer containing a TLS encrypted record, ready to be
 // send on the wire ('pt' means 'plaintext')
-func (x *xCS) EncryptRec(t tlssl.ContentTypeType, pt []byte) ([]byte, error) {
+func (x *xCS) EncryptRec(dst []byte, src []byte, ct uint8) ([]byte, error) {
 
-	record, err := x.encryptRec(t, pt)
+	record, err := x.encryptRec(dst, src, ct)
 	if err0 := x.SeqNumIncrement(); err0 != nil {
 		return nil, err
 	}
@@ -123,9 +125,9 @@ func (x *xCS) EncryptRec(t tlssl.ContentTypeType, pt []byte) ([]byte, error) {
 
 // Returns a buffer containing pure plaintext.
 // 'ct' is the ciphertext to decipher
-func (x *xCS) DecryptRec(ct []byte) ([]byte, error) {
+func (x *xCS) DecryptRec(dst []byte, src []byte) ([]byte, error) {
 
-	pt, err := x.decryptRec(ct)
+	pt, err := x.decryptRec(dst, src)
 	if err0 := x.SeqNumIncrement(); err0 != nil {
 		return nil, err
 	}
@@ -134,11 +136,12 @@ func (x *xCS) DecryptRec(ct []byte) ([]byte, error) {
 }
 
 // Returns a buffer containing the MAC calculated for the given data.
-func (x *xCS) macintosh(t tlssl.ContentTypeType, data []byte) ([]byte, error) {
+func (x *xCS) macintosh(data []byte, ct uint8) ([]byte, error) {
 
 	var macData []byte
 	var macTLSHeader tlssl.TLSHeader
 
+	t := tlssl.ContentTypeType(ct)
 	myself := systema.MyName()
 	switch t {
 	case tlssl.ContentTypeHandshake,
