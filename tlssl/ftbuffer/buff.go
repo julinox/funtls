@@ -1,11 +1,51 @@
 package ftbuffer
 
-// 17408 bytes (17KB) covers TLS 1.2 max record:
-// 5 (Header) + 16384 (Payload) + 256 (Max Padding) + 48 (MAC SHA384) + 16
-// (Explicit IV). Theoretical total: ~16709 bytes. 17KB allows for alignment
-// and SHA512 (64).
-//const MaxTLSRecordSize = 17 * 1024
+import (
+	"fmt"
+	"sync"
+)
 
-func GiveMe33(sz int) []byte {
-	return make([]byte, 0, sz)
+type PoolBuff struct {
+	pulpo *sync.Pool
+}
+
+func NewPoolBuff(sz uint) *PoolBuff {
+
+	var newPB PoolBuff
+
+	if sz == 0 {
+		return nil
+	}
+
+	newPB.pulpo = newPBuffer(sz)
+	return &newPB
+}
+
+func (x *PoolBuff) Get() []byte {
+
+	bytes, ok := x.pulpo.Get().([]byte)
+	if !ok {
+		return nil
+	}
+
+	return bytes
+}
+
+func (x *PoolBuff) Put(bytes []byte) {
+
+	for i := range bytes {
+		fmt.Println("i=", i)
+		bytes[i] = 0
+	}
+
+	x.pulpo.Put(bytes)
+}
+
+func newPBuffer(buffSz uint) *sync.Pool {
+
+	return &sync.Pool{
+		New: func() any {
+			return make([]byte, 0, buffSz)
+		},
+	}
 }

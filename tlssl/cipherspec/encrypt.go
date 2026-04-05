@@ -48,9 +48,41 @@ func (x *xCS) encryptRec(dst, src []byte, ct uint8) ([]byte, error) {
 //   - No IV preceding the ciphertext.
 //   - Final TLS record is: [TLSHEADER | E( IV | pt | MAC)], where pt is
 //     HandshakeHeader + verified data
+
+/*
+func (x *xCS) encryptMTE(dst, src []byte, ct uint8) ([]byte, error) {
+
+		var err error
+
+		myself := systema.MyName()
+		if len(src) == 0 {
+			return nil, fmt.Errorf("empty plaintext (%v)", myself)
+		}
+
+		ivSz := x.cipherSuite.Info().IVSize
+		if cap(dst) < tlssl.TLS_HEADER_SIZE+ivSz {
+			return nil, fmt.Errorf("dst capacity is too smal for buffer")
+		}
+
+		iv, err := generateIVNonce(ivSz)
+		if err != nil {
+			return nil, fmt.Errorf("generateIVNonce(%v): %v", myself, err)
+		}
+
+		mac, err := x.macintosh(src, ct)
+		if err != nil {
+			return nil, fmt.Errorf("macOS(%v): %v", myself, err)
+		}
+
+		data := &mteEtm{iv, mac, dst, src}
+		return x.encryptMTEAux(data, ct)
+	}
+*/
+
 func (x *xCS) encryptMTE(dst, src []byte, ct uint8) ([]byte, error) {
 
 	var err error
+	var sCtx suite.SuiteContext
 
 	myself := systema.MyName()
 	if len(src) == 0 {
@@ -72,12 +104,36 @@ func (x *xCS) encryptMTE(dst, src []byte, ct uint8) ([]byte, error) {
 		return nil, fmt.Errorf("macOS(%v): %v", myself, err)
 	}
 
-	data := &mteEtm{iv, mac, dst, src}
+	sCtx.Key = x.keys.Key
+	srcBuff := x.srcPoolBuff.Get()
+	defer x.srcPoolBuff.Put(srcBuff)
+	offset := dst[:tlssl.TLS_HEADER_SIZE]
 	if x.seqNum == 0 {
-		return x.encryptMTESN0(data, ct)
+		srcBuff = append(srcBuff, iv...)
+		srcBuff = append(srcBuff, src...)
+		srcBuff = append(srcBuff, mac...)
+		sCtx.IV = x.keys.IV
+	} else {
+		srcBuff = append(srcBuff, src...)
+		srcBuff = append(srcBuff, mac...)
+		offset = append(offset, iv...)
+		sCtx.IV = iv
 	}
 
-	return x.encryptMTESNN(data, ct)
+	ciphered, err := x.cipherSuite.Cipher(offset[len(offset):], srcBuff, &sCtx)
+	if err != nil {
+		return nil, fmt.Errorf("Ciphering(%v): %v", myself, err)
+	}
+
+	offset = offset[:len(offset)+len(ciphered)]
+	header := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
+		ContentType: tlssl.ContentTypeType(ct),
+		Version:     tlssl.TLS_VERSION1_2,
+		Len:         len(offset) - tlssl.TLS_HEADER_SIZE,
+	})
+
+	copy(offset, header)
+	return offset, nil
 }
 
 func (x *xCS) encryptETM(dst, src []byte, ct uint8) ([]byte, error) {

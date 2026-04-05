@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl"
-	"github.com/julinox/funtls/tlssl/connsec"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -137,8 +136,8 @@ func (x *xFinished) finishedServer() error {
 	})
 
 	x.tCtx.Lg.Debugf("Computed verify data(SERVER): %x", calcVD)
-	record, err = cspec.EncryptRec(connsec.GiveMe2(), append(fragment, calcVD...),
-		uint8(tlssl.ContentTypeHandshake))
+	//record, err = cspec.EncryptRec(connsec.GiveMe2(), append(fragment, calcVD...),uint8(tlssl.ContentTypeHandshake))
+	record, err = cspec.EncryptRec(append(fragment, calcVD...), uint8(tlssl.ContentTypeHandshake))
 	if err != nil {
 		return fmt.Errorf("EncryptRec(%v): %v", x.Name(), err)
 	}

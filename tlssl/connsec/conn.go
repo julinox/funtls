@@ -155,8 +155,8 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 			break
 		}
 
-		record, err := x.specWrite.EncryptRec(GiveMe(),
-			p[inf:sup], uint8(tlssl.ContentTypeApplicationData))
+		//record, err := x.specWrite.EncryptRec(GiveMe(), p[inf:sup], uint8(tlssl.ContentTypeApplicationData))
+		record, err := x.specWrite.EncryptRec(p[inf:sup], uint8(tlssl.ContentTypeApplicationData))
 		if err != nil {
 			x.lg.Errorf("Error encrypting TLS record: %v", err)
 			if !x.debugMode {
@@ -198,8 +198,8 @@ func (x *xTLSConn) Close() error {
 
 	defer x.rawConn.Close()
 	x.eofWrite = true
-	record, err := x.specWrite.EncryptRec(GiveMe2(), _CloseNotify_,
-		uint8(tlssl.ContentTypeAlert))
+	//record, err := x.specWrite.EncryptRec(GiveMe2(), _CloseNotify_, uint8(tlssl.ContentTypeAlert))
+	record, err := x.specWrite.EncryptRec(_CloseNotify_, uint8(tlssl.ContentTypeAlert))
 	if err != nil {
 		x.lg.Warnf("error encrypting close notify record: %v", err)
 		return err

@@ -24,6 +24,7 @@ registered
 // Lee esto: https://x.com/popovicu94/status/1988839738523152487
 // https://robertovitillo.com/why-you-should-measure-tail-latencies/
 // https://medium.com/@crusty0gphr/tricky-golang-interview-questions-part-1-slice-header-341802e45c9b
+
 func main() {
 
 	lg := server.InitDefaultLogger()

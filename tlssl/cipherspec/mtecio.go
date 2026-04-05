@@ -1,14 +1,5 @@
 package cipherspec
 
-import (
-	"fmt"
-
-	"github.com/julinox/funtls/systema"
-	"github.com/julinox/funtls/tlssl"
-	"github.com/julinox/funtls/tlssl/ftbuffer"
-	"github.com/julinox/funtls/tlssl/suite"
-)
-
 type mteEtm struct {
 	iv  []byte
 	mac []byte
@@ -16,6 +7,47 @@ type mteEtm struct {
 	src []byte
 }
 
+/*
+func (x *xCS) encryptMTEAux(data *mteEtm, ct uint8) ([]byte, error) {
+
+	var sCtx suite.SuiteContext
+
+	myself := systema.MyName()
+	sCtx.Key = x.keys.Key
+	srcBuff := x.srcPoolBuff.Get()
+	defer x.srcPoolBuff.Put(srcBuff)
+
+	offset := data.dst[:tlssl.TLS_HEADER_SIZE]
+	if x.seqNum == 0 {
+		srcBuff = append(srcBuff, data.iv...)
+		srcBuff = append(srcBuff, data.src...)
+		srcBuff = append(srcBuff, data.mac...)
+		sCtx.IV = x.keys.IV
+	} else {
+		srcBuff = append(srcBuff, data.src...)
+		srcBuff = append(srcBuff, data.mac...)
+		offset = append(offset, data.iv...)
+		sCtx.IV = data.iv
+	}
+
+	ciphered, err := x.cipherSuite.Cipher(offset[len(offset):], srcBuff, &sCtx)
+	if err != nil {
+		return nil, fmt.Errorf("Ciphering(%v): %v", myself, err)
+	}
+
+	offset = offset[:len(offset)+len(ciphered)]
+	header := tlssl.TLSHeadPacket(&tlssl.TLSHeader{
+		ContentType: tlssl.ContentTypeType(ct),
+		Version:     tlssl.TLS_VERSION1_2,
+		Len:         len(offset) - tlssl.TLS_HEADER_SIZE,
+	})
+
+	copy(offset, header)
+	return offset, nil
+}
+*/
+
+/*
 func (x *xCS) encryptMTESN0(data *mteEtm, ct uint8) ([]byte, error) {
 
 	var sCtx suite.SuiteContext
@@ -68,9 +100,11 @@ func (x *xCS) encryptMTESNN(data *mteEtm, ct uint8) ([]byte, error) {
 		Len:         len(offset) - tlssl.TLS_HEADER_SIZE,
 	})
 
+	//fmt.Printf("SrcBuff: %v | Ciphered: %v | OFFSET: %v\n", len(srcBuff), len(ciphered), len(offset))
 	copy(offset, header)
 	return offset, nil
 }
+*/
 
 /*
 func (x *xCS) encryptMTELast(dst, src []byte, ct uint8) ([]byte, error) {
