@@ -1,7 +1,6 @@
 package ftbuffer
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -33,11 +32,6 @@ func (x *PoolBuff) Get() []byte {
 
 func (x *PoolBuff) Put(bytes []byte) {
 
-	for i := range bytes {
-		fmt.Println("i=", i)
-		bytes[i] = 0
-	}
-
 	x.pulpo.Put(bytes)
 }
 
@@ -45,6 +39,7 @@ func newPBuffer(buffSz uint) *sync.Pool {
 
 	return &sync.Pool{
 		New: func() any {
+			//fmt.Printf("# ")
 			return make([]byte, 0, buffSz)
 		},
 	}

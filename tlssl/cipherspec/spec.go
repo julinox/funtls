@@ -59,25 +59,10 @@ import (
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
-// TLS record limits according to RFC 5246:
-//   - MaxPlaintextSize: 16384 bytes (2^14).
-//   - MaxCiphertextOverhead: 1024 bytes (RFC 5246 limit, though no modern
-//     cipher reaches this; AES-CBC with SHA-384 and max padding reaches ~320).
-//   - MaxCompressionOverhead: 1024 bytes (Rarely used/deprecated).
-//   - RecordHeaderSize: 5 bytes.
-//
-// Maximum practical buffer (no compression): 17413 bytes.
-// Maximum theoretical buffer (with compression): 18437 bytes.
-// const maxTLSLength = 16384 + 2048 + 5
-const maxTLSLength = 1024 * 17
-
 type CipherSpec interface {
 	SeqNumber() uint64
 	SeqNumIncrement() error
-	//EncryptRec(tlssl.ContentTypeType, []byte) ([]byte, error)
-	//EncryptRec([]byte, []byte, uint8) ([]byte, error)
-	EncryptRec([]byte, uint8) ([]byte, error)
-	//DecryptRec([]byte) ([]byte, error)
+	EncryptRec([]byte, []byte, uint8) ([]byte, error)
 	DecryptRec([]byte, []byte) ([]byte, error)
 }
 
@@ -86,8 +71,6 @@ type xCS struct {
 	seqNum      uint64
 	keys        *tlssl.Keys
 	cipherSuite suite.Suite
-
-	//
 	srcPoolBuff *ftbuffer.PoolBuff
 }
 
@@ -111,7 +94,7 @@ func NewCipherSpec(cs suite.Suite, keys *tlssl.Keys, mode int) CipherSpec {
 	newSpec.seqNum = 0
 	newSpec.keys = keys
 	newSpec.cipherSuite = cs
-	newSpec.srcPoolBuff = ftbuffer.NewPoolBuff(maxTLSLength)
+	newSpec.srcPoolBuff = ftbuffer.NewPoolBuff(tlssl.MALLOCBUFF)
 	return &newSpec
 }
 
@@ -131,21 +114,9 @@ func (x *xCS) SeqNumIncrement() error {
 
 // Returns a buffer containing a TLS encrypted record, ready to be
 // send on the wire ('pt' means 'plaintext')
-/*
 func (x *xCS) EncryptRec(dst []byte, src []byte, ct uint8) ([]byte, error) {
 
 	record, err := x.encryptRec(dst, src, ct)
-	if err0 := x.SeqNumIncrement(); err0 != nil {
-		return nil, err
-	}
-
-	return record, err
-}
-*/
-
-func (x *xCS) EncryptRec(src []byte, ct uint8) ([]byte, error) {
-
-	record, err := x.encryptRec(nil, src, ct)
 	if err0 := x.SeqNumIncrement(); err0 != nil {
 		return nil, err
 	}

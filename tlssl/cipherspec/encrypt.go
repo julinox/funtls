@@ -120,6 +120,7 @@ func (x *xCS) encryptMTE(dst, src []byte, ct uint8) ([]byte, error) {
 		sCtx.IV = iv
 	}
 
+	//fmt.Printf("srcBuff len=%v\n", len(srcBuff))
 	ciphered, err := x.cipherSuite.Cipher(offset[len(offset):], srcBuff, &sCtx)
 	if err != nil {
 		return nil, fmt.Errorf("Ciphering(%v): %v", myself, err)

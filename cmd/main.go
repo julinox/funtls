@@ -178,6 +178,7 @@ func fileDownload(conn net.Conn) {
 
 	// Abrir archivo binario
 	file, err := os.Open("/home/usery/unmb.bin")
+	//file, err := os.Open("/home/usery/ungb.bin")
 	if err != nil {
 		fmt.Fprintf(conn, "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n")
 		return

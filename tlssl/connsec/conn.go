@@ -9,6 +9,7 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/cipherspec"
+	"github.com/julinox/funtls/tlssl/ftbuffer"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
@@ -38,6 +39,9 @@ type xTLSConn struct {
 	lg         *logrus.Logger
 	specRead   cipherspec.CipherSpec
 	specWrite  cipherspec.CipherSpec
+
+	//
+	dstPoolBuff *ftbuffer.PoolBuff
 }
 
 func NewTLSConn(tc *TLSConn) (net.Conn, error) {
@@ -51,11 +55,12 @@ func NewTLSConn(tc *TLSConn) (net.Conn, error) {
 	}
 
 	return &xTLSConn{
-		rawConn:   tc.RawConn,
-		specRead:  tc.SpecRead,
-		specWrite: tc.SpecWrite,
-		debugMode: tc.DebugMode,
-		lg:        tc.Lg,
+		rawConn:     tc.RawConn,
+		specRead:    tc.SpecRead,
+		specWrite:   tc.SpecWrite,
+		debugMode:   tc.DebugMode,
+		lg:          tc.Lg,
+		dstPoolBuff: ftbuffer.NewPoolBuff(tlssl.MALLOCBUFF),
 	}, nil
 }
 
@@ -146,6 +151,8 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 	inf := 0
 	sent := 0
 	sup := _MaxTLSRecordSize_
+	dst := x.dstPoolBuff.Get()
+	defer x.dstPoolBuff.Put(dst)
 	for {
 		if sup > len(p) {
 			sup = len(p)
@@ -155,8 +162,8 @@ func (x *xTLSConn) Write(p []byte) (int, error) {
 			break
 		}
 
-		//record, err := x.specWrite.EncryptRec(GiveMe(), p[inf:sup], uint8(tlssl.ContentTypeApplicationData))
-		record, err := x.specWrite.EncryptRec(p[inf:sup], uint8(tlssl.ContentTypeApplicationData))
+		record, err := x.specWrite.EncryptRec(dst, p[inf:sup],
+			uint8(tlssl.ContentTypeApplicationData))
 		if err != nil {
 			x.lg.Errorf("Error encrypting TLS record: %v", err)
 			if !x.debugMode {
@@ -198,8 +205,8 @@ func (x *xTLSConn) Close() error {
 
 	defer x.rawConn.Close()
 	x.eofWrite = true
-	//record, err := x.specWrite.EncryptRec(GiveMe2(), _CloseNotify_, uint8(tlssl.ContentTypeAlert))
-	record, err := x.specWrite.EncryptRec(_CloseNotify_, uint8(tlssl.ContentTypeAlert))
+	record, err := x.specWrite.EncryptRec(make([]byte, 0, 128), _CloseNotify_,
+		uint8(tlssl.ContentTypeAlert))
 	if err != nil {
 		x.lg.Warnf("error encrypting close notify record: %v", err)
 		return err

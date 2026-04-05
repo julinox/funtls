@@ -8,6 +8,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// TLS record limits according to RFC 5246:
+//   - MaxPlaintextSize: 16384 bytes (2^14).
+//   - MaxCiphertextOverhead: 1024 bytes (RFC 5246 limit, though no modern
+//     cipher reaches this; AES-CBC with SHA-384 and max padding reaches ~320).
+//   - MaxCompressionOverhead: 1024 bytes (Rarely used/deprecated).
+//   - RecordHeaderSize: 5 bytes.
+//
+// Maximum practical buffer (no compression): 17413 bytes.
+// Maximum theoretical buffer (with compression): 18437 bytes.
+const MALLOCBUFF = 1024 * 17
 const VERIFYDATALEN = 12
 
 const (
