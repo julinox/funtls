@@ -1,0 +1,172 @@
+package main
+
+import (
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha1"
+	"fmt"
+	"os"
+
+	"github.com/julinox/funtls/tlssl/names"
+	"github.com/julinox/funtls/tlssl/suite"
+)
+
+/*func main() {
+
+	dstEnc := make([]byte, 10)
+	dstEnc[0] = 0xAA
+	dstEnc[1] = 0xAB
+	dstEnc[2] = 0xAC
+	aux := dstEnc[3:]
+	aux = pepe(aux)
+	fmt.Printf("%v,%v | %x\n", len(dstEnc), cap(dstEnc), dstEnc)
+	fmt.Printf("%v,%v | %x\n", len(aux), cap(aux), aux)
+}
+
+func pepe(dst []byte) []byte {
+
+	dst[0] = 0xFA
+	dst[1] = 0xFB
+	dst[2] = 0xFC
+	dst[3] = 0xFD
+	dst[4] = 0xFE
+	return dst
+}*/
+
+func mainn() {
+	dst := make([]byte, 0, 32)
+	fmt.Printf("len=%v | cap=%v\n", len(dst), cap(dst))
+	// Expandes Header + IV
+	header := []byte{0xFE, 0xFE, 0xFE, 0xFE, 0xFA}
+	iv := []byte{0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5}
+	dst = dst[:len(header)+len(iv)]
+	copy(dst, header)
+	copy(dst[len(header):], iv)
+	fmt.Printf("len=%v | cap=%v\n", len(dst), cap(dst))
+	fmt.Printf("%x\n", dst)
+}
+
+func main() {
+
+	infox := &suite.SuiteInfo{
+		Mac:         names.MAC_HMAC,
+		CipherType:  names.CIPHER_CBC,
+		Hash:        names.HASH_SHA1,
+		HashSize:    sha1.Size,
+		Cipher:      names.CIPHER_AES,
+		KeySize:     32,
+		KeySizeHMAC: 20,
+		IVSize:      aes.BlockSize,
+		Auth:        names.SIG_RSA,
+		KeyExchange: names.KX_RSA,
+	}
+
+	src := make([]byte, 0, 32)
+	src = append(src, []byte{0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF}...)
+	dstEnc := make([]byte, 50)
+	dstDec := make([]byte, 0, 50)
+	//fmt.Printf("dstEnc: %x\n", dstEnc)
+	//fmt.Printf("dstDec: %x\n", dstDec)
+	dstEnc[0] = 0xAA
+	dstEnc[1] = 0xBB
+	dstEnc[2] = 0xCC
+	dstEnc[3] = 0xFE
+	dstEnc[4] = 0xFA
+	_, dstDec = mteEtm(dstEnc[5:], dstDec, src, infox)
+	fmt.Println("------------------")
+	fmt.Printf("dstEnc: %x\n", dstEnc)
+	fmt.Printf("dstDec: %x\n", dstDec)
+}
+
+func mteEtm(dstEnc, dstDec, src []byte, info *suite.SuiteInfo) ([]byte, []byte) {
+
+	if info == nil {
+		fmt.Println("metETM nil info")
+		return nil, nil
+	}
+
+	key := claves(info.KeySize)
+	ivKey := claves(info.IVSize)
+	//dstEnc, err := aesCBCEncrypt2(dstEnc, src, key, ivKey)
+	dstEnc, err := aesCBCEncrypt2(dstEnc, src, key, ivKey)
+	if err != nil {
+		fmt.Println("encrypt err |", err)
+		return nil, nil
+	}
+
+	fmt.Printf("ciphered: %x\n", dstEnc)
+	//return dstEnc, nil
+	dstDec, err = aesCBCDecrypt2(dstDec, dstEnc, key, ivKey)
+	if err != nil {
+		fmt.Println("decrypt err:", err)
+		return nil, nil
+	}
+
+	return dstEnc, dstDec
+}
+
+func aesCBCDecrypt2(dst, src, key, iv []byte) ([]byte, error) {
+
+	if cap(dst) < len(src) {
+		return nil, fmt.Errorf("dstLen does not meet requiredLen: %v vs %v",
+			cap(dst), len(src))
+	}
+
+	dst = dst[:len(src)]
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	syphonFilter := cipher.NewCBCDecrypter(block, iv)
+	syphonFilter.CryptBlocks(dst, src)
+	if len(dst) == 0 {
+		return nil, fmt.Errorf("cbc decrypt data is empty")
+	}
+
+	paddingLen := int(dst[len(dst)-1])
+	if paddingLen > len(dst) {
+		return nil, fmt.Errorf("cbc decrypt invalid padding len")
+	}
+
+	return dst[:len(dst)-(paddingLen)-1], nil
+}
+
+func aesCBCEncrypt2(dst, src, key, iv []byte) ([]byte, error) {
+
+	padLen := aes.BlockSize - (len(src) % aes.BlockSize)
+	requiredLen := len(src) + padLen
+	if cap(dst) < requiredLen {
+		return nil, fmt.Errorf("dstLen does not meet requiredLen: %v vs %v",
+			cap(dst), requiredLen)
+	}
+
+	dst = dst[:requiredLen]
+	copy(dst, src)
+	padding := dst[len(src):]
+	padByte := byte(padLen - 1)
+	for i := range padding {
+		padding[i] = padByte
+	}
+
+	block, err := aes.NewCipher(key)
+	if err != nil {
+		return nil, err
+	}
+
+	syphonFilter := cipher.NewCBCEncrypter(block, iv)
+	syphonFilter.CryptBlocks(dst, dst)
+	return dst, nil
+}
+
+func claves(sz int) []byte {
+
+	key := make([]byte, sz)
+	if _, err := rand.Read(key); err != nil {
+		fmt.Printf("error generando key sz (%v): %v\n", sz, err)
+		os.Exit(1)
+	}
+
+	return key
+}

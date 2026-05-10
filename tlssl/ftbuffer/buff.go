@@ -5,10 +5,11 @@ import (
 )
 
 type PoolBuff struct {
+	id    string
 	pulpo *sync.Pool
 }
 
-func NewPoolBuff(sz uint) *PoolBuff {
+func NewPoolBuff(sz uint, id string) *PoolBuff {
 
 	var newPB PoolBuff
 
@@ -16,6 +17,7 @@ func NewPoolBuff(sz uint) *PoolBuff {
 		return nil
 	}
 
+	newPB.id = id
 	newPB.pulpo = newPBuffer(sz)
 	return &newPB
 }
@@ -35,11 +37,14 @@ func (x *PoolBuff) Put(bytes []byte) {
 	x.pulpo.Put(bytes)
 }
 
+func (x *PoolBuff) ID() string {
+	return x.id
+}
+
 func newPBuffer(buffSz uint) *sync.Pool {
 
 	return &sync.Pool{
 		New: func() any {
-			//fmt.Printf("# ")
 			return make([]byte, 0, buffSz)
 		},
 	}

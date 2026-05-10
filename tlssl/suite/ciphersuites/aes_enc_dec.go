@@ -1,7 +1,6 @@
 package ciphersuites
 
 import (
-	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"fmt"
@@ -45,39 +44,34 @@ func aesCBCEncrypt(dst, src, key, iv []byte) ([]byte, error) {
 	return dst, nil
 }
 
-func aesCBCEncrypt2nd(dst, src, key, iv []byte) ([]byte, error) {
+func aesCBCDecrypt(dst, src, key, iv []byte) ([]byte, error) {
 
+	if cap(dst) < len(src) {
+		return nil, fmt.Errorf("dstLen does not meet requiredLen: %v vs %v",
+			cap(dst), len(src))
+	}
+
+	dst = dst[:len(src)]
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
 	}
 
-	padLen := aes.BlockSize - (len(src) % aes.BlockSize)
-	if cap(dst) < len(src)+padLen {
-		dst = make([]byte, len(src)+padLen)
+	syphonFilter := cipher.NewCBCDecrypter(block, iv)
+	syphonFilter.CryptBlocks(dst, src)
+	if len(dst) == 0 {
+		return nil, fmt.Errorf("cbc decrypt data is empty")
 	}
 
-	// Adding PKCS#7 padding
-	dataPadded := append(src, bytes.Repeat([]byte{byte(padLen - 1)}, padLen)...)
-	syphonFilter := cipher.NewCBCEncrypter(block, iv)
-	syphonFilter.CryptBlocks(dst, dataPadded)
-	return dst, nil
+	paddingLen := int(dst[len(dst)-1])
+	if paddingLen > len(dst) {
+		return nil, fmt.Errorf("cbc decrypt invalid padding len")
+	}
+
+	return dst[:len(dst)-(paddingLen)-1], nil
 }
 
-/*func aesCBCEncryptOG(dst, data, key, iv []byte) ([]byte, error) {
-
-	block, err := aes.NewCipher(key)
-	if err != nil {
-		return nil, err
-	}
-
-	paddedData := paddPKCS7(data, aes.BlockSize)
-	cipherText := make([]byte, len(paddedData))
-	syphonFilter := cipher.NewCBCEncrypter(block, iv)
-	syphonFilter.CryptBlocks(cipherText, paddedData)
-	return cipherText, nil
-}*/
-
+/*
 func aesCBCDecrypt(data, key, iv []byte) ([]byte, error) {
 
 	block, err := aes.NewCipher(key)
@@ -90,6 +84,7 @@ func aesCBCDecrypt(data, key, iv []byte) ([]byte, error) {
 	syphonFilter.CryptBlocks(clearText, data)
 	return unpaddPKCS7(clearText)
 }
+*/
 
 func aesGCM(pms *aesParams) (cipher.AEAD, error) {
 
@@ -150,24 +145,25 @@ func aesGCMDecrypt(pms *aesParams) error {
 	return err
 }
 
-func paddPKCS7(data []byte, blockSize int) []byte {
-	padLen := blockSize - (len(data) % blockSize)
-	return append(data, bytes.Repeat([]byte{byte(padLen - 1)}, padLen)...)
-}
+/*
+	func paddPKCS7(data []byte, blockSize int) []byte {
+		padLen := blockSize - (len(data) % blockSize)
+		return append(data, bytes.Repeat([]byte{byte(padLen - 1)}, padLen)...)
+	}
 
 func paddPKCS72(data []byte, blockSize int) []byte {
 
-	padLen := blockSize - (len(data) % blockSize)
-	if padLen == 0 {
-		padLen = blockSize
+		padLen := blockSize - (len(data) % blockSize)
+		if padLen == 0 {
+			padLen = blockSize
+		}
+
+		padLen -= 1
+		padding := bytes.Repeat([]byte{byte(padLen)}, padLen)
+		padding = append(padding, byte(padLen))
+		return append(data, padding...)
 	}
-
-	padLen -= 1
-	padding := bytes.Repeat([]byte{byte(padLen)}, padLen)
-	padding = append(padding, byte(padLen))
-	return append(data, padding...)
-}
-
+*/
 func unpaddPKCS7(data []byte) ([]byte, error) {
 
 	if len(data) == 0 {

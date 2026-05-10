@@ -76,8 +76,9 @@ func (x *xChangeCipherSpec) cipeherSpecClient() error {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
 
-	clientKeys := x.ctx.GetKeys().ClientKeys
-	newSpec := cipherspec.NewCipherSpec(st, &clientKeys, x.ctx.GetMacMode())
+	cKeys := x.ctx.GetKeys().ClientKeys
+	newSpec := cipherspec.NewCipherSpec(st, &cKeys, x.ctx.GetMacMode(),
+		tlssl.SPEC_READ)
 	if newSpec == nil {
 		return fmt.Errorf("nil CipherSpec object create(%v)", x.Name())
 	}
@@ -97,8 +98,9 @@ func (x *xChangeCipherSpec) cipeherSpecServer() error {
 		return fmt.Errorf("nil TLSSuite object(%v)", x.Name())
 	}
 
-	serverKeys := x.ctx.GetKeys().ServerKeys
-	newSpec := cipherspec.NewCipherSpec(st, &serverKeys, x.ctx.GetMacMode())
+	sKeys := x.ctx.GetKeys().ServerKeys
+	newSpec := cipherspec.NewCipherSpec(st, &sKeys, x.ctx.GetMacMode(),
+		tlssl.SPEC_WRITE)
 	if newSpec == nil {
 		return fmt.Errorf("nil CipherSpec object create(%v)", x.Name())
 	}

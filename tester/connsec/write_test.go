@@ -51,7 +51,7 @@ func TestTLSWrite(t *testing.T) {
 
 func createCSpec(st suite.Suite, keys *tlssl.Keys) cipherspec.CipherSpec {
 
-	return cipherspec.NewCipherSpec(st, keys, tlssl.MODE_MTE)
+	return cipherspec.NewCipherSpec(st, keys, tlssl.MODE_MTE, tlssl.SPEC_OTHER)
 }
 
 func createCSuite() suite.Suite {

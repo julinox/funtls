@@ -42,6 +42,7 @@ type xTLSConn struct {
 
 	//
 	dstPoolBuff *ftbuffer.PoolBuff
+	cntt        uint
 }
 
 func NewTLSConn(tc *TLSConn) (net.Conn, error) {
@@ -60,12 +61,12 @@ func NewTLSConn(tc *TLSConn) (net.Conn, error) {
 		specWrite:   tc.SpecWrite,
 		debugMode:   tc.DebugMode,
 		lg:          tc.Lg,
-		dstPoolBuff: ftbuffer.NewPoolBuff(tlssl.MALLOCBUFF),
+		dstPoolBuff: ftbuffer.NewPoolBuff(tlssl.MALLOCBUFF, "tlsconn"),
 	}, nil
 }
 
 // Any alert received will be ignored, but the connection will be closed
-func (x *xTLSConn) Read(p []byte) (int, error) {
+func (x *xTLSConn) ReadDD(p []byte) (int, error) {
 
 	if len(p) == 0 {
 		return 0, nil
@@ -84,8 +85,12 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 			return 0, io.EOF
 		}
 
-		tmp := make([]byte, 4096)
+		//tmp := make([]byte, 4096)
+		tmp := make([]byte, 1)
+		//fmt.Printf("tmp Len=%v | Cap=%v\n", len(tmp), cap(tmp))
 		n, err := x.rawConn.Read(tmp)
+		fmt.Printf("%v || tmp Len=%v | Cap=%v | n: %v\n", x.cntt, len(tmp), cap(tmp), n)
+		x.cntt++
 		if err != nil {
 			if err == io.EOF {
 				x.eofRead = true
@@ -117,7 +122,8 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 				break
 			}
 
-			plainText, err := x.specRead.DecryptRec(nil, record)
+			auxgg := make([]byte, 0, tlssl.MALLOCBUFF)
+			plainText, err := x.specRead.DecryptRec(auxgg, record)
 			if err != nil {
 				x.lg.Error("Error decrypting TLS record: ", err)
 				if !x.debugMode {

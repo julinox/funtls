@@ -54,8 +54,6 @@ func (x *xFinished) Handle() error {
 
 func (x *xFinished) finishedClient() error {
 
-	var plainText []byte
-
 	x.tCtx.Lg.Tracef("Running state: %v(CLIENT)", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v(CLIENT)", x.Name())
 
@@ -66,7 +64,7 @@ func (x *xFinished) finishedClient() error {
 
 	// Get the "Finished" message
 	finished := x.ctx.GetBuffer(FINISHED)
-	plainText, err := cs.DecryptRec(plainText, finished)
+	plainText, err := cs.DecryptRec(make([]byte, 0, 128), finished)
 	if err != nil {
 		return fmt.Errorf("DecryptRec(%v): %v", x.Name(), err)
 	}

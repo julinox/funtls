@@ -67,6 +67,7 @@ type CipherSpec interface {
 }
 
 type xCS struct {
+	specID      int
 	macMode     int
 	seqNum      uint64
 	keys        *tlssl.Keys
@@ -74,7 +75,7 @@ type xCS struct {
 	srcPoolBuff *ftbuffer.PoolBuff
 }
 
-func NewCipherSpec(cs suite.Suite, keys *tlssl.Keys, mode int) CipherSpec {
+func NewCipherSpec(cs suite.Suite, keys *tlssl.Keys, mode, id int) CipherSpec {
 
 	var newSpec xCS
 
@@ -91,10 +92,12 @@ func NewCipherSpec(cs suite.Suite, keys *tlssl.Keys, mode int) CipherSpec {
 		return nil
 	}
 
+	newSpec.specID = id
 	newSpec.seqNum = 0
 	newSpec.keys = keys
 	newSpec.cipherSuite = cs
-	newSpec.srcPoolBuff = ftbuffer.NewPoolBuff(tlssl.MALLOCBUFF)
+	newSpec.srcPoolBuff = ftbuffer.NewPoolBuff(tlssl.MALLOCBUFF,
+		tlssl.SpecName[id])
 	return &newSpec
 }
 
@@ -116,6 +119,10 @@ func (x *xCS) SeqNumIncrement() error {
 // send on the wire ('pt' means 'plaintext')
 func (x *xCS) EncryptRec(dst []byte, src []byte, ct uint8) ([]byte, error) {
 
+	if x.srcPoolBuff == nil {
+		return nil, fmt.Errorf("nil srcpoolbuff for encrypt")
+	}
+
 	record, err := x.encryptRec(dst, src, ct)
 	if err0 := x.SeqNumIncrement(); err0 != nil {
 		return nil, err
@@ -127,6 +134,10 @@ func (x *xCS) EncryptRec(dst []byte, src []byte, ct uint8) ([]byte, error) {
 // Returns a buffer containing pure plaintext.
 // 'ct' is the ciphertext to decipher
 func (x *xCS) DecryptRec(dst []byte, src []byte) ([]byte, error) {
+
+	if x.srcPoolBuff == nil {
+		return nil, fmt.Errorf("nill srcpoolbuff for decrypt")
+	}
 
 	pt, err := x.decryptRec(dst, src)
 	if err0 := x.SeqNumIncrement(); err0 != nil {

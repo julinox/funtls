@@ -36,11 +36,6 @@ type xKeyMake struct {
 	blockLen int
 }
 
-type shaCfg struct {
-	//shaLen int
-	fn func() hash.Hash
-}
-
 // All lens in bytes
 func NewKeymaker(hashingAlgorithm, blockLen int) (TheKeyMaker, error) {
 

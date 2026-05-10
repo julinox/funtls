@@ -57,6 +57,8 @@ func (x *xCS) decryptRec(dst []byte, src []byte) ([]byte, error) {
 //   - The first IV-Sized bytes of the decrypted message are random bytes,
 //     the rest is HandshakeHeader + verified data + MAC.
 //   - The MAC is computed over the HandshakeHeader and the verified data.
+
+/*
 func (x *xCS) decryptMTE(dst []byte, tRec *tlssl.TLSRecord) ([]byte, error) {
 
 	var sCtx suite.SuiteContext
@@ -77,6 +79,54 @@ func (x *xCS) decryptMTE(dst []byte, tRec *tlssl.TLSRecord) ([]byte, error) {
 
 	sCtx.Key = x.keys.Key
 	clearText, err := x.cipherSuite.CipherNot(nil, nil, &sCtx)
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", myself, err)
+	}
+
+	if len(clearText) < x.cipherSuite.Info().HashSize {
+		return nil, fmt.Errorf("short data on deciphering(%v)", myself)
+	}
+
+	boundary := len(clearText) - x.cipherSuite.Info().HashSize
+	givenMAC := clearText[boundary:]
+	plainText := clearText[:boundary]
+	if x.seqNum == 0 {
+		plainText = plainText[x.cipherSuite.Info().IVSize:]
+	}
+
+	computedMAC, err := x.macintosh(plainText, uint8(tRec.Header.ContentType))
+	if err != nil {
+		return nil, fmt.Errorf("%v: %v", myself, err)
+	}
+
+	if !hmac.Equal(givenMAC, computedMAC) {
+		return nil, fmt.Errorf("MAC mismatch(%v)", myself)
+	}
+
+	return plainText, nil
+}
+*/
+
+func (x *xCS) decryptMTE(dst []byte, tRec *tlssl.TLSRecord) ([]byte, error) {
+
+	var sCtx suite.SuiteContext
+
+	myself := systema.MyName()
+	if len(tRec.Msg) < x.cipherSuite.Info().IVSize+
+		x.cipherSuite.Info().HashSize {
+		return nil, fmt.Errorf("Record shorter than IV+Hash size: %v", myself)
+	}
+
+	if x.seqNum == 0 {
+		sCtx.IV = x.keys.IV
+		sCtx.Data = tRec.Msg
+	} else {
+		sCtx.IV = tRec.Msg[:x.cipherSuite.Info().IVSize]
+		sCtx.Data = tRec.Msg[x.cipherSuite.Info().IVSize:]
+	}
+
+	sCtx.Key = x.keys.Key
+	clearText, err := x.cipherSuite.CipherNot(dst, sCtx.Data, &sCtx)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %v", myself, err)
 	}

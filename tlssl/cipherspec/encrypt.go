@@ -49,36 +49,6 @@ func (x *xCS) encryptRec(dst, src []byte, ct uint8) ([]byte, error) {
 //   - Final TLS record is: [TLSHEADER | E( IV | pt | MAC)], where pt is
 //     HandshakeHeader + verified data
 
-/*
-func (x *xCS) encryptMTE(dst, src []byte, ct uint8) ([]byte, error) {
-
-		var err error
-
-		myself := systema.MyName()
-		if len(src) == 0 {
-			return nil, fmt.Errorf("empty plaintext (%v)", myself)
-		}
-
-		ivSz := x.cipherSuite.Info().IVSize
-		if cap(dst) < tlssl.TLS_HEADER_SIZE+ivSz {
-			return nil, fmt.Errorf("dst capacity is too smal for buffer")
-		}
-
-		iv, err := generateIVNonce(ivSz)
-		if err != nil {
-			return nil, fmt.Errorf("generateIVNonce(%v): %v", myself, err)
-		}
-
-		mac, err := x.macintosh(src, ct)
-		if err != nil {
-			return nil, fmt.Errorf("macOS(%v): %v", myself, err)
-		}
-
-		data := &mteEtm{iv, mac, dst, src}
-		return x.encryptMTEAux(data, ct)
-	}
-*/
-
 func (x *xCS) encryptMTE(dst, src []byte, ct uint8) ([]byte, error) {
 
 	var err error

@@ -78,7 +78,7 @@ func (x *x0x003D) CipherNot(dst []byte, src []byte, ctx *suite.SuiteContext) ([]
 		return nil, err
 	}
 
-	return aesCBCDecrypt(ctx.Data, ctx.Key, ctx.IV)
+	return aesCBCDecrypt(dst, src, ctx.Key, ctx.IV)
 }
 
 func (x *x0x003D) MacMe(data, hashKey []byte) ([]byte, error) {
