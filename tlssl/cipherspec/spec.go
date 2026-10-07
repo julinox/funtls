@@ -175,6 +175,7 @@ func (x *xCS) macintosh(data []byte, ct uint8) ([]byte, error) {
 }
 
 func seqNumToBytes(sn uint64) []byte {
+
 	seqNumBytes := make([]byte, 8)
 	binary.BigEndian.PutUint64(seqNumBytes, sn)
 	return seqNumBytes

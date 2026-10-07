@@ -32,18 +32,18 @@ func main() {
 		Logger: lg,
 		Certos: []*pki.CertPath{
 			{
-				ChainPath: "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/ecdsacert.pem",
-				KeyPath:   "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/ecdsakey.pem",
+				ChainPath: "/home/developer/certs/ecdsa/cert.pem",
+				KeyPath:   "/home/developer/certs/ecdsa/key.pem",
 			},
 			{
-				ChainPath: "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/rsacert.pem",
-				KeyPath:   "/data/seagate/codigo/golang/workspace/funtls/cmd/selfsigned/rsakey.pem",
+				ChainPath: "/home/developer/certs/rsa/cert.pem",
+				KeyPath:   "/home/developer/certs/rsa/key.pem",
 			},
 		},
 	})
 
 	if err != nil {
-		fmt.Println(err)
+		lg.Error(err)
 		return
 	}
 

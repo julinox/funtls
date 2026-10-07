@@ -1,0 +1,48 @@
+package main
+
+import "fmt"
+
+func main() {
+
+	pp2()
+}
+
+// make([]T, len, cap) // same as make([]T, cap)[:len]
+func pp() {
+
+	var uaPtr *[6]int
+	underArray := [...]int{10, 11, 12, 13, 14, 15}
+
+	uaPtr = &underArray
+	slice1 := uaPtr[1:]
+	fmt.Println(slice1)
+	fmt.Println(len(slice1))
+	fmt.Println(cap(slice1))
+
+	fmt.Println()
+	slice2 := slice1[2:3]
+	fmt.Println(slice2)
+	fmt.Println("len2:", len(slice2))
+	fmt.Println("cap 2:", cap(slice2))
+	fmt.Println()
+	//fmt.Println(slice2[1])
+	slice2 = append(slice2, 3443)
+	fmt.Println(slice2)
+}
+
+func pp2() {
+	data := []string{"one", "", "three"}
+	fmt.Printf("%q\n", nonempty(data)) // `["one" "three"]`
+	fmt.Printf("%q\n", data)           // `["one" "three" "three"]`
+}
+
+func nonempty(strings []string) []string {
+	i := 0
+	for _, s := range strings {
+		if s != "" {
+			strings[i] = s
+			i++
+		}
+	}
+	return strings[:i]
+}

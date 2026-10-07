@@ -1,0 +1,120 @@
+package main
+
+import (
+	"fmt"
+)
+
+func mainArrays() {
+	array6()
+}
+
+func array1() {
+
+	var a [3]int = [3]int{1, 2}
+
+	//a[0] = 0xAA
+	//a[1] = 0xBB
+	a[2] = 0xCC
+	fmt.Println("len:", len(a))
+	fmt.Println("cap:", cap(a))
+	fmt.Println(a)
+
+}
+
+func array2() {
+
+	a := [...]int{1, 2}
+
+	fmt.Println("len:", len(a))
+	fmt.Println("cap:", cap(a))
+	fmt.Println(a)
+
+}
+
+func array3() {
+
+	// el tamaño es su tipo
+	var b [3]int
+	a := [3]int{1, 2, 3}
+	fmt.Println(a)
+
+	a = [3]int{5, 6, 7}
+	fmt.Println(a)
+
+	b = [...]int{8, 9, 10}
+	fmt.Println(b)
+}
+
+type Currency int
+
+const (
+	USD Currency = iota
+	EUR
+	GBP
+	RMB
+)
+
+func array4() {
+
+	// se puede declarar un array especificando el indice, y el
+	// orden no importa
+
+	ordenX := [3]int{2: 3, 1: 2, 0: 1} // indice:valor
+	fmt.Println(ordenX)
+
+	currencys := [...]string{USD: "$", EUR: "€", GBP: "ŧ"}
+	fmt.Println(currencys)
+	currencys = [...]string{"A", "B", "C"}
+	fmt.Println(currencys)
+
+	// No tengo que especificar cada index, el array
+	// len del array sera el index mas alto especificado
+
+	ordenY := [...]int{99: -1}
+	fmt.Println(ordenY)
+}
+
+func array5() {
+
+	// Si 2 arrays tienen el mismo tipo, entonces son comparables
+	// La comparacion se da elemento a elemento (x posicion obviamente)
+
+	a := [3]int{1, 2, 3}
+	b := [3]int{1, 2, 3}
+	c := [3]int{1, 2, 4}
+	fmt.Println(a == b, a == c)
+	//d := [4]int{1,2,3}
+	//fmt.Println(b == d) // error de compilacion, len(d) = 4
+}
+
+func array6() {
+
+	// Los arrays son pasados por valor a la funcion
+	og := [3]int{1, 2, 3}
+	arrayPorValor(og)
+	fmt.Println(og)
+
+	arrayPorReferencia(&og)
+	fmt.Println(og)
+
+	zero(&og)
+	fmt.Println(og)
+}
+
+func arrayPorValor(ptr [3]int) {
+
+	for i, v := range ptr {
+		ptr[i] = v + 10
+	}
+}
+
+func arrayPorReferencia(ptr *[3]int) {
+
+	for i, v := range ptr {
+		ptr[i] = v + 10
+	}
+}
+
+func zero(ptr *[3]int) {
+	*ptr = [3]int{}
+}

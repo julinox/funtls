@@ -66,7 +66,7 @@ func NewTLSConn(tc *TLSConn) (net.Conn, error) {
 }
 
 // Any alert received will be ignored, but the connection will be closed
-func (x *xTLSConn) ReadDD(p []byte) (int, error) {
+func (x *xTLSConn) ReadDDDD(p []byte) (int, error) {
 
 	if len(p) == 0 {
 		return 0, nil

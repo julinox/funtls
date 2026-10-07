@@ -99,7 +99,6 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 	fun.tCtx.OptClientAuth = initClientAuthOpt()
 	auxLport := os.Getenv(_ENV_LISTENING_PORT_)
 	if auxLport != "" {
-		fmt.Println("-------------*-*-*")
 		cfg.ListeningPort = auxLport
 	}
 
@@ -109,8 +108,11 @@ func FunTLServe(cfg *FunTLSCfg) (net.Listener, error) {
 
 	// Implements the net.Listener interface
 	fun.listener, err = net.Listen("tcp", ":"+cfg.ListeningPort)
+	if err != nil {
+		return nil, err
+	}
+
 	fun.tCtx.Lg.Infof("Starting FunTLS Server (%v)", fun.listener.Addr())
-	//bypass(&fun.tCtx)
 	return &fun, nil
 }
 
@@ -163,9 +165,9 @@ func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 	}
 
 	supportedSuites := map[string]suite.Suite{
-		suite.CipherSuiteNames[0x0035]: css.RsaAes256CbcSha(suiteOpts),
-		suite.CipherSuiteNames[0x003D]: css.RsaAes256CbcSha256(suiteOpts),
-		//suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
+		//suite.CipherSuiteNames[0x0035]: css.RsaAes256CbcSha(suiteOpts),
+		//suite.CipherSuiteNames[0x003D]: css.RsaAes256CbcSha256(suiteOpts),
+		suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
 		//suite.CipherSuiteNames[0x009E]: css.DheRsaAes128GcmSha256(),
 	}
 

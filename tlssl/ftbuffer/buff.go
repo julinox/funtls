@@ -33,7 +33,6 @@ func (x *PoolBuff) Get() []byte {
 }
 
 func (x *PoolBuff) Put(bytes []byte) {
-
 	x.pulpo.Put(bytes)
 }
 

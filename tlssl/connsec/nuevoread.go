@@ -30,7 +30,7 @@ func (x *xTLSConn) Read(p []byte) (int, error) {
 		tmp := make([]byte, 1)
 		//fmt.Printf("tmp Len=%v | Cap=%v\n", len(tmp), cap(tmp))
 		n, err := x.rawConn.Read(tmp)
-		fmt.Printf("%v || tmp Len=%v | Cap=%v | n: %v\n", x.cntt, len(tmp), cap(tmp), n)
+		//fmt.Printf("%v || tmp Len=%v | Cap=%v | n: %v\n", x.cntt, len(tmp), cap(tmp), n)
 		x.cntt++
 		if err != nil {
 			if err == io.EOF {
