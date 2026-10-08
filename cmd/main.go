@@ -11,7 +11,7 @@ import (
 
 	"github.com/julinox/funtls/server"
 	pki "github.com/julinox/funtls/tlssl/certpki"
-	//"github.com/julinox/funtls/tlssl/keyexchange"
+	"github.com/julinox/funtls/tlssl/keyexchange"
 )
 
 /*
@@ -26,6 +26,10 @@ registered
 // https://medium.com/@crusty0gphr/tricky-golang-interview-questions-part-1-slice-header-341802e45c9b
 
 func main() {
+	keyexchange.AA()
+}
+
+func main222() {
 
 	lg := server.InitDefaultLogger()
 	srv, err := server.FunTLServe(&server.FunTLSCfg{
