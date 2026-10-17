@@ -82,7 +82,7 @@ import (
 	"github.com/julinox/funtls/tlssl/names"
 )
 
-const _DEFAULT_ECDHE_GROUP = names.SECP256R1
+// const _DEFAULT_ECDHE_GROUP = names.SECP256R1
 const _CurveTypeNamed = 0x03 // named curve
 
 // Only 'named curve' is supported

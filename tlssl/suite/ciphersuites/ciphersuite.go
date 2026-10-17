@@ -12,6 +12,7 @@ import (
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
+type certScreener func(*x509.Certificate) bool
 type suiteRequisites func(*x509.Certificate) bool
 
 // CipherSuite related certs
@@ -27,6 +28,12 @@ type suiteBaseInfo struct {
 	certPki      cpki.CertPKI
 }
 
+/*
+	type suiteInternal struct {
+		*suite.SuiteEnv
+		relatedCerts [][]byte
+	}
+*/
 var sigAlgToSchemes = map[x509.SignatureAlgorithm][]uint16{
 	x509.SHA256WithRSA:    {names.RSA_PKCS1_SHA256, names.RSA_PSS_RSAE_SHA256},
 	x509.SHA384WithRSA:    {names.RSA_PKCS1_SHA384, names.RSA_PSS_RSAE_SHA384},
@@ -40,9 +47,8 @@ var sigAlgToSchemes = map[x509.SignatureAlgorithm][]uint16{
 	x509.PureEd25519:      {names.ED25519},
 }
 
-// Validates if certificate meets minimun requirements
-// 'cps' function is a function that meets suite's individual
-// or specific requirements
+// Loads the certificates compatible with the calling suite from the PKI
+// 'hook' function is a function that meets suite's ad requirements
 func certPreselect(opts *suite.SuiteOpts, sr suiteRequisites) *suiteBaseInfo {
 
 	var sbi suiteBaseInfo
@@ -89,8 +95,12 @@ func certPreselect(opts *suite.SuiteOpts, sr suiteRequisites) *suiteBaseInfo {
 // a cert means checking its signature)
 func validateChainSignatures(chain []*x509.Certificate, sa []uint16) error {
 
-	if len(chain) == 0 || len(sa) == 0 {
-		return fmt.Errorf("no chain or  SA list")
+	if len(chain) == 0 {
+		return fmt.Errorf("no chain")
+	}
+
+	if len(sa) == 0 {
+		return nil
 	}
 
 	saMap := saToMapSA(sa)
@@ -236,7 +246,7 @@ func sniSanVs(sni, san string) bool {
 	sniParts := strings.Split(sni, ".")
 	sanParts := strings.Split(san, ".")
 
-	// a*.example.com
+	// *.example.com
 	if sanParts[0] != "*" {
 		return false
 	}
@@ -273,7 +283,21 @@ func rsaCertCheck(cert *x509.Certificate) bool {
 	return true
 }
 
-// Check cert requirements for TLS_ECDHE_* suites
+// Check cert requirements for TLS_*_RSA_* suites
+func rsaCertSignCheck(cert *x509.Certificate) bool {
+
+	if cert.PublicKeyAlgorithm != x509.RSA {
+		return false
+	}
+
+	if cert.KeyUsage&x509.KeyUsageDigitalSignature == 0 {
+		return false
+	}
+
+	return true
+}
+
+// Check cert requirements for TLS_*_ECDSA_* suites
 func ecdsaCertCheck(cert *x509.Certificate) bool {
 
 	if cert.PublicKeyAlgorithm != x509.ECDSA {

@@ -158,17 +158,21 @@ func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 		return nil, err
 	}
 
-	suiteOpts := &suite.SuiteOpts{
+	/*suiteOpts := &suite.SuiteOpts{
 		Pki:      pk,
 		IsClient: false,
 		Lg:       lg,
-	}
+	}*/
 
 	supportedSuites := map[string]suite.Suite{
 		//suite.CipherSuiteNames[0x0035]: css.RsaAes256CbcSha(suiteOpts),
 		//suite.CipherSuiteNames[0x003D]: css.RsaAes256CbcSha256(suiteOpts),
-		suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
-		//suite.CipherSuiteNames[0x009E]: css.DheRsaAes128GcmSha256(),
+		//suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
+		suite.CipherSuiteNames[0x009E]: css.DheRsaAes128GcmSha256(&suite.SuiteEnv{
+			Pki:      pk,
+			IsClient: false,
+			Lg:       lg,
+		}),
 	}
 
 	for name, suite := range supportedSuites {

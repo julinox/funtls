@@ -24,13 +24,13 @@ import (
 //const _SignatureHeadSz = 4
 
 var SignAlgoRSASupport = map[uint16]bool{
-	names.RSA_PKCS1_SHA256:    true,
-	names.RSA_PKCS1_SHA384:    true,
-	names.RSA_PKCS1_SHA512:    true,
+	names.RSA_PKCS1_SHA256: true,
+	names.RSA_PKCS1_SHA384: true,
+	//names.RSA_PKCS1_SHA512:    true,
 	names.RSA_PSS_RSAE_SHA256: true,
 	names.RSA_PSS_RSAE_SHA384: true,
-	names.RSA_PSS_RSAE_SHA512: true,
-	names.SHA224_RSA:          true,
+	//names.RSA_PSS_RSAE_SHA512: true,
+	//names.SHA224_RSA:          true,
 }
 
 var SignAlgoECDSASupport = map[uint16]bool{
@@ -42,7 +42,7 @@ var SignAlgoECDSASupport = map[uint16]bool{
 var SignAlgoDSASupport = map[uint16]bool{
 	names.SHA224_DSA: true,
 	names.SHA384_DSA: true,
-	names.SHA512_DSA: true,
+	//names.SHA512_DSA: true,
 }
 
 var tlsHashToCryptoHash = map[uint8]crypto.Hash{

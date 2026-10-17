@@ -54,6 +54,10 @@ func (x *xServerKeyExchange) Handle() error {
 		PrivateKey: certPrivKey,
 	}
 
+	// ---------------------- Intercept ----------------------------
+	kx.DHEphemeral(kxData.SG)
+	// ---------------------- Intercept ----------------------------/
+
 	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if cs == nil {
 		return fmt.Errorf("ciphersuite not found")
@@ -62,6 +66,10 @@ func (x *xServerKeyExchange) Handle() error {
 	kxParams, err := cs.ServerKX(&kxData)
 	if err != nil {
 		return err
+	}
+
+	if kxParams == nil {
+		return fmt.Errorf("nil key exchange params")
 	}
 
 	hd := tlssl.TLSHeadsHandShakePacket(tlssl.HandshakeTypeServerKeyExchange,

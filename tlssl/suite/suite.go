@@ -49,15 +49,20 @@ type SuiteOpts struct {
 	Lg       *logrus.Logger
 }
 
+type SuiteEnv struct {
+	IsClient bool
+	Pki      pki.CertPKI
+	Lg       *logrus.Logger
+}
+
 type Suite interface {
 	ID() uint16
 	Name() string
 	Info() *SuiteInfo
-	//ServerKX(*kx.KXData) ([]byte, error)
-	ServerKX(*kx.KXData) (*kx.KXParams, error)
 	CertMe(*CertMatch) []byte
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
+	ServerKX(*kx.KXData) (*kx.KXParams, error)
 	Cipher([]byte, []byte, *SuiteContext) ([]byte, error)
 	CipherNot([]byte, []byte, *SuiteContext) ([]byte, error)
 }

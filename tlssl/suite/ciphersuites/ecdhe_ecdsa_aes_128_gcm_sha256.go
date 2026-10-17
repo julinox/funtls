@@ -24,6 +24,7 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 	if len(newSuite.info.relatedcerts) == 0 {
 		opts.Lg.Warnf("Suite registered (no certs): %v", newSuite.Name())
 		return nil
+
 	} else {
 		opts.Lg.Infof("Suite registered: %v [%v]", newSuite.Name(),
 			printCertNameType(newSuite.info.relatedcerts))
@@ -120,7 +121,7 @@ func (x *x0xC02B) Cipher(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byt
 	return nil, nil
 }
 
-func (x *x0xC02B) CipherNot(dst []byte, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
+func (x *x0xC02B) CipherNot(dst, src []byte, ctx *suite.SuiteContext) ([]byte, error) {
 
 	var err error
 

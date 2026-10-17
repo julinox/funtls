@@ -102,24 +102,6 @@ func validateKeyPair(cert *x509.Certificate, key any) bool {
 	return false
 }
 
-func certValidity(cert *x509.Certificate) bool {
-
-	if cert == nil {
-		return false
-	}
-
-	now := time.Now()
-	if now.Before(cert.NotBefore) {
-		return false
-	}
-
-	if now.After(cert.NotAfter) {
-		return false
-	}
-
-	return true
-}
-
 func certPreFlight(chain []*x509.Certificate) error {
 
 	if len(chain) == 0 {
@@ -163,8 +145,8 @@ func certPreFlight(chain []*x509.Certificate) error {
 
 	if len(leaf.ExtKeyUsage) > 0 {
 		ok := false
-		for _, eku := range leaf.ExtKeyUsage {
-			if eku == x509.ExtKeyUsageServerAuth {
+		for _, e := range leaf.ExtKeyUsage {
+			if e == x509.ExtKeyUsageServerAuth || e == x509.ExtKeyUsageAny {
 				ok = true
 				break
 			}
@@ -176,6 +158,24 @@ func certPreFlight(chain []*x509.Certificate) error {
 	}
 
 	return nil
+}
+
+func certValidity(cert *x509.Certificate) bool {
+
+	if cert == nil {
+		return false
+	}
+
+	now := time.Now()
+	if now.Before(cert.NotBefore) {
+		return false
+	}
+
+	if now.After(cert.NotAfter) {
+		return false
+	}
+
+	return true
 }
 
 func isRSAPSSPublicKey(spki []byte) bool {

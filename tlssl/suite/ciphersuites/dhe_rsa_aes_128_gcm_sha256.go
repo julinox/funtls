@@ -2,6 +2,7 @@ package ciphersuites
 
 import (
 	"fmt"
+	"strings"
 
 	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
@@ -9,11 +10,45 @@ import (
 )
 
 type x0x009E struct {
+	//inter *suiteInternal
+	*suite.SuiteEnv
+	relatedCerts [][]byte
 }
 
-func DheRsaAes128GcmSha256() suite.Suite {
+func DheRsaAes128GcmSha256(env *suite.SuiteEnv) suite.Suite {
 
-	return &x0x009E{}
+	var cNames []string
+	var newSuite x0x009E
+
+	if env == nil || env.Pki == nil || env.Lg == nil {
+		return nil
+	}
+
+	newSuite.SuiteEnv = env
+	fingerprints := env.Pki.GetFingerPrints()
+	if len(fingerprints) <= 0 {
+		return nil
+	}
+
+	newSuite.relatedCerts = make([][]byte, 0)
+	for _, fp := range fingerprints {
+		chain := env.Pki.Get(fp)
+		if len(chain) == 0 || !rsaCertSignCheck(chain[0]) {
+			continue
+		}
+
+		newSuite.relatedCerts = append(newSuite.relatedCerts, fp)
+		cNames = append(cNames, chain[0].Subject.CommonName)
+	}
+
+	if len(newSuite.relatedCerts) == 0 {
+		env.Lg.Warnf("Suite registered (no certs): %v", newSuite.Name())
+		return nil
+	}
+
+	env.Lg.Infof("Suite registered: %v [%v]", newSuite.Name(),
+		strings.Join(cNames, ","))
+	return &newSuite
 }
 
 func (x *x0x009E) ID() uint16 {
@@ -57,6 +92,28 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 }
 
 func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
+
+	for _, fp := range x.relatedCerts {
+		chain := x.Pki.Get(fp)
+		if len(chain) == 0 {
+			continue
+		}
+
+		if !matchSniSan(match.SNI, chain[0].DNSNames,
+			chain[0].Subject.CommonName) {
+			continue
+		}
+
+		if !x.Pki.SaSupport(match.SA, fp) {
+			continue
+		}
+
+		if err := validateChainSignatures(chain, match.SA); err != nil {
+			continue
+		}
+
+		return fp
+	}
 
 	return nil
 }

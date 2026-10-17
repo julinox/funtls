@@ -11,13 +11,14 @@ import (
 
 	"github.com/julinox/funtls/systema"
 	cert "github.com/julinox/funtls/tlssl/certpki"
+	kee "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
 
 type pkInfo struct {
 	cname     string
-	saSupport map[uint16]bool // Suppoorted Algorithns
+	saSupport map[uint16]bool // Supported Algorithms
 	san       map[string]bool // Subject Alternative Names
 	key       crypto.PrivateKey
 	chain     []*x509.Certificate // 0 is the leaf
@@ -267,18 +268,10 @@ func (p *pkInfo) setSignAlgoSupport() error {
 			return fmt.Errorf("RSA public key size less than 128 bytes")
 		}
 
-		p.saSupport[names.RSA_PKCS1_SHA256] = true
-		p.saSupport[names.RSA_PKCS1_SHA384] = true
-		p.saSupport[names.RSA_PKCS1_SHA512] = true
-		p.saSupport[names.RSA_PSS_RSAE_SHA256] = true
-		p.saSupport[names.RSA_PSS_RSAE_SHA384] = true
-		p.saSupport[names.RSA_PSS_RSAE_SHA512] = true
-		p.saSupport[names.SHA224_RSA] = true
+		p.saSupport = maps.Clone(kee.SignAlgoRSASupport)
 
 	case x509.DSA:
-		p.saSupport[names.SHA224_DSA] = true
-		p.saSupport[names.SHA384_DSA] = true
-		p.saSupport[names.SHA512_DSA] = true
+		p.saSupport = maps.Clone(kee.SignAlgoDSASupport)
 
 	case x509.ECDSA:
 		if pub, ok := leaf.PublicKey.(*ecdsa.PublicKey); ok {
