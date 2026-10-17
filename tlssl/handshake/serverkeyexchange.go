@@ -5,7 +5,7 @@ import (
 
 	"github.com/julinox/funtls/tlssl"
 	ex "github.com/julinox/funtls/tlssl/extensions"
-	kx "github.com/julinox/funtls/tlssl/keyexchange"
+	ke "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -35,6 +35,47 @@ func (x *xServerKeyExchange) Next() (int, error) {
 	return x.nextState, x.Handle()
 }
 
+func (x *xServerKeyExchange) Handle() error {
+
+	var err error
+	var keyEx ke.KeyExchange
+
+	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
+	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
+	dataSG := x.ctx.GetMsgHello().Extensions[ex.EXT_SUPPORTED_GROUPS]
+	//dataSA := x.ctx.GetMsgHello().Extensions[ex.EXT_SIGNATURE_ALGORITHMS]
+
+	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
+	if cs == nil {
+		return fmt.Errorf("cipher suite get err(%v)", x.Name())
+	}
+	switch cs.Info().KeyExchange {
+	case names.KX_DHE:
+		keyEx, err = ke.DHEphemeral(parseSG(dataSG))
+	default:
+		return fmt.Errorf("unknow server key exchange method")
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if keyEx == nil {
+		return fmt.Errorf("nil key exchange interface")
+	}
+
+	keyEx.Params()
+	if x.tCtx.OptClientAuth {
+		x.nextState = CERTIFICATEREQUEST
+	} else {
+		x.nextState = SERVERHELLODONE
+	}
+
+	return nil
+}
+
+// Handle antes de la interface "KeyExchange"
+/*
 func (x *xServerKeyExchange) Handle() error {
 
 	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
@@ -85,15 +126,16 @@ func (x *xServerKeyExchange) Handle() error {
 
 	return nil
 }
+*/
 
 func parseSG(data any) []uint16 {
 
-	esg, ok := data.(*ex.ExtSupportedGroupsData)
-	if !ok {
+	if data == nil {
 		return []uint16{}
 	}
 
-	if esg.Len == 0 {
+	esg, ok := data.(*ex.ExtSupportedGroupsData)
+	if !ok || esg.Len == 0 {
 		return []uint16{}
 	}
 
@@ -102,12 +144,12 @@ func parseSG(data any) []uint16 {
 
 func parseSA(data any) []uint16 {
 
-	esa, ok := data.(*ex.ExtSignAlgoData)
-	if !ok {
+	if data == nil {
 		return []uint16{}
 	}
 
-	if esa.Len == 0 {
+	esa, ok := data.(*ex.ExtSignAlgoData)
+	if !ok || esa.Len == 0 {
 		return []uint16{}
 	}
 

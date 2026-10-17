@@ -6,7 +6,6 @@ import (
 	"crypto/sha1"
 	"fmt"
 
-	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -125,9 +124,11 @@ func (x *x0x0035) CertMe(match *suite.CertMatch) []byte {
 	return nil
 }
 
-func (x *x0x0035) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
-	return nil, nil
-}
+/*
+	func (x *x0x0035) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
+		return nil, nil
+	}
+*/
 
 func (x *x0x0035) basicCheck(ctx *suite.SuiteContext) error {
 

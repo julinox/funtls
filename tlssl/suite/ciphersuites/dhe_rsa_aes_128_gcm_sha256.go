@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -118,7 +117,9 @@ func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 	return nil
 }
 
+/*
 func (x *x0x009E) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
 
 	return nil, nil
 }
+*/

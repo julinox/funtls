@@ -4,11 +4,9 @@ import (
 	"crypto"
 	"crypto/dsa"
 	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/sha512"
-	"encoding/binary"
 	"fmt"
 
 	"github.com/julinox/funtls/tlssl/names"
@@ -59,6 +57,7 @@ var tlsHashToCryptoHash = map[uint8]crypto.Hash{
 // HashAlgo (1B) | SignAlgo (1B) | SignatureLen (2B) | Signature
 //
 // Signature: ECDSA/RSA(Hash(CliRandom ||SrvRandom ||EcParams))
+/*
 func SignServerKXParams(ecparams []byte, data *KXData) ([]byte, error) {
 
 	if data == nil {
@@ -90,15 +89,15 @@ func SignServerKXParams(ecparams []byte, data *KXData) ([]byte, error) {
 	h.Write(data.SrvRandom)
 	h.Write(ecparams)
 	message := h.Sum(nil)
-	/*totalLen := len(data.CliRandom) + len(data.SrvRandom) + len(ecparams)
-	buffData := make([]byte, 0, totalLen)
-	buffData = append(buffData, data.CliRandom...)
-	buffData = append(buffData, data.SrvRandom...)
-	buffData = append(buffData, ecparams...)
-	message, err := hashMessage(buffData, hashFN)
-	if err != nil {
-		return nil, err
-	}*/
+	//totalLen := len(data.CliRandom) + len(data.SrvRandom) + len(ecparams)
+	//buffData := make([]byte, 0, totalLen)
+	//buffData = append(buffData, data.CliRandom...)
+	//buffData = append(buffData, data.SrvRandom...)
+	//buffData = append(buffData, ecparams...)
+	//message, err := hashMessage(buffData, hashFN)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	sign, err := signer.Sign(rand.Reader, message, hashFN)
 	if err != nil {
@@ -114,6 +113,7 @@ func SignServerKXParams(ecparams []byte, data *KXData) ([]byte, error) {
 	//fmt.Printf("SignatureScheme: %v\n", names.SignHashAlgorithms[sighScheme])
 	return finalBuff, nil
 }
+*/
 
 // Selects the appropriate SignatureScheme (2 bytes) by matching
 // the server's private key type with the client's supported algorithms (SA).

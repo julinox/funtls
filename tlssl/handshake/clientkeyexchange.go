@@ -138,28 +138,32 @@ func (x *xClientKeyExchange) pmsDHE(buff []byte) ([]byte, error) {
 
 func (x *xClientKeyExchange) pmsECDHE(buff []byte) ([]byte, error) {
 
-	pmsLen := buff[0]
-	if int(pmsLen) != len(buff[1:]) {
-		return nil, fmt.Errorf("PreMasterSecreto len unmatched")
-	}
+	/*
+		pmsLen := buff[0]
+		if int(pmsLen) != len(buff[1:]) {
+			return nil, fmt.Errorf("PreMasterSecreto len unmatched")
+		}
 
-	kxPms := x.ctx.GetSkeParams()
-	if kxPms == nil {
-		return nil, fmt.Errorf("nil ske parameters from ctx")
-	}
+		kxPms := x.ctx.GetSkeParams()
+		if kxPms == nil {
+			return nil, fmt.Errorf("nil ske parameters from ctx")
+		}
 
-	// pubkey len is 1 byte for ECDHE
-	pubRemote, err := kxPms.CurveParams.Curva.NewPublicKey(buff[1:])
-	if err != nil {
-		return nil, err
-	}
+		// pubkey len is 1 byte for ECDHE
+		pubRemote, err := kxPms.CurveParams.Curva.NewPublicKey(buff[1:])
+		if err != nil {
+			return nil, err
+		}
 
-	pms, err := kxPms.CurveParams.Private.ECDH(pubRemote)
-	if err != nil {
-		return nil, err
-	}
+		pms, err := kxPms.CurveParams.Private.ECDH(pubRemote)
+		if err != nil {
+			return nil, err
+		}
 
-	return pms, nil
+		return pms, nil
+	*/
+
+	return nil, fmt.Errorf("key exchange ECDHE not implemented yet")
 }
 
 func decodeRSA(data []byte, key crypto.PrivateKey) ([]byte, error) {

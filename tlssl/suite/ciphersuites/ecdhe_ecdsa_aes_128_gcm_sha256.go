@@ -3,7 +3,6 @@ package ciphersuites
 import (
 	"fmt"
 
-	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -34,6 +33,7 @@ func EcdheEcdsaAes128GcmSha256(opts *suite.SuiteOpts) suite.Suite {
 	return &newSuite
 }
 
+/*
 func (x *x0xC02B) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
 
 	var kxPms kx.KXParams
@@ -62,6 +62,7 @@ func (x *x0xC02B) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
 	kxPms.Buffer = append(kxPms.Buffer, append(ecSrvParams, firma...)...)
 	return &kxPms, nil
 }
+*/
 
 func (x *x0xC02B) ID() uint16 {
 	return 0xC02B

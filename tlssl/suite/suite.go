@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	pki "github.com/julinox/funtls/tlssl/certpki"
-	kx "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
@@ -62,7 +61,7 @@ type Suite interface {
 	CertMe(*CertMatch) []byte
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
-	ServerKX(*kx.KXData) (*kx.KXParams, error)
+	//ServerKX(*kx.KXData) (*kx.KXParams, error)
 	Cipher([]byte, []byte, *SuiteContext) ([]byte, error)
 	CipherNot([]byte, []byte, *SuiteContext) ([]byte, error)
 }

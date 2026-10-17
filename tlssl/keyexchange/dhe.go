@@ -2,20 +2,12 @@ package keyexchange
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"math/big"
 
 	"github.com/julinox/funtls/tlssl/names"
 )
-
-type KeyExchange interface {
-	//RSAPms()
-	//DHParams() ([]byte, error)
-	Public() []byte
-	Private() []byte
-	SharedSecret([]byte) ([]byte, error)
-	GroupName() string
-}
 
 type xDHE struct {
 	private []byte
@@ -71,12 +63,24 @@ func (x *xDHE) SharedSecret(peer []byte) ([]byte, error) {
 	return new(big.Int).Exp(peerInt, privInt, pInt).Bytes(), nil
 }
 
-func (x *xDHE) Public() []byte {
-	return x.public
+// p len(2B) | p bytes | g len(2B) | g bytes | pub len | pub bytes
+func (x *xDHE) Params() []byte {
+
+	var buffer []byte
+
+	buffLen := 2 + len(x.gInfo.p) + 2 + len(x.gInfo.g) + 2 + len(x.public)
+	buffer = make([]byte, 0, buffLen)
+	buffer = binary.BigEndian.AppendUint16(buffer, uint16(len(x.gInfo.p)))
+	buffer = append(buffer, x.gInfo.p...)
+	buffer = binary.BigEndian.AppendUint16(buffer, uint16(len(x.gInfo.g)))
+	buffer = append(buffer, x.gInfo.g...)
+	buffer = binary.BigEndian.AppendUint16(buffer, uint16(len(x.public)))
+	buffer = append(buffer, x.public...)
+	return buffer
 }
 
-func (x *xDHE) Private() []byte {
-	return x.private
+func (x *xDHE) Public() []byte {
+	return x.public
 }
 
 func (x *xDHE) GroupName() string {
@@ -104,6 +108,7 @@ func privateValue(qq []byte) ([]byte, error) {
 	return priv.Bytes(), nil
 }
 
+// "Magical DH" -> public = g^private mod p
 func publicValue(p, g, private []byte) []byte {
 
 	pInt := new(big.Int).SetBytes(p)

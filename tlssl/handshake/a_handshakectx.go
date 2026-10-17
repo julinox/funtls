@@ -7,7 +7,6 @@ import (
 	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl"
 	"github.com/julinox/funtls/tlssl/cipherspec"
-	kx "github.com/julinox/funtls/tlssl/keyexchange"
 
 	"github.com/sirupsen/logrus"
 )
@@ -54,10 +53,10 @@ type xHandhsakeContextData struct {
 	expected           int
 	order              []int
 	extensions         map[uint16]bool
-	skeParams          *kx.KXParams
-	keys               *tlssl.SessionKeys
-	specClient         cipherspec.CipherSpec
-	specServer         cipherspec.CipherSpec
+	//skeParams          *kx.KXParams
+	keys       *tlssl.SessionKeys
+	specClient cipherspec.CipherSpec
+	specServer cipherspec.CipherSpec
 }
 
 type xHandhsakeContext struct {
@@ -77,8 +76,8 @@ type HandShakeContext interface {
 	GetCipherSuite() uint16
 	SetMacMode(int)
 	GetMacMode() int
-	SetSkeParams(*kx.KXParams)
-	GetSkeParams() *kx.KXParams
+	//SetSkeParams(*kx.KXParams)
+	//GetSkeParams() *kx.KXParams
 	SetKeys(*tlssl.SessionKeys)
 	GetKeys() *tlssl.SessionKeys
 	SetCipherSpec(int, cipherspec.CipherSpec)
@@ -264,6 +263,7 @@ func (x *xHandhsakeContext) GetMacMode() int {
 	return x.data.macMode
 }
 
+/*
 func (x *xHandhsakeContext) SetSkeParams(pms *kx.KXParams) {
 	x.data.skeParams = pms
 }
@@ -271,6 +271,7 @@ func (x *xHandhsakeContext) SetSkeParams(pms *kx.KXParams) {
 func (x *xHandhsakeContext) GetSkeParams() *kx.KXParams {
 	return x.data.skeParams
 }
+*/
 
 func (x *xHandhsakeContext) SetTransitionStage(stage int) {
 	x.data.transitionStage = stage

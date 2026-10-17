@@ -26,3 +26,10 @@ var ffdhegroups = map[uint16]ffdhegroup{
 	names.FFDHE8192: {enable: false, g: FFDHE_G,
 		p: FFDHE8192_P, q: FFDHE8192_Q},
 }
+
+type KeyExchange interface {
+	Public() []byte
+	Params() []byte
+	GroupName() string
+	SharedSecret([]byte) ([]byte, error)
+}
