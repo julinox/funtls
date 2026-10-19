@@ -1,8 +1,10 @@
 package certos
 
 import (
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/hex"
@@ -17,6 +19,35 @@ import (
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/sirupsen/logrus"
 )
+
+func TestSigner(t *testing.T) {
+
+	var fingerprint []byte
+
+	cpki, lg := CertPKI()
+	fps := cpki.GetFingerPrints()
+	for _, fp := range fps {
+		fingerprint = fp
+		break
+	}
+
+	csign := cpki.GetSigner(fingerprint)
+	if csign == nil {
+		lg.Errorf("nill crypto.Signer for '%x'", fingerprint)
+		return
+	}
+
+	hashFn := crypto.SHA256.New()
+	hashFn.Write([]byte{0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFE})
+	digest := hashFn.Sum(nil)
+	signature, err := csign.Sign(rand.Reader, digest, crypto.SHA256)
+	if err != nil {
+		lg.Errorf("Sign(): %v", err)
+		return
+	}
+
+	lg.Info(signature)
+}
 
 func TestGet(t *testing.T) {
 
@@ -78,7 +109,7 @@ func TestSASupport(t *testing.T) {
 
 		for _, sa := range saList {
 			lg.Infof("%v (%v) SA %v? %v", chain[0].Subject.CommonName,
-				certKeyName(chain[0]), names.SignHashAlgorithms[sa],
+				certKeyName(chain[0]), names.SignatureAlgorithms[sa],
 				cpki.SaSupport([]uint16{sa}, fp))
 		}
 
@@ -108,17 +139,17 @@ func CertPKI() (cert.CertPKI, *logrus.Logger) {
 
 	certos := []*cert.CertPath{
 		{
-			ChainPath: "/home/usery/ca/chains/server1chain.pem",
-			KeyPath:   "/home/usery/ca/chains/private/server1chain.key",
+			ChainPath: "/home/developer/certs/rsa/cert.pem",
+			KeyPath:   "/home/developer/certs/rsa/key.pem",
 		},
-		{
+		/*{
 			ChainPath: "/home/usery/ca/chains/server2chain.pem",
 			KeyPath:   "/home/usery/ca/chains/private/server2chain.key",
 		},
 		{
 			ChainPath: "/home/usery/ca/chains/server3chain.pem",
 			KeyPath:   "/home/usery/ca/chains/private/server3chain.key",
-		},
+		},*/
 	}
 
 	lg := tester.TestLogger(logrus.TraceLevel)

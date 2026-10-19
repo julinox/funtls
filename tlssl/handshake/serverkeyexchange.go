@@ -7,6 +7,7 @@ import (
 	ex "github.com/julinox/funtls/tlssl/extensions"
 	ke "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
+	sig "github.com/julinox/funtls/tlssl/signature"
 )
 
 type xServerKeyExchange struct {
@@ -39,6 +40,7 @@ func (x *xServerKeyExchange) Handle() error {
 
 	var err error
 	var keyEx ke.KeyExchange
+	var signSchema sig.Signature
 
 	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
@@ -49,22 +51,34 @@ func (x *xServerKeyExchange) Handle() error {
 	if cs == nil {
 		return fmt.Errorf("cipher suite get err(%v)", x.Name())
 	}
+
 	switch cs.Info().KeyExchange {
 	case names.KX_DHE:
 		keyEx, err = ke.DHEphemeral(parseSG(dataSG))
 	default:
-		return fmt.Errorf("unknow server key exchange method")
+		return fmt.Errorf("%v: unknow server key exchange method", x.Name())
 	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("%v: err", x.Name())
 	}
 
 	if keyEx == nil {
 		return fmt.Errorf("nil key exchange interface")
 	}
 
-	keyEx.Params()
+	//pkey := x.tCtx.CertPKI.GetPrivateKey(x.ctx.GetCertFingerprint())
+	signSchema, err = sig.NewSignature(nil)
+	if err != nil {
+		return fmt.Errorf("%v: %v", x.Name(), err)
+	}
+
+	if signSchema == nil {
+		return fmt.Errorf("%v: nil signature schema interface", x.Name())
+	}
+
+	//keyEx.Params()
+	signSchema.SignMe(0xccaa)
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 	} else {
@@ -166,6 +180,6 @@ func printSG(sg []uint16) {
 func printSA(sa []uint16) {
 
 	for _, a := range sa {
-		fmt.Println(names.SignHashAlgorithms[a])
+		fmt.Println(names.SignatureAlgorithms[a])
 	}
 }

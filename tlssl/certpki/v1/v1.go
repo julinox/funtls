@@ -21,6 +21,7 @@ type pkInfo struct {
 	saSupport map[uint16]bool // Supported Algorithms
 	san       map[string]bool // Subject Alternative Names
 	key       crypto.PrivateKey
+	cSigner   crypto.Signer
 	chain     []*x509.Certificate // 0 is the leaf
 }
 
@@ -42,6 +43,7 @@ func NewCertPki(lg *logrus.Logger, cp []*cert.CertPath) (cert.CertPKI, error) {
 		return nil, fmt.Errorf("empty paths (%s)", myself)
 
 	}
+
 	cPki.info = make(map[[32]byte]*pkInfo)
 	cPki.lg = lg
 	for _, p := range cp {
@@ -136,6 +138,20 @@ func (x *xCertPKI) GetPrivateKey(fingerprint []byte) crypto.PrivateKey {
 	return info.key
 }
 
+func (x *xCertPKI) GetSigner(fingerprint []byte) crypto.Signer {
+
+	if len(fingerprint) == 0 {
+		return nil
+	}
+
+	info, ok := x.info[[32]byte(fingerprint)]
+	if !ok {
+		return nil
+	}
+
+	return info.cSigner
+}
+
 func (x *xCertPKI) SaSupport(sa []uint16, fingerprint []byte) bool {
 
 	if len(fingerprint) == 0 {
@@ -202,6 +218,10 @@ func (x *xCertPKI) Load(path *cert.CertPath) (*x509.Certificate, error) {
 	peca.chain = chain
 	if err = peca.setSignAlgoSupport(); err != nil {
 		return nil, err
+	}
+
+	if csign, ok := key.(crypto.Signer); ok {
+		peca.cSigner = csign
 	}
 
 	peca.san[peca.cname] = true

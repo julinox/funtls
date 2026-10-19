@@ -221,7 +221,7 @@ func printSASupport(saSupport map[uint16]bool, separator string) string {
 	total := len(saSupport)
 	for sa, supported := range saSupport {
 		if supported {
-			result += names.SignHashAlgorithms[sa]
+			result += names.SignatureAlgorithms[sa]
 			count++
 			if count < total {
 				result += separator

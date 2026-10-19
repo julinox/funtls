@@ -222,7 +222,7 @@ func algoToName(varr, algo uint16) string {
 		return fmt.Sprintf("%s(0x%04X)", suite.CipherSuiteNames[algo], algo)
 
 	case 0x000D:
-		return fmt.Sprintf("%s(0x%04X)", names.SignHashAlgorithms[algo], algo)
+		return fmt.Sprintf("%s(0x%04X)", names.SignatureAlgorithms[algo], algo)
 	}
 
 	return "unknown_algorithm_name_or_type"

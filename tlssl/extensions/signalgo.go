@@ -71,7 +71,7 @@ func (x xExtSignAlgo) PrintRaw(data []byte) string {
 
 	for i := 0; i < length; i++ {
 		id := uint16(data[offset])<<8 | uint16(data[offset+1])
-		algo := names.SignHashAlgorithms[id]
+		algo := names.SignatureAlgorithms[id]
 		if algo == "" {
 			algo = "*"
 		}
