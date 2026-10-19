@@ -75,7 +75,7 @@ func TestGet(t *testing.T) {
 
 func TestSASupport(t *testing.T) {
 
-	saList := []uint16{
+	/*saList := []uint16{
 		names.ECDSA_SECP256R1_SHA256,
 		names.ECDSA_SECP384R1_SHA384,
 		names.ECDSA_SECP521R1_SHA512,
@@ -96,7 +96,7 @@ func TestSASupport(t *testing.T) {
 		names.SHA256_DSA,
 		names.SHA384_DSA,
 		names.SHA512_DSA,
-	}
+	}*/
 
 	cpki, lg := CertPKI()
 	fps := cpki.GetFingerPrints()
@@ -107,12 +107,13 @@ func TestSASupport(t *testing.T) {
 			continue
 		}
 
-		for _, sa := range saList {
-			lg.Infof("%v (%v) SA %v? %v", chain[0].Subject.CommonName,
-				certKeyName(chain[0]), names.SignatureAlgorithms[sa],
-				cpki.SaSupport([]uint16{sa}, fp))
+		saString := ""
+		for k := range cpki.GetSaSupport(fp) {
+			saString += fmt.Sprintf("%v,", names.SignatureAlgorithms[k])
 		}
 
+		lg.Infof("%v (%v) | SA = (%v)", chain[0].Subject.CommonName,
+			certKeyName(chain[0]), saString)
 		fmt.Println()
 	}
 }

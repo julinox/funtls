@@ -17,7 +17,8 @@ type CertPKI interface {
 	Get([]byte) []*x509.Certificate
 	GetPrivateKey([]byte) crypto.PrivateKey
 	GetSigner([]byte) crypto.Signer
-	SaSupport([]uint16, []byte) bool
+	//SaSupport([]uint16, []byte) bool
+	GetSaSupport([]byte) map[uint16]bool
 	FingerPrint(*x509.Certificate) []byte
 	Load(*CertPath) (*x509.Certificate, error)
 }

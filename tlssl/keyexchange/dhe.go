@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/julinox/funtls/systema"
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -13,10 +15,12 @@ type xDHE struct {
 	private []byte
 	public  []byte
 	group   uint16
+	sa      []uint16
+	sg      []uint16
 	gInfo   ffdhegroup
 }
 
-func DHEphemeral(sgs []uint16) (KeyExchange, error) {
+func DHEphemeral(sgs, sas []uint16) (KeyExchange, error) {
 
 	var newKE xDHE
 
@@ -44,6 +48,8 @@ func DHEphemeral(sgs []uint16) (KeyExchange, error) {
 	}
 
 	newKE.private = pv
+	newKE.sa = sas
+	newKE.sg = sgs
 	newKE.public = publicValue(newKE.gInfo.p, newKE.gInfo.g, newKE.private)
 	return &newKE, nil
 }
@@ -81,6 +87,22 @@ func (x *xDHE) Params() []byte {
 
 func (x *xDHE) Public() []byte {
 	return x.public
+}
+
+func (x *xDHE) Sign(fp []byte, cpki pki.CertPKI) ([]byte, error) {
+
+	if len(fp) == 0 || cpki == nil {
+		return nil, fmt.Errorf("nil fingerpint/certpki")
+	}
+
+	certo := cpki.Get(fp)
+	if len(certo) == 0 {
+		return nil, fmt.Errorf("no certificate match")
+	}
+
+	scheme := systema.SASupportFirst(cpki.GetSaSupport(fp), x.sa)
+	fmt.Println(names.SignatureAlgorithms[scheme])
+	return nil, nil
 }
 
 func (x *xDHE) GroupName() string {

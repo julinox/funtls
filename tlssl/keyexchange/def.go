@@ -1,6 +1,7 @@
 package keyexchange
 
 import (
+	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 )
 
@@ -32,4 +33,5 @@ type KeyExchange interface {
 	Params() []byte
 	GroupName() string
 	SharedSecret([]byte) ([]byte, error)
+	Sign([]byte, pki.CertPKI) ([]byte, error)
 }

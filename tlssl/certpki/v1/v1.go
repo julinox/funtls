@@ -152,24 +152,18 @@ func (x *xCertPKI) GetSigner(fingerprint []byte) crypto.Signer {
 	return info.cSigner
 }
 
-func (x *xCertPKI) SaSupport(sa []uint16, fingerprint []byte) bool {
+func (x *xCertPKI) GetSaSupport(fingerprint []byte) map[uint16]bool {
 
 	if len(fingerprint) == 0 {
-		return false
+		return nil
 	}
 
 	info, ok := x.info[[32]byte(fingerprint)]
 	if !ok {
-		return false
+		return nil
 	}
 
-	for _, s := range sa {
-		if info.saSupport[s] {
-			return true
-		}
-	}
-
-	return false
+	return info.saSupport
 }
 
 func (x *xCertPKI) FingerPrint(cert *x509.Certificate) []byte {

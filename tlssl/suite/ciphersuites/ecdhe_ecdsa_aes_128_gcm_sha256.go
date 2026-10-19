@@ -166,9 +166,11 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 			continue
 		}
 
-		if !x.info.certPki.SaSupport(match.SA, csc.fingerPrint) {
+		/* Not ready yet??
+		if !systema.SASupport(x.Pki.GetSaSupport(fp), match.SA) {
 			continue
 		}
+		*/
 
 		if err := validateChainSignatures(chain, match.SA); err != nil {
 			continue

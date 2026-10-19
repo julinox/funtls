@@ -7,7 +7,6 @@ import (
 	ex "github.com/julinox/funtls/tlssl/extensions"
 	ke "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
-	sig "github.com/julinox/funtls/tlssl/signature"
 )
 
 type xServerKeyExchange struct {
@@ -40,13 +39,14 @@ func (x *xServerKeyExchange) Handle() error {
 
 	var err error
 	var keyEx ke.KeyExchange
-	var signSchema sig.Signature
+	//var signSchema sig.Signature
 
 	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
 	dataSG := x.ctx.GetMsgHello().Extensions[ex.EXT_SUPPORTED_GROUPS]
-	//dataSA := x.ctx.GetMsgHello().Extensions[ex.EXT_SIGNATURE_ALGORITHMS]
-
+	dataSA := x.ctx.GetMsgHello().Extensions[ex.EXT_SIGNATURE_ALGORITHMS]
+	sgs := parseSG(dataSG)
+	sas := parseSA(dataSA)
 	cs := x.tCtx.TLSSuite.GetSuite(x.ctx.GetCipherSuite())
 	if cs == nil {
 		return fmt.Errorf("cipher suite get err(%v)", x.Name())
@@ -54,7 +54,7 @@ func (x *xServerKeyExchange) Handle() error {
 
 	switch cs.Info().KeyExchange {
 	case names.KX_DHE:
-		keyEx, err = ke.DHEphemeral(parseSG(dataSG))
+		keyEx, err = ke.DHEphemeral(sgs, sas)
 	default:
 		return fmt.Errorf("%v: unknow server key exchange method", x.Name())
 	}
@@ -68,7 +68,7 @@ func (x *xServerKeyExchange) Handle() error {
 	}
 
 	//pkey := x.tCtx.CertPKI.GetPrivateKey(x.ctx.GetCertFingerprint())
-	signSchema, err = sig.NewSignature(nil)
+	/*signSchema, err = sig.NewSignature(nil)
 	if err != nil {
 		return fmt.Errorf("%v: %v", x.Name(), err)
 	}
@@ -77,8 +77,12 @@ func (x *xServerKeyExchange) Handle() error {
 		return fmt.Errorf("%v: nil signature schema interface", x.Name())
 	}
 
-	//keyEx.Params()
-	signSchema.SignMe(0xccaa)
+	signSchema.SignMe(0xccaa)*/
+	_, err = keyEx.Sign(x.ctx.GetCertFingerprint(), x.tCtx.CertPKI)
+	if err != nil {
+		return fmt.Errorf("%v: %v", x.Name(), err)
+	}
+
 	if x.tCtx.OptClientAuth {
 		x.nextState = CERTIFICATEREQUEST
 	} else {

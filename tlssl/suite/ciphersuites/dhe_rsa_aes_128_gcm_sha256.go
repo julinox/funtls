@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/julinox/funtls/systema"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
@@ -103,7 +104,7 @@ func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 			continue
 		}
 
-		if !x.Pki.SaSupport(match.SA, fp) {
+		if !systema.SASupportAny(x.Pki.GetSaSupport(fp), match.SA) {
 			continue
 		}
 

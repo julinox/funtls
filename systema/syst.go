@@ -43,3 +43,33 @@ func MyName() string {
 	filename := filepath.Base(file)
 	return fmt.Sprintf("%s/%s", funcName, filename)
 }
+
+func SASupportAny(mapa map[uint16]bool, lista []uint16) bool {
+
+	if len(mapa) == 0 || len(lista) == 0 {
+		return false
+	}
+
+	for _, l := range lista {
+		if mapa[l] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func SASupportFirst(mapa map[uint16]bool, lista []uint16) uint16 {
+
+	if len(mapa) == 0 || len(lista) == 0 {
+		return 0
+	}
+
+	for _, l := range lista {
+		if mapa[l] {
+			return l
+		}
+	}
+
+	return 0
+}
