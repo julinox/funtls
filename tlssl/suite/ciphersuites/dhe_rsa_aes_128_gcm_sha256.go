@@ -108,6 +108,7 @@ func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 			continue
 		}
 
+		// y los grupos no los validas?????
 		if err := validateChainSignatures(chain, match.SA); err != nil {
 			continue
 		}
@@ -116,6 +117,10 @@ func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 	}
 
 	return nil
+}
+
+func (x *x0x009E) RelatedCerts() [][]byte {
+	return x.relatedCerts
 }
 
 /*

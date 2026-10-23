@@ -107,11 +107,9 @@ func (x *x0x003D) CertMe(match *suite.CertMatch) []byte {
 	return nil
 }
 
-/*
-func (x *x0x003D) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
-	return nil, nil
+func (x *x0x003D) RelatedCerts() [][]byte {
+	return nil
 }
-*/
 
 func (x *x0x003D) basicCheck(ctx *suite.SuiteContext) error {
 

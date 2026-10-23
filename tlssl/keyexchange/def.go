@@ -7,6 +7,7 @@ import (
 
 const _DEFAULT_DHE_GROUP = names.FFDHE2048
 const _DEFAULT_ECDHE_GROUP = names.SECP256R1
+const _DEFAULT_RSA_SA_SCHEME = names.RSA_PKCS1_SHA256
 
 type ffdhegroup struct {
 	enable bool
@@ -28,6 +29,12 @@ var ffdhegroups = map[uint16]ffdhegroup{
 		p: FFDHE8192_P, q: FFDHE8192_Q},
 }
 
+/*
+	var nolose = map[x509.PublicKeyAlgorithm]uint16{
+		x509.RSA: ,
+		x509.ECDSA:
+	}
+*/
 type KeyExchange interface {
 	Public() []byte
 	Params() []byte

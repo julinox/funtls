@@ -145,6 +145,11 @@ func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
 	sg := getSupportedGroups(cliMsg)
 	sa := getSignatureAlgorithms(cliMsg)
 	sni := getServerNameIndication(cliMsg)
+
+	// ---------------------------------------------------------------
+	return fmt.Errorf("Men at work!")
+	// ---------------------------------------------------------------
+
 	for _, cs := range cliMsg.CipherSuites {
 		if !x.tCtx.TLSSuite.IsSupported(cs) {
 			continue

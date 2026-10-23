@@ -48,6 +48,8 @@ const (
 	CERT_KEY_ECDSA_P521
 )
 
+type SignatureAlgorithmType int
+
 const (
 	ECDSA_SECP256R1_SHA256 = 0x0403
 	ECDSA_SECP384R1_SHA384 = 0x0503

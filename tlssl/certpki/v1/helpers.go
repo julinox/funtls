@@ -1,7 +1,9 @@
 package v1
 
 import (
+	"crypto"
 	"crypto/ecdsa"
+	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/sha256"
 	"crypto/x509"
@@ -85,7 +87,7 @@ func loadPrivateKey(path string) (any, error) {
 	return key, nil
 }
 
-func validateKeyPair(cert *x509.Certificate, key any) bool {
+func validateKeyPair(cert *x509.Certificate, key crypto.PrivateKey) bool {
 
 	if cert == nil || key == nil {
 		return false
@@ -97,6 +99,10 @@ func validateKeyPair(cert *x509.Certificate, key any) bool {
 
 	case *ecdsa.PrivateKey:
 		return keyT.PublicKey.Equal(cert.PublicKey)
+
+	case ed25519.PrivateKey:
+		certPub, ok := cert.PublicKey.(ed25519.PublicKey)
+		return ok && certPub.Equal(keyT.Public())
 	}
 
 	return false

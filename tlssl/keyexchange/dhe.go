@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/julinox/funtls/systema"
 	pki "github.com/julinox/funtls/tlssl/certpki"
 	"github.com/julinox/funtls/tlssl/names"
 )
@@ -91,6 +90,9 @@ func (x *xDHE) Public() []byte {
 
 func (x *xDHE) Sign(fp []byte, cpki pki.CertPKI) ([]byte, error) {
 
+	/*var scheme uint16
+	//var sav2 extensions.SAv2
+
 	if len(fp) == 0 || cpki == nil {
 		return nil, fmt.Errorf("nil fingerpint/certpki")
 	}
@@ -100,8 +102,15 @@ func (x *xDHE) Sign(fp []byte, cpki pki.CertPKI) ([]byte, error) {
 		return nil, fmt.Errorf("no certificate match")
 	}
 
-	scheme := systema.SASupportFirst(cpki.GetSaSupport(fp), x.sa)
-	fmt.Println(names.SignatureAlgorithms[scheme])
+	sav2 = *extensions.NewExtensionSA()
+	if len(x.sa) > 0 {
+		scheme = systema.SASupportFirst(cpki.GetSaSupport(fp), x.sa)
+	} else {
+		scheme = 3
+	}
+
+	//certo[0].PublicKey
+	fmt.Println(names.SignatureAlgorithms[scheme])*/
 	return nil, nil
 }
 

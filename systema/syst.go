@@ -73,3 +73,13 @@ func SASupportFirst(mapa map[uint16]bool, lista []uint16) uint16 {
 
 	return 0
 }
+
+// para firmar necesito 2 cosas:
+//  1. La funcion hash, que es definida por el schema
+//  2. La curva (si es ecdsa), en cuyo caso necesito saber la curva especifica
+//     via la public key y tambien necesito la lista SG que debe ser vacia o
+//     contener la curva candidata (de la publickey)
+
+func TopoGigio() {
+
+}

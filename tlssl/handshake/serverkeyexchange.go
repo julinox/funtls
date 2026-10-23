@@ -67,6 +67,8 @@ func (x *xServerKeyExchange) Handle() error {
 		return fmt.Errorf("nil key exchange interface")
 	}
 
+	fmt.Println("SA:", sas)
+	fmt.Println("SG:", sgs)
 	//pkey := x.tCtx.CertPKI.GetPrivateKey(x.ctx.GetCertFingerprint())
 	/*signSchema, err = sig.NewSignature(nil)
 	if err != nil {

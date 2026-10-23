@@ -291,13 +291,19 @@ func (p *pkInfo) setSignAlgoSupport() error {
 		if pub, ok := leaf.PublicKey.(*ecdsa.PublicKey); ok {
 			switch pub.Curve {
 			case elliptic.P256():
-				p.saSupport[names.ECDSA_SECP256R1_SHA256] = true
+				aux := kee.SignAlgoECDSASupport[names.ECDSA_SECP256R1_SHA256]
+				p.saSupport[names.ECDSA_SECP256R1_SHA256] = aux
 			case elliptic.P384():
-				p.saSupport[names.ECDSA_SECP384R1_SHA384] = true
+				aux := kee.SignAlgoECDSASupport[names.ECDSA_SECP384R1_SHA384]
+				p.saSupport[names.ECDSA_SECP384R1_SHA384] = aux
 			case elliptic.P521():
-				p.saSupport[names.ECDSA_SECP521R1_SHA512] = true
+				aux := kee.SignAlgoECDSASupport[names.ECDSA_SECP521R1_SHA512]
+				p.saSupport[names.ECDSA_SECP521R1_SHA512] = aux
 			}
 		}
+
+	case x509.Ed25519:
+		p.saSupport[names.ED25519] = kee.SignAlgoED25519Support[names.ED25519]
 	}
 
 	return nil

@@ -11,6 +11,7 @@ import (
 
 	"github.com/julinox/funtls/server"
 	pki "github.com/julinox/funtls/tlssl/certpki"
+	//ext "github.com/julinox/funtls/tlssl/extensions"
 )
 
 /*
@@ -38,6 +39,14 @@ func main() {
 				ChainPath: "/home/developer/certs/rsa/cert.pem",
 				KeyPath:   "/home/developer/certs/rsa/key.pem",
 			},
+			{
+				ChainPath: "/home/developer/certs/ed25519/cert.pem",
+				KeyPath:   "/home/developer/certs/ed25519/key.pem",
+			},
+			/*{
+				ChainPath: "/home/developer/certs/ed448/cert.pem",
+				KeyPath:   "/home/developer/certs/ed448/key.pem",
+			},*/
 		},
 	})
 

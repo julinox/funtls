@@ -64,6 +64,7 @@ type Suite interface {
 	//ServerKX(*kx.KXData) (*kx.KXParams, error)
 	Cipher([]byte, []byte, *SuiteContext) ([]byte, error)
 	CipherNot([]byte, []byte, *SuiteContext) ([]byte, error)
+	RelatedCerts() [][]byte
 }
 
 func (sc *SuiteContext) Print() string {

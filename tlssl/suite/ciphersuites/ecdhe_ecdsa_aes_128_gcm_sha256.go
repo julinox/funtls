@@ -186,6 +186,10 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 	return nil
 }
 
+func (x *x0xC02B) RelatedCerts() [][]byte {
+	return nil
+}
+
 func (x *x0xC02B) basicCheck(ctx *suite.SuiteContext) error {
 
 	if ctx == nil {
