@@ -102,8 +102,7 @@ func (x *x0x003D) HashMe(data []byte) ([]byte, error) {
 	return hasher.Sum(nil), nil
 }
 
-func (x *x0x003D) CertMe(match *suite.CertMatch) []byte {
-
+func (x *x0x003D) CertMe(ct *suite.CertCriteria) *suite.CertSelection {
 	return nil
 }
 

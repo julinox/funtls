@@ -36,10 +36,16 @@ type SuiteInfo struct {
 	Auth        int // Signature algorithm
 }
 
-type CertMatch struct {
+type CertCriteria struct {
 	SG  []uint16
 	SA  []uint16
-	SNI []string
+	Sni []string
+}
+
+type CertSelection struct {
+	Group              uint16
+	Fingerprint        []byte
+	SignatureAlgorithm uint16
 }
 
 type SuiteOpts struct {
@@ -51,17 +57,18 @@ type SuiteOpts struct {
 type SuiteEnv struct {
 	IsClient bool
 	Pki      pki.CertPKI
-	Lg       *logrus.Logger
+	//Lg       *logrus.Logger
 }
+
+type InitSuite func(*SuiteEnv) (Suite, error)
 
 type Suite interface {
 	ID() uint16
 	Name() string
 	Info() *SuiteInfo
-	CertMe(*CertMatch) []byte
 	HashMe([]byte) ([]byte, error)
 	MacMe([]byte, []byte) ([]byte, error)
-	//ServerKX(*kx.KXData) (*kx.KXParams, error)
+	CertMe(*CertCriteria) *CertSelection
 	Cipher([]byte, []byte, *SuiteContext) ([]byte, error)
 	CipherNot([]byte, []byte, *SuiteContext) ([]byte, error)
 	RelatedCerts() [][]byte

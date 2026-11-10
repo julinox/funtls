@@ -1,33 +1,32 @@
 package ciphersuites
 
 import (
+	"crypto/x509"
 	"fmt"
-	"strings"
 
-	"github.com/julinox/funtls/systema"
+	kex "github.com/julinox/funtls/tlssl/keyexchange"
 	"github.com/julinox/funtls/tlssl/names"
 	"github.com/julinox/funtls/tlssl/suite"
 )
 
 type x0x009E struct {
-	//inter *suiteInternal
 	*suite.SuiteEnv
 	relatedCerts [][]byte
 }
 
-func DheRsaAes128GcmSha256(env *suite.SuiteEnv) suite.Suite {
+func DheRsaAes128GcmSha256(env *suite.SuiteEnv) (suite.Suite, error) {
 
 	var cNames []string
 	var newSuite x0x009E
 
-	if env == nil || env.Pki == nil || env.Lg == nil {
-		return nil
+	if env == nil || env.Pki == nil {
+		return nil, fmt.Errorf("nil env/pki")
 	}
 
 	newSuite.SuiteEnv = env
 	fingerprints := env.Pki.GetFingerPrints()
 	if len(fingerprints) <= 0 {
-		return nil
+		return nil, fmt.Errorf("")
 	}
 
 	newSuite.relatedCerts = make([][]byte, 0)
@@ -42,13 +41,10 @@ func DheRsaAes128GcmSha256(env *suite.SuiteEnv) suite.Suite {
 	}
 
 	if len(newSuite.relatedCerts) == 0 {
-		env.Lg.Warnf("Suite registered (no certs): %v", newSuite.Name())
-		return nil
+		return nil, fmt.Errorf("no cert match")
 	}
 
-	env.Lg.Infof("Suite registered: %v [%v]", newSuite.Name(),
-		strings.Join(cNames, ","))
-	return &newSuite
+	return &newSuite, nil
 }
 
 func (x *x0x009E) ID() uint16 {
@@ -91,6 +87,76 @@ func (x *x0x009E) HashMe(data []byte) ([]byte, error) {
 	return nil, fmt.Errorf("0x009E HashMe not implemented")
 }
 
+func (x *x0x009E) CertMe(ct *suite.CertCriteria) *suite.CertSelection {
+
+	var selecto suite.CertSelection
+
+	if ct == nil {
+		return nil
+	}
+
+	for _, fp := range x.relatedCerts {
+		chain := x.Pki.Get(fp)
+		saSupport := x.Pki.GetSaSupport(fp)
+		if len(chain) <= 0 {
+			continue
+		}
+
+		if !checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageAny) &&
+			!checkEKU(chain[0].ExtKeyUsage, x509.ExtKeyUsageServerAuth) {
+			continue
+		}
+
+		if !matchSniSan(ct.Sni, chain[0].DNSNames,
+			chain[0].Subject.CommonName) {
+			continue
+		}
+
+		if err := validateChainSignatures(chain, ct.SA); err != nil {
+			continue
+		}
+
+		// Select SG
+		for _, valG := range ct.SG {
+			if kex.SupportedDHGroups[valG] {
+				selecto.Group = valG
+				break
+			}
+		}
+
+		if selecto.Group == 0 {
+			for k := range kex.SupportedDHGroups {
+				selecto.Group = k
+				break
+			}
+		}
+
+		// Select SA
+		for _, saa := range ct.SA {
+			if saSupport[saa] {
+				selecto.SignatureAlgorithm = saa
+				break
+			}
+		}
+
+		if selecto.SignatureAlgorithm == 0 {
+			for k := range saSupport {
+				selecto.SignatureAlgorithm = k
+				break
+			}
+		}
+
+		selecto.Fingerprint = fp
+	}
+
+	return &selecto
+}
+
+func (x *x0x009E) RelatedCerts() [][]byte {
+	return x.relatedCerts
+}
+
+/*
 func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 
 	for _, fp := range x.relatedCerts {
@@ -117,15 +183,5 @@ func (x *x0x009E) CertMe(match *suite.CertMatch) []byte {
 	}
 
 	return nil
-}
-
-func (x *x0x009E) RelatedCerts() [][]byte {
-	return x.relatedCerts
-}
-
-/*
-func (x *x0x009E) ServerKX(data *kx.KXData) (*kx.KXParams, error) {
-
-	return nil, nil
 }
 */

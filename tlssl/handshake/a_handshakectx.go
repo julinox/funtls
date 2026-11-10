@@ -49,14 +49,15 @@ type xHandhsakeContextData struct {
 	completed          bool
 	cipherSuite        uint16
 	macMode            int
+	signatureAlgo      uint16
+	group              uint16
 	transitionStage    int
 	expected           int
 	order              []int
 	extensions         map[uint16]bool
-	//skeParams          *kx.KXParams
-	keys       *tlssl.SessionKeys
-	specClient cipherspec.CipherSpec
-	specServer cipherspec.CipherSpec
+	keys               *tlssl.SessionKeys
+	specClient         cipherspec.CipherSpec
+	specServer         cipherspec.CipherSpec
 }
 
 type xHandhsakeContext struct {
@@ -76,8 +77,10 @@ type HandShakeContext interface {
 	GetCipherSuite() uint16
 	SetMacMode(int)
 	GetMacMode() int
-	//SetSkeParams(*kx.KXParams)
-	//GetSkeParams() *kx.KXParams
+	SetSignatureAlgorithm(uint16)
+	GetSignatureAlgorithm() uint16
+	SetGroup(uint16)
+	GetGroup() uint16
 	SetKeys(*tlssl.SessionKeys)
 	GetKeys() *tlssl.SessionKeys
 	SetCipherSpec(int, cipherspec.CipherSpec)
@@ -263,15 +266,21 @@ func (x *xHandhsakeContext) GetMacMode() int {
 	return x.data.macMode
 }
 
-/*
-func (x *xHandhsakeContext) SetSkeParams(pms *kx.KXParams) {
-	x.data.skeParams = pms
+func (x *xHandhsakeContext) SetSignatureAlgorithm(sa uint16) {
+	x.data.signatureAlgo = sa
 }
 
-func (x *xHandhsakeContext) GetSkeParams() *kx.KXParams {
-	return x.data.skeParams
+func (x *xHandhsakeContext) GetSignatureAlgorithm() uint16 {
+	return x.data.signatureAlgo
 }
-*/
+
+func (x *xHandhsakeContext) SetGroup(sg uint16) {
+	x.data.group = sg
+}
+
+func (x *xHandhsakeContext) GetGroup() uint16 {
+	return x.data.group
+}
 
 func (x *xHandhsakeContext) SetTransitionStage(stage int) {
 	x.data.transitionStage = stage

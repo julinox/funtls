@@ -282,10 +282,24 @@ func (p *pkInfo) setSignAlgoSupport() error {
 			return fmt.Errorf("RSA public key size less than 128 bytes")
 		}
 
-		p.saSupport = maps.Clone(kee.SignAlgoRSASupport)
+		p.saSupport = make(map[uint16]bool, len(kee.SignAlgoRSASupport))
+		for k, ok := range kee.SignAlgoRSASupport {
+			if !ok {
+				continue
+			}
+
+			p.saSupport[k] = true
+		}
 
 	case x509.DSA:
-		p.saSupport = maps.Clone(kee.SignAlgoDSASupport)
+		p.saSupport = make(map[uint16]bool, len(kee.SignAlgoDSASupport))
+		for k, ok := range kee.SignAlgoDSASupport {
+			if !ok {
+				continue
+			}
+
+			p.saSupport[k] = true
+		}
 
 	case x509.ECDSA:
 		if pub, ok := leaf.PublicKey.(*ecdsa.PublicKey); ok {

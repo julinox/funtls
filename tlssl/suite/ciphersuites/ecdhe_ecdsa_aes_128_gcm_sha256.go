@@ -153,6 +153,7 @@ func (x *x0xC02B) HashMe(data []byte) ([]byte, error) {
 // - CN/SNI match
 // - SG's curve allowed?
 // - Can sign (ServerKeyExchange)
+/*
 func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 
 	for _, csc := range x.info.relatedcerts {
@@ -166,11 +167,10 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 			continue
 		}
 
-		/* Not ready yet??
-		if !systema.SASupport(x.Pki.GetSaSupport(fp), match.SA) {
-			continue
-		}
-		*/
+		//Not ready yet??
+		//if !systema.SASupport(x.Pki.GetSaSupport(fp), match.SA) {
+		//continue
+		//}
 
 		if err := validateChainSignatures(chain, match.SA); err != nil {
 			continue
@@ -183,6 +183,11 @@ func (x *x0xC02B) CertMe(match *suite.CertMatch) []byte {
 		return csc.fingerPrint
 	}
 
+	return nil
+}
+*/
+
+func (x *x0xC02B) CertMe(ct *suite.CertCriteria) *suite.CertSelection {
 	return nil
 }
 

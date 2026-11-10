@@ -38,13 +38,15 @@ func (x *xServerHello) Next() (int, error) {
 
 func (x *xServerHello) Handle() error {
 
+	var cipherSuite uint16
 	var serverHelloBuf []byte
+	var certParams *suite.CertSelection
 
 	x.tCtx.Lg.Tracef("Running state: %v", x.Name())
 	x.tCtx.Lg.Debugf("Running state: %v", x.Name())
 	msgHello := x.ctx.GetMsgHello()
 	if msgHello == nil {
-		return fmt.Errorf("nil MsgHello object")
+		return fmt.Errorf("%v: nil MsgHello object", x.Name())
 	}
 
 	serverHelloBuf = make([]byte, 0)
@@ -54,7 +56,8 @@ func (x *xServerHello) Handle() error {
 	// Random
 	random, err := x.random()
 	if err != nil {
-		return fmt.Errorf("error generating server random: %v", err)
+		return fmt.Errorf("%v: error generating server random: %v",
+			err, x.Name())
 	}
 
 	serverHelloBuf = append(serverHelloBuf, random[:]...)
@@ -63,14 +66,42 @@ func (x *xServerHello) Handle() error {
 	// Session ID. No session resumption
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 
-	// Cipher Suite
-	err = x.chooseCSAndCert(msgHello)
-	if err != nil {
-		return err
+	//-----------------------------------------------------------------------
+	// Select Cipher Suite
+	certCritera := &suite.CertCriteria{
+		SG:  getSupportedGroups(msgHello),
+		SA:  getSignatureAlgorithms(msgHello),
+		Sni: getServerNameIndication(msgHello),
 	}
 
-	cs := x.ctx.GetCipherSuite()
-	serverHelloBuf = append(serverHelloBuf, byte(cs>>8), byte(cs))
+	for _, csc := range msgHello.CipherSuites {
+		cst := x.tCtx.TLSSuite.GetSuite(csc)
+		if cst == nil {
+			continue
+		}
+
+		aux := cst.CertMe(certCritera)
+		if aux != nil {
+			cipherSuite = csc
+			certParams = aux
+			break
+		}
+	}
+
+	if cipherSuite == 0 {
+		return fmt.Errorf("%v: no matched ciphersuite", x.Name())
+	}
+
+	if certParams == nil {
+		return fmt.Errorf("%v: cert selection params nil", x.Name())
+	}
+
+	x.ctx.SetCipherSuite(cipherSuite)
+	x.ctx.SetCertFingerprint(certParams.Fingerprint)
+	x.ctx.SetGroup(certParams.Group)
+	x.ctx.SetSignatureAlgorithm(certParams.SignatureAlgorithm)
+	serverHelloBuf = append(serverHelloBuf, byte(cipherSuite>>8),
+		byte(cipherSuite))
 	// "Compression methods"
 	serverHelloBuf = append(serverHelloBuf, 0x00)
 	// Extensions
@@ -111,69 +142,6 @@ func (x *xServerHello) random() ([]byte, error) {
 	}
 
 	return newBuff, nil
-}
-
-// Its important to know that the choosing of the cipher suite is tighly
-// coupled with the choosing of the certificate.
-//
-// Rules/Anotations for choosing certificate (regarding a CS):
-// * If KX with ECDH then SG list is required, and cert's curve must match
-// one from the list. Note that when signing is required (ServerKeyExchange)
-// and the CS requires an EC signing algorithm then the same curve choosed
-// for KX must appears among the list of SignatureAlgorithms
-//
-// * For classic Diffie-Hellman no SG list is required (since it has fallback)
-//
-// * The cert must be signed by one of the algorithms within the SA list
-// but its not a requierement to be same choosed for KX
-//
-// A certificate by itself does not define whether the Key Exchange (KX)
-// uses static (EC)DH or ephemeral (EC)DHE. That is defined by the CS.
-// In static (EC)DH, the same long-term private key is reused in every KX.
-// This implies:
-//   - The server must already possess the long-term (EC)DH private key
-//   - Since the private key is already know then ServerKeyExchange step
-//     is not needed (on the contrary ephimeral requires SKE)
-//   - The certificate public key must correspond to that static private key
-//   - The cert need 'KeyUsage keyAgreement0 for static (EC)DH (like RSA)
-//
-// In (EC)DHE, the server generates a fresh ephemeral key per handshake,
-// and the certificate is only used to sign the ServerKeyExchange parameters.
-// KeyAgreement is not required; DigitalSignature is enough.
-func (x *xServerHello) chooseCSAndCert(cliMsg *MsgHello) error {
-
-	sg := getSupportedGroups(cliMsg)
-	sa := getSignatureAlgorithms(cliMsg)
-	sni := getServerNameIndication(cliMsg)
-
-	// ---------------------------------------------------------------
-	return fmt.Errorf("Men at work!")
-	// ---------------------------------------------------------------
-
-	for _, cs := range cliMsg.CipherSuites {
-		if !x.tCtx.TLSSuite.IsSupported(cs) {
-			continue
-		}
-
-		st := x.tCtx.TLSSuite.GetSuite(cs)
-		if st == nil {
-			continue
-		}
-
-		fp := st.CertMe(&suite.CertMatch{
-			SG:  sg,
-			SA:  sa,
-			SNI: sni,
-		})
-
-		if len(fp) > 0 {
-			x.ctx.SetCipherSuite(cs)
-			x.ctx.SetCertFingerprint(fp)
-			return nil
-		}
-	}
-
-	return fmt.Errorf("No ciphersuites match for the given clientHello")
 }
 
 func (x *xServerHello) extensions(cliMsg *MsgHello) []byte {

@@ -101,6 +101,7 @@ func (x *x0x0035) HashMe(data []byte) ([]byte, error) {
 	return hash.Sum(nil), nil
 }
 
+/*
 func (x *x0x0035) CertMe(match *suite.CertMatch) []byte {
 
 	for _, csc := range x.info.relatedcerts {
@@ -121,6 +122,11 @@ func (x *x0x0035) CertMe(match *suite.CertMatch) []byte {
 		return csc.fingerPrint
 	}
 
+	return nil
+}
+*/
+
+func (x *x0x0035) CertMe(ct *suite.CertCriteria) *suite.CertSelection {
 	return nil
 }
 

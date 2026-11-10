@@ -5,7 +5,17 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+
+	"github.com/julinox/funtls/tlssl/names"
 )
+
+var SupportedDHGroups = map[uint16]bool{
+	names.FFDHE2048: true,
+	names.FFDHE3072: true,
+	names.FFDHE4096: true,
+	names.FFDHE6144: true,
+	names.FFDHE8192: true,
+}
 
 var FFDHE_G = []byte{0x02}
 var FFDHE2048_P = []byte{

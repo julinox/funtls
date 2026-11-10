@@ -13,7 +13,7 @@ import (
 	"github.com/julinox/funtls/tlssl/handshake"
 	mx "github.com/julinox/funtls/tlssl/modulos"
 	"github.com/julinox/funtls/tlssl/suite"
-	css "github.com/julinox/funtls/tlssl/suite/ciphersuites"
+	cst "github.com/julinox/funtls/tlssl/suite/ciphersuites"
 
 	clog "github.com/julinox/consolelogrus"
 	"github.com/sirupsen/logrus"
@@ -36,30 +36,6 @@ type FunTLSCfg struct {
 type xTLSListener struct {
 	listener net.Listener
 	tCtx     tlssl.TLSContext
-}
-
-func bypass(xx *tlssl.TLSContext) {
-
-	//key := []byte("AES256Key-32Characters1234567890")
-	/*key := []byte("AES128Key-123456")
-	nonce := make([]byte, 12)
-	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
-		panic(err.Error())
-	}
-
-	plaintext := []byte("exampleplaintext")
-	sCtx := stt.SuiteContext{
-		Key:  key,
-		IV:   nonce,
-		Data: plaintext,
-	}
-
-	dulce := xx.TLSSuite.GetSuite(0xC02B)
-	if _, err := dulce.Cipher(&sCtx); err != nil {
-		fmt.Println("ERR: ", err)
-	}
-
-	fmt.Println("#-------- BYPASEOOOO --------#")*/
 }
 
 // FunTLServe is the main entry point for the FunTLS server
@@ -152,34 +128,35 @@ func initTLSSuites(pk pki.CertPKI, lg *logrus.Logger) (mx.ModTLSSuite, error) {
 
 	var err error
 	var tSuite mx.ModTLSSuite
+	var supportedSuites = map[uint16]suite.InitSuite{
+		0x009E: cst.DheRsaAes128GcmSha256,
+	}
 
 	tSuite, err = mx.NewModTLSSuite(lg)
-	if err != nil {
+	if err != nil || tSuite == nil {
 		return nil, err
 	}
 
-	/*suiteOpts := &suite.SuiteOpts{
+	stEnv := &suite.SuiteEnv{
 		Pki:      pk,
 		IsClient: false,
-		Lg:       lg,
-	}*/
-
-	supportedSuites := map[string]suite.Suite{
-		//suite.CipherSuiteNames[0x0035]: css.RsaAes256CbcSha(suiteOpts),
-		//suite.CipherSuiteNames[0x003D]: css.RsaAes256CbcSha256(suiteOpts),
-		//suite.CipherSuiteNames[0xC02B]: css.EcdheEcdsaAes128GcmSha256(suiteOpts),
-		suite.CipherSuiteNames[0x009E]: css.DheRsaAes128GcmSha256(&suite.SuiteEnv{
-			Pki:      pk,
-			IsClient: false,
-			Lg:       lg,
-		}),
 	}
 
-	for name, suite := range supportedSuites {
-		if err := tSuite.RegisterSuite(suite); err != nil {
-			lg.Errorf("suite '%v' registry failed: %v", name, err)
+	for id, initFN := range supportedSuites {
+		cs, err := initFN(stEnv)
+		if err != nil {
+			lg.Errorf("could not init suite '%v': %v",
+				suite.CipherSuiteNames[id], err)
 			continue
 		}
+
+		if err = tSuite.RegisterSuite(cs); err != nil {
+			lg.Errorf("failed suite registration '%v': %v",
+				suite.CipherSuiteNames[id], err)
+			continue
+		}
+
+		lg.Infof("suite registered: %v", suite.CipherSuiteNames[id])
 	}
 
 	return tSuite, nil
